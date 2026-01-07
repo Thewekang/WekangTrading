@@ -1,0 +1,175 @@
+// This is your Prisma schema file for WekangTradingJournal
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Will connect to Turso via libSQL
+  // Note: url moved to prisma.config.ts in Prisma 7
+}
+
+// ============================================
+// USER MODEL
+// ============================================
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  passwordHash  String    @map("password_hash")
+  role          Role      @default(USER)
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  individualTrades IndividualTrade[]
+  dailySummaries   DailySummary[]
+  targets          UserTarget[]
+  sessions         Session[]
+  accounts         Account[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ============================================
+// INDIVIDUAL TRADE MODEL
+// ============================================
+model IndividualTrade {
+  id               String        @id @default(uuid())
+  userId           String        @map("user_id")
+  dailySummaryId   String?       @map("daily_summary_id")
+  tradeTimestamp   DateTime      @map("trade_timestamp")
+  result           TradeResult
+  sopFollowed      Boolean       @map("sop_followed")
+  profitLossUsd    Float         @map("profit_loss_usd")
+  marketSession    MarketSession @map("market_session")
+  notes            String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailySummary  DailySummary? @relation(fields: [dailySummaryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, tradeTimestamp])
+  @@index([dailySummaryId])
+  @@index([marketSession])
+  @@index([result])
+  @@map("individual_trades")
+}
+
+enum TradeResult {
+  WIN
+  LOSS
+}
+
+enum MarketSession {
+  ASIA
+  EUROPE
+  US
+  OVERLAP
+}
+
+// ============================================
+// DAILY SUMMARY MODEL (Auto-calculated)
+// ============================================
+model DailySummary {
+  id                      String   @id @default(uuid())
+  userId                  String   @map("user_id")
+  tradeDate               DateTime @map("trade_date")
+  totalTrades             Int      @default(0) @map("total_trades")
+  totalWins               Int      @default(0) @map("total_wins")
+  totalLosses             Int      @default(0) @map("total_losses")
+  totalSopFollowed        Int      @default(0) @map("total_sop_followed")
+  totalSopNotFollowed     Int      @default(0) @map("total_sop_not_followed")
+  totalProfitLossUsd      Float    @default(0) @map("total_profit_loss_usd")
+  asiaSessionTrades       Int      @default(0) @map("asia_session_trades")
+  europeSessionTrades     Int      @default(0) @map("europe_session_trades")
+  usSessionTrades         Int      @default(0) @map("us_session_trades")
+  bestSession             MarketSession? @map("best_session")
+  notes                   String?
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  individualTrades IndividualTrade[]
+
+  @@unique([userId, tradeDate])
+  @@index([userId, tradeDate])
+  @@index([tradeDate])
+  @@map("daily_summaries")
+}
+
+// ============================================
+// USER TARGET MODEL
+// ============================================
+model UserTarget {
+  id             String     @id @default(uuid())
+  userId         String     @map("user_id")
+  targetType     TargetType @map("target_type")
+  targetWinRate  Float      @map("target_win_rate")
+  targetSopRate  Float?     @map("target_sop_rate")
+  active         Boolean    @default(true)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, active])
+  @@index([userId, targetType, active])
+  @@map("user_targets")
+}
+
+enum TargetType {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+// ============================================
+// SESSION MODEL (NextAuth)
+// ============================================
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ============================================
+// ACCOUNT MODEL (NextAuth - Future OAuth)
+// ============================================
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refreshToken      String? @map("refresh_token")
+  accessToken       String? @map("access_token")
+  expiresAt         Int?    @map("expires_at")
+  tokenType         String? @map("token_type")
+  scope             String?
+  idToken           String? @map("id_token")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
