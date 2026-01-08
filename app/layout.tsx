@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "WekangTradingJournal - Trading Performance Tracking",
   description: "🏍️💰 Trading Performance Tracking System with Individual Trade Timing Analysis",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.svg",
   },
 };
 

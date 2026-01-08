@@ -1,5 +1,6 @@
-import { MarketSession } from '@prisma/client';
-import { SESSION_HOURS, OVERLAP_HOURS } from './constants';
+import { SESSION_HOURS, OVERLAP_HOURS } from '../constants';
+
+export type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
 
 /**
  * Calculate market session from UTC timestamp

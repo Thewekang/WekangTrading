@@ -20,6 +20,7 @@ export const OVERLAP_HOURS = {
 export const PAGINATION = {
   TRADES_PER_PAGE: 50,
   MAX_BULK_INSERT: 100,
+  PAGINATION_PAGE_SIZE: 50,
 } as const;
 
 // Validation

@@ -1,9 +1,28 @@
-import { NextAuthOptions } from 'next-auth';
+import NextAuth, { DefaultSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './db';
 
-export const authOptions: NextAuthOptions = {
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      role: 'USER' | 'ADMIN';
+    } & DefaultSession['user'];
+  }
+  interface User {
+    role: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    role: string;
+    id: string;
+  }
+}
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -13,24 +32,24 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email as string },
         });
 
         if (!user || !user.passwordHash) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         const isPasswordValid = await bcrypt.compare(
-          credentials.password,
+          credentials.password as string,
           user.passwordHash
         );
 
         if (!isPasswordValid) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         return {
@@ -47,7 +66,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
-    error: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -65,4 +83,4 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-};
+});

@@ -32,19 +32,36 @@ export const passwordChangeSchema = z.object({
 // INDIVIDUAL TRADE VALIDATION SCHEMAS
 // ============================================
 
+// Base schema for form validation (without transformations)
 export const individualTradeSchema = z.object({
-  tradeTimestamp: z.coerce.date().refine((date) => date <= new Date(), {
+  tradeTimestamp: z.date().refine((date) => date <= new Date(), {
     message: 'Trade timestamp cannot be in the future',
   }),
-  result: z.enum(['WIN', 'LOSS'], {
-    required_error: 'Trade result is required',
+  result: z.enum(['WIN', 'LOSS']),
+  sopFollowed: z.boolean(),
+  profitLossUsd: z.number().refine((val) => val !== 0, {
+    message: 'Profit/loss cannot be zero',
   }),
-  sopFollowed: z.boolean({
-    required_error: 'SOP compliance is required',
-  }),
-  profitLossUsd: z.number({
-    required_error: 'Profit/loss is required',
-  }).refine((val) => val !== 0, {
+  notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
+});
+
+// API schema with string to Date transformation for API endpoints
+export const individualTradeApiSchema = z.object({
+  tradeTimestamp: z
+    .string()
+    .min(1, 'Trade timestamp is required')
+    .transform((val) => new Date(val))
+    .refine((date) => !Number.isNaN(date.getTime()), {
+      message: 'Trade timestamp is invalid',
+    })
+    .refine((date) => date <= new Date(), {
+      message: 'Trade timestamp cannot be in the future',
+    }),
+  result: z.enum(['WIN', 'LOSS']),
+  sopFollowed: z
+    .union([z.boolean(), z.literal('true'), z.literal('false')])
+    .transform((v) => (v === true || v === 'true')),
+  profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
@@ -54,7 +71,7 @@ export const bulkTradeEntrySchema = z.object({
   tradeDate: z.coerce.date().refine((date) => date <= new Date(), {
     message: 'Trade date cannot be in the future',
   }),
-  trades: z.array(individualTradeSchema).min(1, 'At least one trade is required').max(100, 'Maximum 100 trades per bulk entry'),
+  trades: z.array(individualTradeApiSchema).min(1, 'At least one trade is required').max(100, 'Maximum 100 trades per bulk entry'),
 }).refine((data) => {
   // All trades must be on the same date as tradeDate
   const dateStr = data.tradeDate.toISOString().split('T')[0];
@@ -72,9 +89,7 @@ export const bulkTradeEntrySchema = z.object({
 // ============================================
 
 export const userTargetSchema = z.object({
-  targetType: z.enum(['WEEKLY', 'MONTHLY', 'YEARLY'], {
-    required_error: 'Target type is required',
-  }),
+  targetType: z.enum(['WEEKLY', 'MONTHLY', 'YEARLY']),
   targetWinRate: z.number().min(0, 'Win rate must be at least 0%').max(100, 'Win rate cannot exceed 100%'),
   targetSopRate: z.number().min(0, 'SOP rate must be at least 0%').max(100, 'SOP rate cannot exceed 100%').optional(),
 });

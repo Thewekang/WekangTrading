@@ -77,6 +77,7 @@ model DailySummary {
   asiaSessionTrades       Int      @default(0) @map("asia_session_trades")
   europeSessionTrades     Int      @default(0) @map("europe_session_trades")
   usSessionTrades         Int      @default(0) @map("us_session_trades")
+  overlapSessionTrades    Int      @default(0) @map("overlap_session_trades")
   bestSession             String? @map("best_session")
   notes                   String?
   createdAt               DateTime @default(now()) @map("created_at")
