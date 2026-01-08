@@ -4,7 +4,8 @@
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: ✅ Design Approved - Ready for Implementation  
+> **Status**: 🚧 Phase 2 Complete - Building Phase 3  
+> **Current Version**: 0.2.0  
 > **Timeline**: 7-9 weeks  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso + Prisma + NextAuth.js v5
@@ -45,12 +46,21 @@ WekangTradingJournal/
 
 ## 🚀 Implementation Roadmap
 
-**Phase 0** (Week 1): Project Setup  
-**Phase 1** (Week 2): Authentication & Users  
-**Phase 2** (Week 3-5): Individual Trade Features ⚡ Extended  
-**Phase 3** (Week 6-7): Dashboard & Analytics ⚡ Extended  
+**Phase 0** (Week 1): ✅ Project Setup - COMPLETE  
+**Phase 1** (Week 2): ✅ Authentication & Users - COMPLETE  
+**Phase 2** (Week 3-5): ✅ Individual Trade Features - COMPLETE  
+**Phase 3** (Week 6-7): 🚧 Dashboard & Analytics - IN PROGRESS  
 **Phase 4** (Week 8): Admin Features  
-**Phase 5** (Week 8-9): Polish & Deployment  
+**Phase 5** (Week 8-9): Polish & Deployment
+
+### Phase 2 Completed Features ✅
+- Real-time trade entry form (mobile-optimized)
+- Bulk trade entry (up to 100 trades)
+- Trade list with filters (date, result, session, SOP)
+- Pagination with customizable page size (10/25/50/100)
+- localStorage persistence for user preferences
+- Auto-calculated market sessions
+- Daily summary auto-updates  
 
 ---
 
@@ -93,75 +103,82 @@ All design documents are in the `/docs` folder:
 
 ---
 
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or pnpm
+- Turso account (for database)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/Thewekang/WekangTrading.git
+cd WekangTrading
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Turso credentials
+
+# Run database migrations
+npm run db:migrate
+
+# Start development server
+npm run dev
+```
+
+### Available Commands
+
+```bash
+npm run dev         # Start development server
+npm run build       # Build for production
+npm run start       # Start production server
+npm run db:migrate  # Run database migrations
+npm run db:studio   # Open Prisma Studio
+npm run db:seed     # Seed database with test data
+```
+
+---
+
+## 📝 Recent Updates
+
+### January 9, 2026 - Phase 2 Complete
+- ✅ Completed all individual trade features
+- ✅ Real-time and bulk entry workflows
+- ✅ Trade list with comprehensive filters
+- ✅ Pagination with localStorage persistence
+- ✅ Updated documentation and changelog
+- 🎯 Ready for Phase 3: Dashboard & Analytics
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+---
+
 ## 🛠️ Next Steps
 
-**Week 1 begins with**:
-1. Initialize Next.js 15 project with TypeScript
-2. Set up Turso database
-3. Configure Prisma with dual-table schema (individual_trades + daily_summaries)
-4. Set up NextAuth.js v5
-5. Deploy preview environment to Vercel
+**Phase 3 Focus**:
+1. Dashboard with real statistics from daily_summaries
+2. Session performance charts (Recharts)
+3. Hourly performance heatmap
+4. Target tracking and progress visualization
 
-See [05-MILESTONES-ROADMAP.md](docs/05-MILESTONES-ROADMAP.md) for detailed week-by-week breakdown.
-
----
-
-## 📝 Version History
-
-- **v2.0** (Jan 8, 2026): Individual trade tracking model approved, requirements confirmed
-- **v1.0** (Jan 7, 2026): Initial design documents created
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Ready for Implementation**: ✅ Yes  
-**Start Date**: Week of January 8, 2026  
-**Expected Completion**: Week of March 3-10, 2026
-3. [System Architecture](./docs/02-SYSTEM-ARCHITECTURE.md)
-4. [Database Schema](./docs/03-DATABASE-SCHEMA.md)
-5. [API Specification](./docs/04-API-SPECIFICATION.md)
-6. [Implementation Milestones](./docs/05-MILESTONES-ROADMAP.md)
-7. [Progress Tracking](./docs/06-PROGRESS-TRACKING.md)
+## 📄 License
+
+This project is private and proprietary.
 
 ---
 
-## 🎯 Key Features
-
-### For Users (Traders)
-- Simple daily trade entry
-- Personal performance dashboard
-- Win rate analytics (week/month/year)
-- Customizable performance targets
-- Visual charts and graphs
-- SOP compliance tracking
-
-### For Admins
-- Monitor all user performance
-- User ranking system
-- Comparison charts
-- User management
-
----
-
-## 🛠️ Technology Stack
-
-- **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
-- **Backend**: Next.js API Routes (Serverless)
-- **Database**: Turso (SQLite for Edge)
-- **ORM**: Prisma
-- **Authentication**: NextAuth.js v5
-- **Charts**: Recharts
-- **UI Components**: shadcn/ui
-
----
-
-## 📅 Timeline
-
-**Estimated Duration**: 6-8 weeks
-
-- Week 1: Project Setup & Foundation
-- Week 2: Authentication & User Management
-- Week 3-4: Core Trading Features
-- Week 5: Dashboard & Analytics
+**Current Version**: 0.2.0  
+**Last Updated**: January 9, 2026  
+**Status**: Phase 2 Complete ✅ - Phase 3 In Progress 🚧
 - Week 6: Admin Features
 - Week 7-8: Polish & Deployment
 
