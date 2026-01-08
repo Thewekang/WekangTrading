@@ -1,7 +1,10 @@
 # API Specification
 
 ## Document Control
-- **Version**: 2.0
+- **Version**: 2.1
+- **Last Updated**: January 9, 2026
+- **Implementation Status**: ✅ Phase 2 APIs Complete
+- **Original Version**: 2.0
 - **Status**: UPDATED - Individual Trade Tracking Model
 - **Last Updated**: January 7, 2026
 - **Base URL**: `/api`
