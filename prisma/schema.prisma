@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite" // Will connect to Turso via libSQL
-  // Note: url moved to prisma.config.ts in Prisma 7
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -18,7 +18,7 @@ model User {
   email         String    @unique
   name          String
   passwordHash  String    @map("password_hash")
-  role          Role      @default(USER)
+  role          String    @default("USER")
   emailVerified DateTime? @map("email_verified")
   image         String?
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -34,11 +34,6 @@ model User {
   @@map("users")
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
 // ============================================
 // INDIVIDUAL TRADE MODEL
 // ============================================
@@ -47,10 +42,10 @@ model IndividualTrade {
   userId           String        @map("user_id")
   dailySummaryId   String?       @map("daily_summary_id")
   tradeTimestamp   DateTime      @map("trade_timestamp")
-  result           TradeResult
+  result           String
   sopFollowed      Boolean       @map("sop_followed")
   profitLossUsd    Float         @map("profit_loss_usd")
-  marketSession    MarketSession @map("market_session")
+  marketSession    String        @map("market_session")
   notes            String?
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
@@ -64,18 +59,6 @@ model IndividualTrade {
   @@index([marketSession])
   @@index([result])
   @@map("individual_trades")
-}
-
-enum TradeResult {
-  WIN
-  LOSS
-}
-
-enum MarketSession {
-  ASIA
-  EUROPE
-  US
-  OVERLAP
 }
 
 // ============================================
@@ -94,7 +77,7 @@ model DailySummary {
   asiaSessionTrades       Int      @default(0) @map("asia_session_trades")
   europeSessionTrades     Int      @default(0) @map("europe_session_trades")
   usSessionTrades         Int      @default(0) @map("us_session_trades")
-  bestSession             MarketSession? @map("best_session")
+  bestSession             String? @map("best_session")
   notes                   String?
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
@@ -115,7 +98,7 @@ model DailySummary {
 model UserTarget {
   id             String     @id @default(uuid())
   userId         String     @map("user_id")
-  targetType     TargetType @map("target_type")
+  targetType     String     @map("target_type")
   targetWinRate  Float      @map("target_win_rate")
   targetSopRate  Float?     @map("target_sop_rate")
   active         Boolean    @default(true)
@@ -128,12 +111,6 @@ model UserTarget {
   @@unique([userId, targetType, active])
   @@index([userId, targetType, active])
   @@map("user_targets")
-}
-
-enum TargetType {
-  WEEKLY
-  MONTHLY
-  YEARLY
 }
 
 // ============================================
