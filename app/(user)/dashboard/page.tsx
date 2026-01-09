@@ -242,10 +242,20 @@ export default async function DashboardPage() {
         {/* Session Performance Chart */}
         {totalTrades > 0 && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📈 Session Win Rate Comparison</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Visual breakdown of your performance across different trading sessions
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">📈 Session Win Rate Comparison</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Visual breakdown of your performance across different trading sessions
+                </p>
+              </div>
+              <Link
+                href="/analytics/trends"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                View Trends →
+              </Link>
+            </div>
             <SessionComparisonChart data={sessionStats} bestSession={bestSession} />
           </div>
         )}
