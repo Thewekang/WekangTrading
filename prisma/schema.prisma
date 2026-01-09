@@ -101,20 +101,25 @@ model DailySummary {
 // USER TARGET MODEL
 // ============================================
 model UserTarget {
-  id             String     @id @default(uuid())
-  userId         String     @map("user_id")
-  targetType     String     @map("target_type")
-  targetWinRate  Float      @map("target_win_rate")
-  targetSopRate  Float?     @map("target_sop_rate")
-  active         Boolean    @default(true)
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  targetType      String   @map("target_type")
+  targetWinRate   Float    @map("target_win_rate")
+  targetSopRate   Float    @map("target_sop_rate")
+  targetProfitUsd Float?   @map("target_profit_usd")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  notes           String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, targetType, active])
+  @@index([userId])
   @@index([userId, targetType, active])
+  @@index([userId, active, startDate, endDate])
   @@map("user_targets")
 }
 
