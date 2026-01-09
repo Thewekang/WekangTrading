@@ -181,11 +181,15 @@ export async function getSessionStats(
       break;
   }
 
-  // Query daily_summaries
-  const summaries = await prisma.dailySummary.findMany({
+  // Query individual trades directly for accurate session stats
+  const trades = await prisma.individualTrade.findMany({
     where: {
       userId,
-      ...(startDate && { tradeDate: { gte: startDate } }),
+      ...(startDate && { tradeTimestamp: { gte: startDate } }),
+    },
+    select: {
+      marketSession: true,
+      result: true,
     },
   });
 
@@ -197,18 +201,12 @@ export async function getSessionStats(
     OVERLAP: { trades: 0, wins: 0 },
   };
 
-  summaries.forEach((s: DailySummary) => {
-    sessionTotals.ASIA.trades += s.asiaSessionTrades;
-    sessionTotals.ASIA.wins += s.asiaSessionWins;
-    
-    sessionTotals.EUROPE.trades += s.europeSessionTrades;
-    sessionTotals.EUROPE.wins += s.europeSessionWins;
-    
-    sessionTotals.US.trades += s.usSessionTrades;
-    sessionTotals.US.wins += s.usSessionWins;
-    
-    sessionTotals.OVERLAP.trades += s.overlapSessionTrades;
-    sessionTotals.OVERLAP.wins += s.overlapSessionWins;
+  trades.forEach((trade) => {
+    const session = trade.marketSession as MarketSession;
+    sessionTotals[session].trades++;
+    if (trade.result === 'WIN') {
+      sessionTotals[session].wins++;
+    }
   });
 
   // Build stats array
