@@ -20,7 +20,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
     targetType: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY',
     targetWinRate: 60,
     targetSopRate: 80,
-    targetProfitUsd: 1000,
+    targetProfitUsd: '' as string | number,
     startDate: '',
     endDate: '',
     notes: '',
@@ -74,7 +74,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
       ...prev,
       targetWinRate: suggestions.suggestedWinRate,
       targetSopRate: suggestions.suggestedSopRate,
-      targetProfitUsd: suggestions.suggestedProfitUsd,
+      targetProfitUsd: suggestions.suggestedProfitUsd || '',
     }));
   };
 
@@ -91,6 +91,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
           targetWinRate: Number(formData.targetWinRate),
           targetSopRate: Number(formData.targetSopRate),
           targetProfitUsd: formData.targetProfitUsd ? Number(formData.targetProfitUsd) : undefined,
+          notes: formData.notes || undefined,
         }),
       });
 
@@ -218,7 +219,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
               type="number"
               step="0.01"
               value={formData.targetProfitUsd}
-              onChange={(e) => setFormData({ ...formData, targetProfitUsd: Number(e.target.value) })}
+              onChange={(e) => setFormData({ ...formData, targetProfitUsd: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Leave empty to skip profit target"
             />
