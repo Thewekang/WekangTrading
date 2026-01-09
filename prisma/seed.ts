@@ -38,7 +38,7 @@ async function main() {
   await prisma.dailySummary.deleteMany({ where: { userId: user.id } });
   console.log('✅ Existing data cleared');
 
-  // Generate sample trades across different sessions
+  // Generate sample trades across 30 days with realistic patterns
   const trades = [];
   const now = new Date();
 
@@ -50,50 +50,59 @@ async function main() {
     return date;
   };
 
-  // ASIA Session (00:00-09:00 UTC) - Good win rate
-  trades.push(
-    { timestamp: createDate(1, 2, 30), result: 'WIN', sop: true, pl: 50 },
-    { timestamp: createDate(1, 4, 15), result: 'WIN', sop: true, pl: 75 },
-    { timestamp: createDate(2, 3, 45), result: 'LOSS', sop: true, pl: -30 },
-    { timestamp: createDate(2, 5, 20), result: 'WIN', sop: true, pl: 40 },
-    { timestamp: createDate(3, 1, 10), result: 'WIN', sop: false, pl: 60 },
-    { timestamp: createDate(3, 6, 30), result: 'LOSS', sop: true, pl: -45 },
-    { timestamp: createDate(4, 4, 0), result: 'WIN', sop: true, pl: 55 },
-  );
+  // Generate 30 days of trading data
+  for (let day = 0; day < 30; day++) {
+    // Skip some days (weekends) - only trade 5 days per week
+    if (day % 7 === 5 || day % 7 === 6) continue;
 
-  // EUROPE Session (07:00-16:00 UTC) - Medium win rate
-  trades.push(
-    { timestamp: createDate(1, 9, 30), result: 'WIN', sop: true, pl: 45 },
-    { timestamp: createDate(1, 11, 45), result: 'LOSS', sop: false, pl: -60 },
-    { timestamp: createDate(2, 10, 15), result: 'WIN', sop: true, pl: 70 },
-    { timestamp: createDate(2, 14, 30), result: 'LOSS', sop: true, pl: -40 },
-    { timestamp: createDate(3, 12, 0), result: 'WIN', sop: true, pl: 50 },
-    { timestamp: createDate(4, 11, 20), result: 'LOSS', sop: false, pl: -55 },
-  );
+    const tradesPerDay = Math.floor(Math.random() * 3) + 3; // 3-5 trades per day
+    
+    for (let i = 0; i < tradesPerDay; i++) {
+      // Randomly select session
+      const sessionType = Math.random();
+      let hour: number;
+      let sessionName: string;
+      let winChance: number;
+      let sopChance: number;
 
-  // US Session (13:00-22:00 UTC) - Best win rate
-  trades.push(
-    { timestamp: createDate(0, 14, 30), result: 'WIN', sop: true, pl: 80 },
-    { timestamp: createDate(0, 16, 15), result: 'WIN', sop: true, pl: 65 },
-    { timestamp: createDate(1, 15, 45), result: 'WIN', sop: true, pl: 70 },
-    { timestamp: createDate(1, 18, 20), result: 'LOSS', sop: true, pl: -35 },
-    { timestamp: createDate(2, 17, 0), result: 'WIN', sop: true, pl: 85 },
-    { timestamp: createDate(2, 19, 30), result: 'WIN', sop: false, pl: 90 },
-    { timestamp: createDate(3, 16, 45), result: 'WIN', sop: true, pl: 75 },
-    { timestamp: createDate(3, 20, 10), result: 'WIN', sop: true, pl: 60 },
-    { timestamp: createDate(4, 15, 30), result: 'LOSS', sop: true, pl: -50 },
-    { timestamp: createDate(4, 21, 0), result: 'WIN', sop: true, pl: 55 },
-  );
+      if (sessionType < 0.3) {
+        // ASIA Session (00:00-09:00 UTC) - 70% win rate, 85% SOP
+        hour = Math.floor(Math.random() * 9);
+        sessionName = 'ASIA';
+        winChance = 0.70;
+        sopChance = 0.85;
+      } else if (sessionType < 0.6) {
+        // EUROPE Session (09:00-16:00 UTC) - 65% win rate, 80% SOP
+        hour = 9 + Math.floor(Math.random() * 7);
+        sessionName = 'EUROPE';
+        winChance = 0.65;
+        sopChance = 0.80;
+      } else {
+        // US Session (16:00-22:00 UTC) - 75% win rate, 90% SOP
+        hour = 16 + Math.floor(Math.random() * 6);
+        sessionName = 'US';
+        winChance = 0.75;
+        sopChance = 0.90;
+      }
 
-  // OVERLAP Session (07:00-09:00 and 13:00-16:00 UTC) - Some trades
-  trades.push(
-    { timestamp: createDate(1, 7, 30), result: 'WIN', sop: true, pl: 45 },
-    { timestamp: createDate(2, 8, 15), result: 'WIN', sop: true, pl: 50 },
-    { timestamp: createDate(3, 13, 30), result: 'LOSS', sop: false, pl: -40 },
-    { timestamp: createDate(4, 14, 45), result: 'WIN', sop: true, pl: 55 },
-  );
+      const isWin = Math.random() < winChance;
+      const followedSop = Math.random() < sopChance;
+      
+      // Profit/Loss: Wins average +$60, Losses average -$40
+      const profitLoss = isWin 
+        ? Math.floor(Math.random() * 50) + 35  // $35-$85
+        : -(Math.floor(Math.random() * 40) + 20); // -$20 to -$60
 
-  console.log(`\n📊 Creating ${trades.length} sample trades...`);
+      trades.push({
+        timestamp: createDate(day, hour, Math.floor(Math.random() * 60)),
+        result: isWin ? 'WIN' : 'LOSS',
+        sop: followedSop,
+        pl: profitLoss,
+      });
+    }
+  }
+
+  console.log(`\n📊 Creating ${trades.length} sample trades across 30 days...`);
 
   // Insert trades and let triggers handle daily summaries
   for (const trade of trades) {
@@ -137,6 +146,15 @@ async function main() {
   const totalWins = await prisma.individualTrade.count({ 
     where: { userId: user.id, result: 'WIN' } 
   });
+  const totalSopCompliant = await prisma.individualTrade.count({
+    where: { userId: user.id, sopFollowed: true }
+  });
+  
+  const allTrades = await prisma.individualTrade.findMany({
+    where: { userId: user.id },
+    select: { profitLossUsd: true }
+  });
+  const totalProfit = allTrades.reduce((sum, t) => sum + t.profitLossUsd, 0);
   
   const sessionCounts = {
     ASIA: await prisma.individualTrade.count({ where: { userId: user.id, marketSession: 'ASIA' } }),
@@ -146,7 +164,10 @@ async function main() {
   };
 
   console.log(`Total Trades: ${totalTrades}`);
-  console.log(`Total Wins: ${totalWins} (${((totalWins/totalTrades)*100).toFixed(1)}%)`);
+  console.log(`Total Wins: ${totalWins} (${((totalWins/totalTrades)*100).toFixed(1)}% win rate)`);
+  console.log(`SOP Compliant: ${totalSopCompliant} (${((totalSopCompliant/totalTrades)*100).toFixed(1)}% SOP rate)`);
+  console.log(`Total P/L: $${totalProfit.toFixed(2)}`);
+  console.log(`Avg P/L per trade: $${(totalProfit/totalTrades).toFixed(2)}`);
   console.log('\nTrades by Session:');
   console.log(`  ASIA: ${sessionCounts.ASIA} trades`);
   console.log(`  EUROPE: ${sessionCounts.EUROPE} trades`);
@@ -154,7 +175,8 @@ async function main() {
   console.log(`  OVERLAP: ${sessionCounts.OVERLAP} trades`);
 
   console.log('\n✨ Seed completed successfully!');
-  console.log('🎯 Expected: US session should be your best trading session (80% win rate)');
+  console.log('🎯 You now have 30 days of realistic trading data for testing');
+  console.log('💡 AI suggestions should show meaningful values based on this data');
 }
 
 main()
