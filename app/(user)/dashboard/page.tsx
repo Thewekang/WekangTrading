@@ -32,7 +32,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
           <div className="p-6 bg-white rounded-lg shadow border">
             <h3 className="text-sm font-medium text-gray-600 mb-2">Total Trades</h3>
             <p className="text-3xl font-bold">{totalTrades}</p>
@@ -67,6 +67,62 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted-foreground mt-2">This month</p>
           </div>
         </div>
+
+        {/* Performance Legend */}
+        {totalTrades > 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
+            <div className="flex flex-wrap items-center gap-6">
+              <span className="text-sm font-medium text-gray-700">Performance Guide:</span>
+              
+              {/* Win Rate Legend */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-gray-600">Win Rate:</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">≥60%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">50-59%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-red-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">&lt;50%</span>
+                </div>
+              </div>
+
+              {/* SOP Compliance Legend */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-gray-600">SOP:</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">≥80%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">60-79%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-red-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">&lt;60%</span>
+                </div>
+              </div>
+
+              {/* P/L Legend */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-gray-600">P/L:</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">Profit</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-red-600 font-semibold text-xs">●</span>
+                  <span className="text-xs text-gray-600">Loss</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Best Session Insight */}
         {bestSession && (
