@@ -65,7 +65,7 @@ export default function TargetCard({ target }: TargetCardProps) {
       const response = await fetch(`/api/targets/${target.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: false }),
+        body: JSON.stringify({ active: false }),
       });
 
       if (response.ok) {

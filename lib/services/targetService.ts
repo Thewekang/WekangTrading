@@ -44,10 +44,10 @@ export async function createTarget(
     where: {
       userId,
       targetType: data.targetType,
-      isActive: true,
+      active: true,
     },
     data: {
-      isActive: false,
+      active: false,
     },
   });
 
@@ -56,7 +56,7 @@ export async function createTarget(
     data: {
       userId,
       ...data,
-      isActive: true,
+      active: true,
     },
   });
 }
@@ -67,15 +67,15 @@ export async function createTarget(
 export async function getTargets(
   userId: string,
   options?: {
-    isActive?: boolean;
+    active?: boolean;
     targetType?: TargetType;
     includeExpired?: boolean;
   }
 ): Promise<UserTarget[]> {
   const where: any = { userId };
 
-  if (options?.isActive !== undefined) {
-    where.isActive = options.isActive;
+  if (options?.active !== undefined) {
+    where.active = options.active;
   }
 
   if (options?.targetType) {
@@ -108,7 +108,7 @@ export async function getActiveTarget(
     where: {
       userId,
       targetType,
-      isActive: true,
+      active: true,
       startDate: { lte: new Date() },
       endDate: { gte: new Date() },
     },
@@ -145,7 +145,7 @@ export async function getActiveTargetsWithProgress(
   const activeTargets = await prisma.userTarget.findMany({
     where: {
       userId,
-      isActive: true,
+      active: true,
       startDate: { lte: new Date() },
       endDate: { gte: new Date() },
     },
@@ -274,7 +274,7 @@ export async function updateTarget(
     targetSopRate: number;
     targetProfitUsd: number;
     notes: string;
-    isActive: boolean;
+    active: boolean;
   }>
 ): Promise<UserTarget> {
   return prisma.userTarget.update({
@@ -304,7 +304,7 @@ export async function deactivateTarget(
 ): Promise<UserTarget> {
   return prisma.userTarget.update({
     where: { id: targetId, userId },
-    data: { isActive: false },
+    data: { active: false },
   });
 }
 

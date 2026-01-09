@@ -21,7 +21,7 @@ const updateTargetSchema = z.object({
   targetSopRate: z.number().min(0).max(100).optional(),
   targetProfitUsd: z.number().optional(),
   notes: z.string().max(500).optional(),
-  isActive: z.boolean().optional(),
+  active: z.boolean().optional(),
 });
 
 /**

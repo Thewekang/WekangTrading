@@ -18,7 +18,7 @@ export default async function TargetsPage() {
 
   const [activeTargets, inactiveTargets] = await Promise.all([
     getActiveTargetsWithProgress(session.user.id),
-    getTargets(session.user.id, { isActive: false }),
+    getTargets(session.user.id, { active: false }),
   ]);
 
   return (

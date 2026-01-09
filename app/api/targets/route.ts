@@ -29,7 +29,7 @@ const createTargetSchema = z.object({
 
 // Query params schema
 const querySchema = z.object({
-  isActive: z.string().optional().transform((val) => val === 'true'),
+  active: z.string().optional().transform((val) => val === 'true'),
   targetType: z.enum(['WEEKLY', 'MONTHLY', 'YEARLY']).optional(),
   includeExpired: z.string().optional().transform((val) => val === 'true'),
   withProgress: z.string().optional().transform((val) => val === 'true'),
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     // Parse query params
     const { searchParams } = new URL(req.url);
     const validation = querySchema.safeParse({
-      isActive: searchParams.get('isActive'),
+      active: searchParams.get('active'),
       targetType: searchParams.get('targetType'),
       includeExpired: searchParams.get('includeExpired'),
       withProgress: searchParams.get('withProgress'),
@@ -73,15 +73,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { isActive, targetType, includeExpired, withProgress } = validation.data;
+    const { active, targetType, includeExpired, withProgress } = validation.data;
 
     // Get targets with or without progress calculation
     let targets;
-    if (withProgress && isActive) {
+    if (withProgress && active) {
       targets = await getActiveTargetsWithProgress(session.user.id);
     } else {
       targets = await getTargets(session.user.id, {
-        isActive,
+        active,
         targetType: targetType as TargetType | undefined,
         includeExpired,
       });
