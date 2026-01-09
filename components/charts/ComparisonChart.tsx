@@ -56,7 +56,7 @@ export default function ComparisonChart({
           stroke="#6b7280"
         />
         <Tooltip 
-          formatter={(value: number) => [tooltipFormatter(value), metricLabel]}
+          formatter={(value: number | undefined) => [tooltipFormatter(value || 0), metricLabel]}
           contentStyle={{ 
             backgroundColor: 'white', 
             border: '1px solid #e5e7eb',

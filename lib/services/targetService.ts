@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import type { UserTarget, TargetType } from '@prisma/client';
+import type { UserTarget } from '@prisma/client';
 import { getPersonalStats } from './statsService';
 
 export interface TargetWithProgress extends UserTarget {
@@ -30,7 +30,7 @@ export interface TargetWithProgress extends UserTarget {
 export async function createTarget(
   userId: string,
   data: {
-    targetType: TargetType;
+    targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
     targetWinRate: number;
     targetSopRate: number;
     targetProfitUsd?: number;
@@ -68,7 +68,7 @@ export async function getTargets(
   userId: string,
   options?: {
     active?: boolean;
-    targetType?: TargetType;
+    targetType?: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
     includeExpired?: boolean;
   }
 ): Promise<UserTarget[]> {
@@ -102,7 +102,7 @@ export async function getTargets(
  */
 export async function getActiveTarget(
   userId: string,
-  targetType: TargetType
+  targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 ): Promise<UserTarget | null> {
   return prisma.userTarget.findFirst({
     where: {
@@ -313,7 +313,7 @@ export async function deactivateTarget(
  */
 export async function getTargetSuggestions(
   userId: string,
-  targetType: TargetType
+  targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 ): Promise<{
   suggestedWinRate: number;
   suggestedSopRate: number;

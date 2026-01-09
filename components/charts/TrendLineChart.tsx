@@ -54,8 +54,8 @@ export default function TrendLineChart({
           tick={{ fontSize: 12 }}
           stroke="#6b7280"
         />
-        <Tooltip 
-          formatter={(value: number) => [tooltipFormatter(value), metricLabel]}
+        <Tooltip
+          formatter={(value: number | undefined) => [tooltipFormatter(value || 0), metricLabel]}
           contentStyle={{ 
             backgroundColor: 'white', 
             border: '1px solid #e5e7eb',

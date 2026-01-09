@@ -12,9 +12,9 @@ import { ZodError } from 'zod';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -28,7 +28,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const trade = await getTradeById(params.id, session.user.id);
+    const { id } = await params;
+    const trade = await getTradeById(id, session.user.id);
 
     return NextResponse.json(
       { success: true, data: trade },
@@ -70,7 +71,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update trade
-    const trade = await updateTrade(params.id, session.user.id, body);
+    const { id } = await params;
+    const trade = await updateTrade(id, session.user.id, body);
 
     return NextResponse.json(
       { success: true, data: trade, message: 'Trade updated successfully' },
@@ -113,7 +115,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await deleteTrade(params.id, session.user.id);
+    const { id } = await params;
+    await deleteTrade(id, session.user.id);
 
     return NextResponse.json(
       { success: true, message: 'Trade deleted successfully' },

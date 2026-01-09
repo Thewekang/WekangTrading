@@ -30,7 +30,7 @@ const updateTargetSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -42,7 +42,8 @@ export async function GET(
       );
     }
 
-    const target = await getTargetWithProgress(session.user.id, params.id);
+    const { id } = await params;
+    const target = await getTargetWithProgress(session.user.id, id);
 
     if (!target) {
       return NextResponse.json(
@@ -83,7 +84,7 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -113,7 +114,8 @@ export async function PATCH(
       );
     }
 
-    const target = await updateTarget(session.user.id, params.id, validation.data);
+    const { id } = await params;
+    const target = await updateTarget(session.user.id, id, validation.data);
 
     return NextResponse.json({
       success: true,
@@ -156,7 +158,7 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -168,7 +170,8 @@ export async function DELETE(
       );
     }
 
-    await deleteTarget(session.user.id, params.id);
+    const { id } = await params;
+    await deleteTarget(session.user.id, id);
 
     return NextResponse.json({
       success: true,

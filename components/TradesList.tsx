@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -25,6 +26,9 @@ interface TradesListProps {
 }
 
 export function TradesList({ initialTrades, userId }: TradesListProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -37,11 +41,43 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [minProfitLoss, setMinProfitLoss] = useState('');
   const [maxProfitLoss, setMaxProfitLoss] = useState('');
   
+  // Filter presets state
+  const [savedPresets, setSavedPresets] = useState<Array<{ name: string; filters: any }>>([]);
+  const [presetName, setPresetName] = useState('');
+  const [showPresetInput, setShowPresetInput] = useState(false);
+  
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(initialTrades.length);
   const [pageSize, setPageSize] = useState(50);
+  
+  // Load filter presets from localStorage on mount
+  useEffect(() => {
+    const presets = localStorage.getItem('tradesFilterPresets');
+    if (presets) {
+      setSavedPresets(JSON.parse(presets));
+    }
+  }, []);
+  
+  // Load filters from URL parameters on mount
+  useEffect(() => {
+    const urlStartDate = searchParams.get('startDate');
+    const urlEndDate = searchParams.get('endDate');
+    const urlResult = searchParams.get('result');
+    const urlSessions = searchParams.get('sessions');
+    const urlSop = searchParams.get('sop');
+    const urlMinPL = searchParams.get('minPL');
+    const urlMaxPL = searchParams.get('maxPL');
+    
+    if (urlStartDate) setStartDate(urlStartDate);
+    if (urlEndDate) setEndDate(urlEndDate);
+    if (urlResult) setResultFilter(urlResult);
+    if (urlSessions) setSessionFilter(urlSessions.split(','));
+    if (urlSop) setSopFilter(urlSop);
+    if (urlMinPL) setMinProfitLoss(urlMinPL);
+    if (urlMaxPL) setMaxProfitLoss(urlMaxPL);
+  }, [searchParams]);
   
   // Load pageSize from localStorage on mount
   useEffect(() => {
@@ -51,10 +87,10 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     }
   }, []);
   
-  // Save pageSize to localStorage when changed
+  // Fetch initial pagination data on mount
   useEffect(() => {
-    localStorage.setItem('tradesPageSize', pageSize.toString());
-  }, [pageSize]);
+    handleApplyFilters(1);
+  }, [pageSize]); // Re-fetch when pageSize changes
   
   // Save pageSize to localStorage when changed
   useEffect(() => {
@@ -85,6 +121,19 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   // Apply filters
   const handleApplyFilters = async (page = 1) => {
     setIsLoading(true);
+    
+    // Update URL parameters
+    const urlParams = new URLSearchParams();
+    if (startDate) urlParams.append('startDate', startDate);
+    if (endDate) urlParams.append('endDate', endDate);
+    if (resultFilter) urlParams.append('result', resultFilter);
+    if (sessionFilter.length > 0) urlParams.append('sessions', sessionFilter.join(','));
+    if (sopFilter) urlParams.append('sop', sopFilter);
+    if (minProfitLoss) urlParams.append('minPL', minProfitLoss);
+    if (maxProfitLoss) urlParams.append('maxPL', maxProfitLoss);
+    
+    router.push(`?${urlParams.toString()}`, { scroll: false });
+    
     try {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
@@ -124,6 +173,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     setMaxProfitLoss('');
     setCurrentPage(1);
     
+    // Clear URL parameters
+    router.push(window.location.pathname, { scroll: false });
+    
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -144,6 +196,117 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Quick filter handlers
+  const handleQuickFilterToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setStartDate(today);
+    setEndDate(today);
+    setResultFilter('');
+    setSessionFilter([]);
+    setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+  
+  const handleQuickFilterLast7Days = () => {
+    const today = new Date();
+    const last7Days = new Date(today);
+    last7Days.setDate(today.getDate() - 7);
+    setStartDate(last7Days.toISOString().split('T')[0]);
+    setEndDate(today.toISOString().split('T')[0]);
+    setResultFilter('');
+    setSessionFilter([]);
+    setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+  
+  const handleQuickFilterLast30Days = () => {
+    const today = new Date();
+    const last30Days = new Date(today);
+    last30Days.setDate(today.getDate() - 30);
+    setStartDate(last30Days.toISOString().split('T')[0]);
+    setEndDate(today.toISOString().split('T')[0]);
+    setResultFilter('');
+    setSessionFilter([]);
+    setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+  
+  const handleQuickFilterWinsOnly = () => {
+    setResultFilter('WIN');
+    setStartDate('');
+    setEndDate('');
+    setSessionFilter([]);
+    setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+  
+  const handleQuickFilterLossesOnly = () => {
+    setResultFilter('LOSS');
+    setStartDate('');
+    setEndDate('');
+    setSessionFilter([]);
+    setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+  
+  const handleQuickFilterSOPFollowed = () => {
+    setSopFilter('true');
+    setStartDate('');
+    setEndDate('');
+    setResultFilter('');
+    setSessionFilter([]);
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+  
+  // Save filter preset
+  const handleSavePreset = () => {
+    if (!presetName.trim()) return;
+    
+    const preset = {
+      name: presetName,
+      filters: {
+        startDate,
+        endDate,
+        resultFilter,
+        sessionFilter,
+        sopFilter,
+        minProfitLoss,
+        maxProfitLoss,
+      },
+    };
+    
+    const updatedPresets = [...savedPresets, preset];
+    setSavedPresets(updatedPresets);
+    localStorage.setItem('tradesFilterPresets', JSON.stringify(updatedPresets));
+    
+    setPresetName('');
+    setShowPresetInput(false);
+  };
+  
+  // Load filter preset
+  const handleLoadPreset = (preset: any) => {
+    setStartDate(preset.filters.startDate);
+    setEndDate(preset.filters.endDate);
+    setResultFilter(preset.filters.resultFilter);
+    setSessionFilter(preset.filters.sessionFilter);
+    setSopFilter(preset.filters.sopFilter);
+    setMinProfitLoss(preset.filters.minProfitLoss);
+    setMaxProfitLoss(preset.filters.maxProfitLoss);
+  };
+  
+  // Delete filter preset
+  const handleDeletePreset = (presetIndex: number) => {
+    const updatedPresets = savedPresets.filter((_, index) => index !== presetIndex);
+    setSavedPresets(updatedPresets);
+    localStorage.setItem('tradesFilterPresets', JSON.stringify(updatedPresets));
   };
   
   // Pagination handlers
@@ -178,6 +341,136 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
 
   return (
     <>
+      {/* Quick Filters Section */}
+      <div className="bg-white rounded-lg shadow-md p-4 border mb-4">
+        <h3 className="text-sm font-semibold mb-3">⚡ Quick Filters</h3>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleQuickFilterToday}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            📅 Today
+          </Button>
+          <Button
+            onClick={handleQuickFilterLast7Days}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            📆 Last 7 Days
+          </Button>
+          <Button
+            onClick={handleQuickFilterLast30Days}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            📊 Last 30 Days
+          </Button>
+          <Button
+            onClick={handleQuickFilterWinsOnly}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            ✅ Wins Only
+          </Button>
+          <Button
+            onClick={handleQuickFilterLossesOnly}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            ❌ Losses Only
+          </Button>
+          <Button
+            onClick={handleQuickFilterSOPFollowed}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            📋 SOP Followed
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Presets Section */}
+      <div className="bg-white rounded-lg shadow-md p-4 border mb-4">
+        <h3 className="text-sm font-semibold mb-3">💾 Filter Presets</h3>
+        
+        {/* Load Presets */}
+        {savedPresets.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs text-gray-600 mb-2">Load a preset:</p>
+            <div className="flex flex-wrap gap-2">
+              {savedPresets.map((preset, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <Button
+                    onClick={() => handleLoadPreset(preset)}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    {preset.name}
+                  </Button>
+                  <button
+                    onClick={() => handleDeletePreset(index)}
+                    className="text-red-500 hover:text-red-700 text-xs"
+                    title="Delete preset"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Save Preset */}
+        <div>
+          {!showPresetInput ? (
+            <Button
+              onClick={() => setShowPresetInput(true)}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              ➕ Save Current Filters as Preset
+            </Button>
+          ) : (
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Preset name..."
+                className="flex-1 rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <Button
+                onClick={handleSavePreset}
+                size="sm"
+                className="text-xs"
+              >
+                Save
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowPresetInput(false);
+                  setPresetName('');
+                }}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Filters Section */}
       <div className="bg-white rounded-lg shadow-md p-6 border mb-6">
         <h2 className="text-lg font-semibold mb-4">🔍 Filters</h2>

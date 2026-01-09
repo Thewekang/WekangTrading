@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createTarget, getTargets, getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { z } from 'zod';
-import type { TargetType } from '@prisma/client';
 
 // Validation schema for creating a target
 const createTargetSchema = z.object({
@@ -82,7 +81,7 @@ export async function GET(req: NextRequest) {
     } else {
       targets = await getTargets(session.user.id, {
         active,
-        targetType: targetType as TargetType | undefined,
+        targetType: targetType as 'WEEKLY' | 'MONTHLY' | 'YEARLY' | undefined,
         includeExpired,
       });
     }
