@@ -167,3 +167,13 @@ export async function getAggregatedStats(userId: string, startDate: Date, endDat
     dailySummaries: summaries,
   };
 }
+
+/**
+ * Helper function for seed script - update summary for a specific date
+ * @param userId - User ID
+ * @param date - The date to update summary for
+ */
+export async function updateDailySummaryForDate(userId: string, date: Date): Promise<void> {
+  return updateDailySummary(userId, date);
+}
+
