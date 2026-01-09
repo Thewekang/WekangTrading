@@ -1,53 +1,196 @@
-# 🔄 Resume Work Session - WekangTradingJournal
+# � Resume Development Guide
 
 **Last Updated**: January 9, 2026  
-**Current Status**: Phase 2 Complete ✅ - Ready for Phase 3
+**Last Session**: January 9, 2026  
+**Current Phase**: Phase 5 (Polish & Deployment)  
+**Next Task**: Admin Features
 
 ---
 
-## ✅ What's Complete (Phase 2)
+## ✅ Quick Start Checklist
 
-### Real-Time Trade Entry
-- Mobile-optimized form with 60px touch buttons
-- Datetime-local picker with auto-set timestamp
-- Simplified amount entry (positive only, auto-calculated)
-- SOP compliance with proper validation
-- File: `components/forms/RealTimeTradeEntryForm.tsx`
+Before coding, verify:
 
-### Bulk Trade Entry
-- Spreadsheet-style interface (up to 100 trades)
-- Dynamic rows with inline validation
-- Batch submission with error handling
-- File: `components/forms/BulkTradeEntryForm.tsx`
-
-### Trade List
-- Server-side initial data loading
-- Client-side interactive filters
-- Pagination with customizable page size (10/25/50/100)
-- localStorage persistence for preferences
-- File: `components/TradesList.tsx`
-- File: `app/(user)/trades/page.tsx`
-
-### Backend Services
-- Individual trade CRUD operations
-- Daily summary auto-updates
-- Market session calculator
-- Files: `lib/services/individualTradeService.ts`, `lib/services/dailySummaryService.ts`
-
-### API Endpoints
-- `POST /api/trades/individual` - Create trade
-- `GET /api/trades/individual` - List with filters & pagination
-- `POST /api/trades/bulk` - Bulk create
-- All authenticated with NextAuth
+- [x] Dev server starts: `npm run dev`
+- [x] Database connected (Turso)
+- [x] Git status clean: `git status`
+- [x] Node version correct: `node --version` (v18+)
+- [x] Dependencies installed: `npm install`
+- [x] Environment variables set (`.env.local`)
 
 ---
 
-## 🎯 Next Phase: Phase 3 - Dashboard & Analytics
+## 📍 Current State
 
-### Priority 1: Dashboard Statistics
-**Goal**: Replace placeholder dashboard with real data
+### What's Working ✅
+- **Phase 0**: Project setup (Next.js 15 + Turso + Prisma)
+- **Phase 1**: Authentication (NextAuth.js v5, login/register)
+- **Phase 2**: Individual trade tracking (real-time + bulk entry, pagination)
+- **Phase 3**: Dashboard & Analytics (charts, heatmap, session insights)
+- **Phase 4**: Advanced features (targets, trends, filtering, export)
+- **All Core Features**: Fully functional and tested
 
-**What to Build**:
+### Known Issues ⚠️
+- None - All bugs fixed ✅
+
+### In Progress 🔨
+- **Phase 5**: Awaiting start
+  - Admin features (0% complete)
+  - Error handling polish (0% complete)
+  - Mobile optimization (0% complete)
+  - Performance tuning (0% complete)
+  - Production deployment (0% complete)
+
+---
+
+## 🎯 Next Priorities
+
+### Immediate (This Session)
+1. **Admin Features - User Management**
+   - [ ] Create admin dashboard layout
+   - [ ] User list with search/filter
+   - [ ] User details view
+   - [ ] User statistics cards
+   - **Files to modify**: app/(admin)/dashboard/page.tsx, app/(admin)/users/page.tsx
+   - **Estimated time**: 4 hours
+
+2. **Admin Features - Rankings & Comparisons**
+   - [ ] User rankings table
+   - [ ] Comparison charts (win rate, profit/loss)
+   - [ ] Admin statistics API
+   - **Files to modify**: app/api/stats/admin/route.ts, components/admin/*
+   - **Estimated time**: 3 hours
+
+### Short-term (This Week)
+- Error handling improvements
+- Mobile optimization testing
+- Performance profiling
+- Deployment preparation
+
+### Long-term (This Phase)
+- Production deployment to Vercel
+- User acceptance testing
+- Documentation finalization
+- Project handoff
+
+---
+
+## 🗺️ Context for AI Assistants
+
+### Project Structure Reminder
+```
+Key Files:
+├── lib/services/         # Business logic (SSOT)
+│   ├── individualTradeService.ts
+│   ├── dailySummaryService.ts
+│   ├── statsService.ts
+│   ├── targetService.ts
+│   ├── trendAnalysisService.ts
+│   └── exportService.ts
+├── lib/validations.ts    # Zod schemas (SSOT)
+├── lib/constants.ts      # Enums & constants (SSOT)
+├── lib/types.ts          # TypeScript types (extended from Prisma)
+├── app/api/              # API routes
+└── components/           # React components
+```
+
+### Coding Principles
+1. **SSOT**: Never duplicate types, validation, or constants
+2. **Market Session**: Always auto-calculate server-side from UTC hour
+3. **Daily Summary**: Auto-update on every trade change
+4. **Validation**: Always client + server
+5. **Mobile-first**: Real-time entry optimized for mobile
+6. **Performance**: Use daily_summaries for dashboard stats
+
+### Recent Changes to Remember
+- Phase 4 completed with all advanced features
+- CSV/PDF export working with proper validation
+- Toast notifications using Sonner (non-blocking)
+- Advanced filtering with presets and URL sync
+- Target tracking with AI suggestions
+- Performance trends with MA7/MA30 analysis
+
+---
+
+## 🔗 Quick Reference Links
+
+- **GitHub Repo**: https://github.com/Thewekang/WekangTrading
+- **Turso Dashboard**: https://turso.tech/
+- **Design Docs**: `docs/` folder
+- **Copilot Instructions**: `.github/copilot-instructions.md`
+- **Progress Tracking**: `docs/06-PROGRESS-TRACKING.md`
+- **API Spec**: `docs/04-API-SPECIFICATION.md`
+- **Session Summary**: `docs/SESSION-SUMMARY-2026-01-09.md`
+
+---
+
+## 🧪 Testing Checklist
+
+Before marking Phase 5 complete:
+
+**Phase 5 Checklist**:
+- [ ] Admin can view all users
+- [ ] Admin can see user rankings
+- [ ] Comparison charts working
+- [ ] All errors handled gracefully
+- [ ] Loading states implemented
+- [ ] Empty states designed
+- [ ] Mobile responsive tested
+- [ ] Lighthouse score > 90
+- [ ] Build succeeds: `npm run build`
+- [ ] Production deployment successful
+
+**Phase 4 Checklist** ✅ COMPLETE:
+- [x] CSV export works (downloads file)
+- [x] PDF export works (opens print dialog)
+- [x] Toast notifications show properly
+- [x] Filters apply correctly
+- [x] No console errors
+- [x] Mobile responsive
+- [x] Build succeeds: `npm run build`
+
+---
+
+## 💾 Last Known Good State
+
+**Commit**: bc6b419  
+**Branch**: main  
+**Server Running**: Yes (localhost:3000)  
+**Build Status**: ✅ Passing  
+**Test Coverage**: N/A
+
+**If something breaks, rollback to**:
+```bash
+git checkout bc6b419
+```
+
+---
+
+## 📞 When to Ask for Help
+
+- Build fails after dependency update
+- TypeScript errors in Prisma-generated types
+- Authentication flow breaks
+- Database migration fails
+- Performance degrades significantly
+- Vercel deployment issues
+
+---
+
+## 🎓 Lessons Learned This Session
+
+1. **Empty String Validation**: Always check for empty strings in optional filters before passing to Prisma
+2. **Toast Notifications**: Use Sonner for modern, non-blocking UX feedback
+3. **PDF Generation**: Client-side HTML print is more serverless-friendly than Puppeteer
+4. **Filter Persistence**: localStorage + URL params = great UX for filter states
+5. **Moving Averages**: Handle edge cases where historical data < MA period
+6. **Chart Performance**: Recharts handles large datasets well with ResponsiveContainer
+7. **Seed Data**: Comprehensive test data is crucial for testing analytics features
+8. **API Error Messages**: Specific error messages make debugging much easier
+
+---
+
+**Remember**: Check `.github/copilot-instructions.md` for full context before coding!
 ```typescript
 // File: app/(user)/dashboard/page.tsx
 - Query daily_summaries for statistics

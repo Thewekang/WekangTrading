@@ -4,8 +4,8 @@
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: 🚧 Phase 2 Complete - Building Phase 3  
-> **Current Version**: 0.2.0  
+> **Status**: 🎉 Phase 4 Complete - Ready for Phase 5  
+> **Current Version**: 0.4.0  
 > **Timeline**: 7-9 weeks  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso + Prisma + NextAuth.js v5
@@ -17,11 +17,15 @@
 - **Individual Trade Tracking** with timestamps for timing analysis
 - **Dual Entry Workflows**: Real-time (mobile) + Bulk entry (desktop)
 - **Market Session Analysis**: Auto-detect ASIA/EUROPE/US/OVERLAP sessions
-- **Hourly Performance Analytics**: Identify most profitable trading hours
-- **Profit/Loss Tracking**: USD per trade
-- **Fast Dashboard**: Pre-calculated daily summaries
+- **Hourly Performance Analytics**: Identify most profitable trading hours with timezone support
+- **Target Tracking**: Set weekly/monthly/yearly goals with AI suggestions
+- **Performance Trends**: MA7/MA30 analysis with trend indicators
+- **Advanced Filtering**: Multi-select, P/L range, presets, URL sync
+- **Data Export**: CSV + PDF reports with filter support
+- **Profit/Loss Tracking**: USD per trade with aggregated insights
+- **Fast Dashboard**: Pre-calculated daily summaries with interactive charts
+- **Toast Notifications**: Non-blocking, modern UX feedback
 - **Mobile-Friendly**: Optimized for on-the-go trade entry
-- **Admin Monitoring**: User rankings and comparative stats
 
 ---
 
@@ -49,9 +53,23 @@ WekangTradingJournal/
 **Phase 0** (Week 1): ✅ Project Setup - COMPLETE  
 **Phase 1** (Week 2): ✅ Authentication & Users - COMPLETE  
 **Phase 2** (Week 3-5): ✅ Individual Trade Features - COMPLETE  
-**Phase 3** (Week 6-7): 🚧 Dashboard & Analytics - IN PROGRESS  
-**Phase 4** (Week 8): Admin Features  
-**Phase 5** (Week 8-9): Polish & Deployment
+**Phase 3** (Week 6-7): ✅ Dashboard & Analytics - COMPLETE  
+**Phase 4** (Week 8): ✅ Advanced Features - COMPLETE  
+**Phase 5** (Week 9): ⏳ Polish & Deployment - NEXT
+
+### Phase 4 Completed Features ✅
+- **Target Tracking**: Set and monitor weekly/monthly/yearly goals
+- **Performance Trends**: MA7/MA30 moving averages with trend indicators
+- **Advanced Filtering**: Multi-select sessions, P/L range, filter presets
+- **Data Export**: CSV + PDF reports with comprehensive filter support
+- **Toast Notifications**: Modern, non-blocking user feedback (Sonner)
+
+### Phase 3 Completed Features ✅
+- Dashboard statistics with personal performance metrics
+- Session performance comparison charts (Recharts)
+- Hourly performance heatmap with timezone support
+- Session insights with win/loss breakdown
+- Color-coded performance indicators
 
 ### Phase 2 Completed Features ✅
 - Real-time trade entry form (mobile-optimized)
@@ -179,8 +197,37 @@ This project is private and proprietary.
 **Current Version**: 0.2.0  
 **Last Updated**: January 9, 2026  
 **Status**: Phase 2 Complete ✅ - Phase 3 In Progress 🚧
-- Week 6: Admin Features
-- Week 7-8: Polish & Deployment
+---
+
+## 📰 Recent Updates
+
+- **2026-01-09**: Phase 4 Complete - Advanced features (targets, trends, filtering, export)
+- **2026-01-09**: Phase 3 Complete - Dashboard with charts and analytics
+- **2026-01-09**: Phase 2 Complete - Individual trade tracking system
+- **2026-01-08**: Phase 1 Complete - Authentication and user management
+- **2026-01-08**: Phase 0 Complete - Project setup and foundation
+
+---
+
+## 🛠️ Tech Stack
+
+### Core Dependencies
+- **Next.js 15**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Turso (libSQL)**: Serverless SQLite database
+- **Prisma ORM**: Type-safe database client
+- **NextAuth.js v5**: Authentication with sessions
+- **Tailwind CSS**: Utility-first styling
+- **shadcn/ui**: Beautiful UI components
+- **Recharts**: React charting library
+- **Sonner**: Modern toast notifications
+- **date-fns**: Date manipulation utilities
+- **Zod**: Schema validation
+
+### Development Tools
+- **TypeScript Compiler**: Strict mode enabled
+- **ESLint**: Code linting
+- **Turbo**: Fast build system
 
 ---
 
