@@ -6,7 +6,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import TrendLineChart from '@/components/charts/TrendLineChart';
 import ComparisonChart from '@/components/charts/ComparisonChart';
 import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
@@ -14,7 +13,6 @@ import { calculateMovingAverages } from '@/lib/services/trendAnalysisService';
 import type { DailyTrend, ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
 
 export default function TrendsPage() {
-  const { data: session } = useSession();
   const [trends, setTrends] = useState<DailyTrend[]>([]);
   const [weeklyComparison, setWeeklyComparison] = useState<ComparisonData | null>(null);
   const [monthlyComparison, setMonthlyComparison] = useState<ComparisonData | null>(null);
@@ -24,9 +22,8 @@ export default function TrendsPage() {
   const [selectedDays, setSelectedDays] = useState(30);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
     fetchData();
-  }, [session, selectedDays]);
+  }, [selectedDays]);
 
   const fetchData = async () => {
     setLoading(true);
