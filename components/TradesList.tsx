@@ -52,6 +52,17 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [totalCount, setTotalCount] = useState(initialTrades.length);
   const [pageSize, setPageSize] = useState(50);
   
+  // Summary statistics (from ALL filtered trades, not just current page)
+  const [summaryStats, setSummaryStats] = useState({
+    totalTrades: initialTrades.length,
+    totalWins: initialTrades.filter(t => t.result === 'WIN').length,
+    totalLosses: initialTrades.filter(t => t.result === 'LOSS').length,
+    totalSopFollowed: initialTrades.filter(t => t.sopFollowed).length,
+    netProfitLoss: initialTrades.reduce((sum, t) => sum + t.profitLossUsd, 0),
+    winRate: 0,
+    sopRate: 0,
+  });
+  
   // Load filter presets from localStorage on mount
   useEffect(() => {
     const presets = localStorage.getItem('tradesFilterPresets');
@@ -154,6 +165,11 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         setCurrentPage(data.data.pagination.page);
         setTotalPages(data.data.pagination.totalPages);
         setTotalCount(data.data.pagination.totalCount);
+        
+        // Update summary statistics from API
+        if (data.data.summary) {
+          setSummaryStats(data.data.summary);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch filtered trades:', error);
@@ -190,6 +206,11 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         setCurrentPage(data.data.pagination.page);
         setTotalPages(data.data.pagination.totalPages);
         setTotalCount(data.data.pagination.totalCount);
+        
+        // Update summary statistics from API
+        if (data.data.summary) {
+          setSummaryStats(data.data.summary);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch trades:', error);
@@ -326,18 +347,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setCurrentPage(1);
-    // Re-fetch with new page size
-    setTimeout(() => handleApplyFilters(1), 0);
+    // Re-fetch with new page size - will automatically trigger due to useEffect
   };
-
-  // Calculate summary stats from current filtered trades
-  const totalTrades = trades.length;
-  const totalWins = trades.filter(t => t.result === 'WIN').length;
-  const totalSopFollowed = trades.filter(t => t.sopFollowed).length;
-  const netProfitLoss = trades.reduce((sum, t) => sum + t.profitLossUsd, 0);
-  
-  const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
-  const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
 
   return (
     <>
@@ -724,20 +735,20 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4 border text-center">
           <p className="text-sm text-gray-600 mb-1">Total Trades</p>
-          <p className="text-2xl font-bold">{totalTrades}</p>
+          <p className="text-2xl font-bold">{summaryStats.totalTrades}</p>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border text-center">
           <p className="text-sm text-gray-600 mb-1">Win Rate</p>
-          <p className="text-2xl font-bold text-green-600">{winRate.toFixed(1)}%</p>
+          <p className="text-2xl font-bold text-green-600">{summaryStats.winRate.toFixed(1)}%</p>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border text-center">
           <p className="text-sm text-gray-600 mb-1">SOP Rate</p>
-          <p className="text-2xl font-bold text-blue-600">{sopRate.toFixed(1)}%</p>
+          <p className="text-2xl font-bold text-blue-600">{summaryStats.sopRate.toFixed(1)}%</p>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border text-center">
           <p className="text-sm text-gray-600 mb-1">Net P/L</p>
-          <p className={`text-2xl font-bold ${netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {netProfitLoss >= 0 ? '+' : ''}${netProfitLoss.toFixed(2)}
+          <p className={`text-2xl font-bold ${summaryStats.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {summaryStats.netProfitLoss >= 0 ? '+' : ''}${summaryStats.netProfitLoss.toFixed(2)}
           </p>
         </div>
       </div>

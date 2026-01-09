@@ -169,7 +169,7 @@ export async function getTrades(filters: GetTradesFilters) {
     if (maxProfitLoss !== undefined) where.profitLossUsd.lte = maxProfitLoss;
   }
 
-  const [trades, totalCount] = await Promise.all([
+  const [trades, totalCount, allFilteredTrades] = await Promise.all([
     prisma.individualTrade.findMany({
       where,
       orderBy: { tradeTimestamp: 'desc' },
@@ -177,7 +177,23 @@ export async function getTrades(filters: GetTradesFilters) {
       take: pageSize,
     }),
     prisma.individualTrade.count({ where }),
+    // Get all trades for summary statistics (only fetch needed fields)
+    prisma.individualTrade.findMany({
+      where,
+      select: {
+        result: true,
+        sopFollowed: true,
+        profitLossUsd: true,
+      },
+    }),
   ]);
+
+  // Calculate summary statistics from ALL filtered trades
+  const totalWins = allFilteredTrades.filter(t => t.result === 'WIN').length;
+  const totalSopFollowed = allFilteredTrades.filter(t => t.sopFollowed).length;
+  const netProfitLoss = allFilteredTrades.reduce((sum, t) => sum + t.profitLossUsd, 0);
+  const winRate = totalCount > 0 ? (totalWins / totalCount) * 100 : 0;
+  const sopRate = totalCount > 0 ? (totalSopFollowed / totalCount) * 100 : 0;
 
   return {
     trades,
@@ -186,6 +202,15 @@ export async function getTrades(filters: GetTradesFilters) {
       pageSize,
       totalCount,
       totalPages: Math.ceil(totalCount / pageSize),
+    },
+    summary: {
+      totalTrades: totalCount,
+      totalWins,
+      totalLosses: totalCount - totalWins,
+      totalSopFollowed,
+      netProfitLoss,
+      winRate,
+      sopRate,
     },
   };
 }
