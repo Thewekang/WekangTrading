@@ -268,13 +268,10 @@ export async function getTrendIndicators(userId: string): Promise<TrendIndicator
   // Profit/Loss Trend
   const profitChange7 = current7.profitLoss - previous7.profitLoss;
   const profitChange30 = current30.profitLoss - previous30.profitLoss;
-  const profitChangePercent = previous30.profitLoss !== 0 
-    ? ((current30.profitLoss - previous30.profitLoss) / Math.abs(previous30.profitLoss)) * 100 
-    : 0;
   indicators.push({
     metric: 'profitLoss',
     direction: profitChange30 > 100 ? 'improving' : profitChange30 < -100 ? 'declining' : 'stable',
-    changePercent: Math.round(profitChangePercent * 10) / 10,
+    changePercent: Math.round(profitChange30 * 100) / 100, // Use absolute dollar change, not percentage
     trend7Day: Math.round(profitChange7 * 100) / 100,
     trend30Day: Math.round(profitChange30 * 100) / 100,
   });

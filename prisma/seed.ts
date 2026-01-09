@@ -15,19 +15,19 @@ async function main() {
   let user = await prisma.user.findFirst();
   
   if (!user) {
-    console.log('Creating test user...');
+    console.log('Creating admin user...');
     const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const hashedPassword = await bcrypt.hash('admin123', 10);
     
     user = await prisma.user.create({
       data: {
-        email: 'trader@example.com',
-        name: 'Test Trader',
+        email: 'admin@wekangtradingjournal.com',
+        name: 'Admin',
         passwordHash: hashedPassword,
-        role: 'USER',
+        role: 'ADMIN',
       },
     });
-    console.log('✅ Test user created:', user.email);
+    console.log('✅ Admin user created:', user.email);
   } else {
     console.log('✅ Using existing user:', user.email);
   }

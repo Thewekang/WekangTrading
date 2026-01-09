@@ -64,7 +64,7 @@ export default function TrendIndicatorCard({
         <div>
           <h3 className="text-sm font-medium text-gray-700">{metricLabel}</h3>
           <p className={`text-2xl font-bold ${getDirectionColor()} mt-1`}>
-            {direction === 'improving' ? '↗' : direction === 'declining' ? '↘' : '→'} {Math.abs(changePercent)}%
+            {direction === 'improving' ? '↗' : direction === 'declining' ? '↘' : '→'} {metric === 'profitLoss' ? formatter(Math.abs(changePercent)) : `${Math.abs(changePercent)}%`}
           </p>
         </div>
         {getDirectionIcon()}
