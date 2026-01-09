@@ -91,7 +91,7 @@ export async function getTargets(
   return prisma.userTarget.findMany({
     where,
     orderBy: [
-      { isActive: 'desc' },
+      { active: 'desc' },
       { startDate: 'desc' },
     ],
   });
