@@ -256,10 +256,9 @@ export default function HourlyHeatmap({ data: initialData, userId, period = 'mon
           <div className="text-xs text-gray-600 mb-1">Avg Win Rate</div>
           <div className="font-semibold text-gray-900">
             {(() => {
-              const hoursWithTrades = data.filter(h => h.totalTrades > 0);
-              const avgWinRate = hoursWithTrades.length > 0
-                ? hoursWithTrades.reduce((sum, h) => sum + h.winRate, 0) / hoursWithTrades.length
-                : 0;
+              const totalTrades = data.reduce((sum, h) => sum + h.totalTrades, 0);
+              const totalWins = data.reduce((sum, h) => sum + h.totalWins, 0);
+              const avgWinRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
               return `${avgWinRate.toFixed(1)}%`;
             })()}
           </div>
