@@ -32,8 +32,10 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [resultFilter, setResultFilter] = useState('');
-  const [sessionFilter, setSessionFilter] = useState('');
+  const [sessionFilter, setSessionFilter] = useState<string[]>([]);
   const [sopFilter, setSopFilter] = useState('');
+  const [minProfitLoss, setMinProfitLoss] = useState('');
+  const [maxProfitLoss, setMaxProfitLoss] = useState('');
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,8 +90,10 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       if (resultFilter) params.append('result', resultFilter);
-      if (sessionFilter) params.append('marketSession', sessionFilter);
+      if (sessionFilter.length > 0) params.append('marketSessions', sessionFilter.join(','));
       if (sopFilter) params.append('sopFollowed', sopFilter);
+      if (minProfitLoss) params.append('minProfitLoss', minProfitLoss);
+      if (maxProfitLoss) params.append('maxProfitLoss', maxProfitLoss);
       params.append('page', page.toString());
       params.append('pageSize', pageSize.toString());
 
@@ -114,8 +118,10 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     setStartDate('');
     setEndDate('');
     setResultFilter('');
-    setSessionFilter('');
+    setSessionFilter([]);
     setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
     setCurrentPage(1);
     
     setIsLoading(true);
@@ -216,17 +222,30 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Session
             </label>
-            <select 
-              value={sessionFilter}
-              onChange={(e) => setSessionFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All Sessions</option>
-              <option value="ASIA">🌏 Asia</option>
-              <option value="EUROPE">🇪🇺 Europe</option>
-              <option value="US">🇺🇸 US</option>
-              <option value="OVERLAP">🔄 Overlap</option>
-            </select>
+            <div className="space-y-2">
+              {['ASIA', 'EUROPE', 'US', 'OVERLAP'].map((session) => (
+                <label key={session} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={sessionFilter.includes(session)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSessionFilter([...sessionFilter, session]);
+                      } else {
+                        setSessionFilter(sessionFilter.filter(s => s !== session));
+                      }
+                    }}
+                    className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm">
+                    {session === 'ASIA' && '🌏 Asia'}
+                    {session === 'EUROPE' && '🇪🇺 Europe'}
+                    {session === 'US' && '🇺🇸 US'}
+                    {session === 'OVERLAP' && '🔄 Overlap'}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -241,6 +260,30 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               <option value="true">Followed</option>
               <option value="false">Not Followed</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Min P/L ($)
+            </label>
+            <input
+              type="number"
+              value={minProfitLoss}
+              onChange={(e) => setMinProfitLoss(e.target.value)}
+              placeholder="e.g., -100"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Max P/L ($)
+            </label>
+            <input
+              type="number"
+              value={maxProfitLoss}
+              onChange={(e) => setMaxProfitLoss(e.target.value)}
+              placeholder="e.g., 100"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
           </div>
         </div>
         <div className="mt-4 flex gap-3">
@@ -410,11 +453,51 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <h3 className="font-semibold text-green-900 mb-2">✅ Showing {trades.length} Trades</h3>
           <p className="text-sm text-green-800">
-            {startDate || endDate || resultFilter || sessionFilter || sopFilter 
+            {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss
               ? 'Filtered results based on your criteria'
               : 'Displaying all your trades'
             }
           </p>
+          {/* Active Filters */}
+          {(startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {startDate && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  From: {new Date(startDate).toLocaleDateString()}
+                </span>
+              )}
+              {endDate && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  To: {new Date(endDate).toLocaleDateString()}
+                </span>
+              )}
+              {resultFilter && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  Result: {resultFilter}
+                </span>
+              )}
+              {sessionFilter.length > 0 && sessionFilter.map(session => (
+                <span key={session} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                  Session: {session}
+                </span>
+              ))}
+              {sopFilter && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  SOP: {sopFilter === 'true' ? 'Followed' : 'Not Followed'}
+                </span>
+              )}
+              {minProfitLoss && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Min P/L: ${minProfitLoss}
+                </span>
+              )}
+              {maxProfitLoss && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Max P/L: ${maxProfitLoss}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </>

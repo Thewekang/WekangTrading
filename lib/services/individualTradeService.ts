@@ -31,7 +31,10 @@ interface GetTradesFilters {
   endDate?: Date;
   result?: 'WIN' | 'LOSS';
   marketSession?: 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
+  marketSessions?: Array<'ASIA' | 'EUROPE' | 'US' | 'OVERLAP'>;
   sopFollowed?: boolean;
+  minProfitLoss?: number;
+  maxProfitLoss?: number;
   page?: number;
   pageSize?: number;
 }
@@ -131,7 +134,10 @@ export async function getTrades(filters: GetTradesFilters) {
     endDate,
     result,
     marketSession,
+    marketSessions,
     sopFollowed,
+    minProfitLoss,
+    maxProfitLoss,
     page = 1,
     pageSize = PAGINATION.PAGINATION_PAGE_SIZE,
   } = filters;
@@ -145,8 +151,23 @@ export async function getTrades(filters: GetTradesFilters) {
   }
 
   if (result) where.result = result;
-  if (marketSession) where.marketSession = marketSession;
+  
+  // Handle multi-select sessions
+  if (marketSessions && marketSessions.length > 0) {
+    where.marketSession = { in: marketSessions };
+  } else if (marketSession) {
+    // Backward compatibility
+    where.marketSession = marketSession;
+  }
+  
   if (sopFollowed !== undefined) where.sopFollowed = sopFollowed;
+  
+  // Handle P/L range filters
+  if (minProfitLoss !== undefined || maxProfitLoss !== undefined) {
+    where.profitLossUsd = {};
+    if (minProfitLoss !== undefined) where.profitLossUsd.gte = minProfitLoss;
+    if (maxProfitLoss !== undefined) where.profitLossUsd.lte = maxProfitLoss;
+  }
 
   const [trades, totalCount] = await Promise.all([
     prisma.individualTrade.findMany({

@@ -40,11 +40,20 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('result')) {
       filters.result = searchParams.get('result') as 'WIN' | 'LOSS';
     }
-    if (searchParams.get('marketSession')) {
+    if (searchParams.get('marketSessions')) {
+      filters.marketSessions = searchParams.get('marketSessions')!.split(',') as Array<'ASIA' | 'EUROPE' | 'US' | 'OVERLAP'>;
+    } else if (searchParams.get('marketSession')) {
+      // Backward compatibility
       filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
     }
     if (searchParams.get('sopFollowed')) {
       filters.sopFollowed = searchParams.get('sopFollowed') === 'true';
+    }
+    if (searchParams.get('minProfitLoss')) {
+      filters.minProfitLoss = parseFloat(searchParams.get('minProfitLoss')!);
+    }
+    if (searchParams.get('maxProfitLoss')) {
+      filters.maxProfitLoss = parseFloat(searchParams.get('maxProfitLoss')!);
     }
 
     // Get trades
