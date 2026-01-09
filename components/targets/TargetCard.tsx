@@ -90,7 +90,7 @@ export default function TargetCard({ target }: TargetCardProps) {
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{target.targetType} Target</h3>
           <p className="text-xs text-gray-500 mt-1" suppressHydrationWarning>
-            {new Date(target.startDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })} - {new Date(target.endDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
+            {new Date(target.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(target.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.bg} ${status.text}`}>
