@@ -19,6 +19,8 @@ export interface PersonalStats {
   sopRate: number;
   totalProfitLossUsd: number;
   bestSession: MarketSession | null;
+  bestSessionWinRate: number;
+  sessionBreakdown: Record<MarketSession, { trades: number; wins: number; winRate: number }>;
   periodDays: number;
 }
 
@@ -105,14 +107,23 @@ export async function getPersonalStats(
     sessionTotals.OVERLAP.wins += s.overlapSessionWins;
   });
 
-  // Find session with highest win rate (with minimum 5 trades threshold)
+  // Calculate win rate for each session and find best
+  const sessionBreakdown: Record<MarketSession, { trades: number; wins: number; winRate: number }> = {
+    ASIA: { ...sessionTotals.ASIA, winRate: 0 },
+    EUROPE: { ...sessionTotals.EUROPE, winRate: 0 },
+    US: { ...sessionTotals.US, winRate: 0 },
+    OVERLAP: { ...sessionTotals.OVERLAP, winRate: 0 },
+  };
+
   let bestSession: MarketSession | null = null;
   let bestWinRate = 0;
 
   (Object.keys(sessionTotals) as MarketSession[]).forEach((session) => {
     const { trades, wins } = sessionTotals[session];
-    if (trades >= 5) { // Require at least 5 trades for statistical relevance
-      const sessionWinRate = (wins / trades) * 100;
+    const sessionWinRate = trades > 0 ? (wins / trades) * 100 : 0;
+    sessionBreakdown[session].winRate = Math.round(sessionWinRate * 10) / 10;
+    
+    if (trades >= 3) { // Require at least 3 trades for statistical relevance
       if (sessionWinRate > bestWinRate) {
         bestWinRate = sessionWinRate;
         bestSession = session;
@@ -129,6 +140,8 @@ export async function getPersonalStats(
     sopRate: Math.round(sopRate * 10) / 10,
     totalProfitLossUsd: Math.round(totalProfitLossUsd * 100) / 100, // Round to cents
     bestSession,
+    bestSessionWinRate: Math.round(bestWinRate * 10) / 10,
+    sessionBreakdown,
     periodDays: summaries.length,
   };
 }

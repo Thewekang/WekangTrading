@@ -128,10 +128,58 @@ export default async function DashboardPage() {
         {bestSession && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
             <h2 className="text-lg font-semibold text-blue-900 mb-2">🎯 Best Trading Session</h2>
-            <p className="text-blue-800">
-              Your highest win rate this month is during the <span className="font-semibold">{bestSession}</span> session. 
+            <p className="text-blue-800 mb-4">
+              Your highest win rate this month is during the <span className="font-semibold">{bestSession}</span> session 
+              with a <span className="font-semibold">{stats.bestSessionWinRate.toFixed(1)}%</span> win rate. 
               Consider focusing more trades in this time period.
             </p>
+            
+            {/* Session Breakdown */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {Object.entries(stats.sessionBreakdown).map(([session, data]) => (
+                <div 
+                  key={session} 
+                  className={`p-3 rounded-lg border-2 ${
+                    session === bestSession 
+                      ? 'bg-blue-100 border-blue-300' 
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="text-xs font-medium text-gray-600 mb-1">{session}</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {data.winRate.toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {data.wins}/{data.trades} trades
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Session Breakdown (when no clear best) */}
+        {!bestSession && totalTrades > 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">📊 Session Performance</h2>
+            <p className="text-gray-700 mb-4">
+              Need at least 3 trades in a session to identify your best trading time.
+            </p>
+            
+            {/* Session Breakdown */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.entries(stats.sessionBreakdown).map(([session, data]) => (
+                <div key={session} className="p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="text-xs font-medium text-gray-600 mb-1">{session}</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {data.trades > 0 ? `${data.winRate.toFixed(1)}%` : 'No data'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {data.wins}/{data.trades} trades
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
