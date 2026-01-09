@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getPersonalStats, getDailyTrends } from '@/lib/services/statsService';
+import { getPersonalStats, getDailyTrends, getSessionStats } from '@/lib/services/statsService';
+import SessionComparisonChart from '@/components/charts/SessionComparisonChart';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -11,6 +12,7 @@ export default async function DashboardPage() {
 
   // Fetch real stats directly from service (server-side)
   const stats = await getPersonalStats(session.user.id, 'month');
+  const sessionStats = await getSessionStats(session.user.id, 'month');
 
   // Fallback to zeros if no data yet
   const totalTrades = stats.totalTrades;
@@ -180,6 +182,17 @@ export default async function DashboardPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Session Performance Chart */}
+        {totalTrades > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">📈 Session Win Rate Comparison</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Visual breakdown of your performance across different trading sessions
+            </p>
+            <SessionComparisonChart data={sessionStats} bestSession={bestSession} />
           </div>
         )}
 
