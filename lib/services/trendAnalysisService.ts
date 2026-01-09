@@ -3,7 +3,7 @@
  * Business logic for performance trends, comparisons, and moving averages
  */
 
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/db';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, subDays, format } from 'date-fns';
 
 export interface DailyTrend {
@@ -62,7 +62,7 @@ export async function getDailyTrends(
   startDate: Date,
   endDate: Date
 ): Promise<DailyTrend[]> {
-  const summaries = await db.dailySummary.findMany({
+  const summaries = await prisma.dailySummary.findMany({
     where: {
       userId,
       tradeDate: {
@@ -165,7 +165,7 @@ export async function getMonthlyComparison(userId: string): Promise<ComparisonDa
  * Get aggregate stats for a period
  */
 async function getPeriodStats(userId: string, startDate: Date, endDate: Date) {
-  const summaries = await db.dailySummary.findMany({
+  const summaries = await prisma.dailySummary.findMany({
     where: {
       userId,
       tradeDate: {
