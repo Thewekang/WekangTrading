@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { showToast } from '@/components/ui/Toast';
 
 interface TargetModalProps {
   onClose: () => void;
@@ -29,10 +30,12 @@ export default function TargetModal({ onClose }: TargetModalProps) {
   // Set default dates based on target type
   useEffect(() => {
     const today = new Date();
-    const start = new Date(today);
-    start.setHours(0, 0, 0, 0);
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const startDate = `${year}-${month}-${day}`;
     
-    const end = new Date(start);
+    const end = new Date(today);
     if (formData.targetType === 'WEEKLY') {
       end.setDate(end.getDate() + 7);
     } else if (formData.targetType === 'MONTHLY') {
@@ -40,11 +43,16 @@ export default function TargetModal({ onClose }: TargetModalProps) {
     } else {
       end.setDate(end.getDate() + 365);
     }
+    
+    const endYear = end.getFullYear();
+    const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+    const endDay = String(end.getDate()).padStart(2, '0');
+    const endDate = `${endYear}-${endMonth}-${endDay}`;
 
     setFormData(prev => ({
       ...prev,
-      startDate: start.toISOString().split('T')[0],
-      endDate: end.toISOString().split('T')[0],
+      startDate,
+      endDate,
     }));
   }, [formData.targetType]);
 
@@ -72,9 +80,9 @@ export default function TargetModal({ onClose }: TargetModalProps) {
     if (!suggestions) return;
     setFormData(prev => ({
       ...prev,
-      targetWinRate: suggestions.suggestedWinRate,
-      targetSopRate: suggestions.suggestedSopRate,
-      targetProfitUsd: suggestions.suggestedProfitUsd || '',
+      targetWinRate: suggestions.suggestedWinRate || 60,
+      targetSopRate: suggestions.suggestedSopRate || 80,
+      targetProfitUsd: suggestions.suggestedProfitUsd ? String(suggestions.suggestedProfitUsd) : '',
     }));
   };
 
@@ -98,14 +106,15 @@ export default function TargetModal({ onClose }: TargetModalProps) {
       const result = await response.json();
 
       if (result.success) {
+        showToast('Target created successfully!', 'success');
         router.refresh();
         onClose();
       } else {
-        alert(result.error?.message || 'Failed to create target');
+        showToast(result.error?.message || 'Failed to create target', 'error');
       }
     } catch (error) {
       console.error('Create target error:', error);
-      alert('An error occurred');
+      showToast('An error occurred while creating target', 'error');
     } finally {
       setIsSubmitting(false);
     }

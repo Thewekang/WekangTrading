@@ -7,6 +7,7 @@
 import type { TargetWithProgress } from '@/lib/services/targetService';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { showToast } from '@/components/ui/Toast';
 
 interface TargetCardProps {
   target: TargetWithProgress;
@@ -15,6 +16,8 @@ interface TargetCardProps {
 export default function TargetCard({ target }: TargetCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const { progress } = target;
 
   // Status badge styling
@@ -39,6 +42,8 @@ export default function TargetCard({ target }: TargetCardProps) {
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this target?')) return;
 
+  const handleDelete = async () => {
+    setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/targets/${target.id}`, {
@@ -46,20 +51,21 @@ export default function TargetCard({ target }: TargetCardProps) {
       });
 
       if (response.ok) {
+        showToast('Target deleted successfully', 'success');
         router.refresh();
       } else {
-        alert('Failed to delete target');
+        showToast('Failed to delete target', 'error');
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('An error occurred');
+      showToast('An error occurred while deleting target', 'error');
     } finally {
       setIsDeleting(false);
     }
   };
 
   const handleDeactivate = async () => {
-    if (!confirm('Deactivate this target?')) return;
+    setShowDeactivateConfirm(false);
 
     try {
       const response = await fetch(`/api/targets/${target.id}`, {
@@ -69,13 +75,14 @@ export default function TargetCard({ target }: TargetCardProps) {
       });
 
       if (response.ok) {
+        showToast('Target deactivated successfully', 'success');
         router.refresh();
       } else {
-        alert('Failed to deactivate target');
+        showToast('Failed to deactivate target', 'error');
       }
     } catch (error) {
       console.error('Deactivate error:', error);
-      alert('An error occurred');
+      showToast('An error occurred while deactivating target', 'error');
     }
   };
 
@@ -85,8 +92,8 @@ export default function TargetCard({ target }: TargetCardProps) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">{target.targetType} Target</h3>
-          <p className="text-xs text-gray-500 mt-1">
-            {new Date(target.startDate).toLocaleDateString()} - {new Date(target.endDate).toLocaleDateString()}
+          <p className="text-xs text-gray-500 mt-1" suppressHydrationWarning>
+            {new Date(target.startDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })} - {new Date(target.endDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
           </p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.bg} ${status.text}`}>
@@ -173,19 +180,71 @@ export default function TargetCard({ target }: TargetCardProps) {
       {/* Actions */}
       <div className="flex gap-2 mt-4">
         <button
-          onClick={handleDeactivate}
+          onClick={() => setShowDeactivateConfirm(true)}
           className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
         >
           Deactivate
         </button>
         <button
-          onClick={handleDelete}
+          onClick={() => setShowDeleteConfirm(true)}
           disabled={isDeleting}
           className="flex-1 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50"
         >
           {isDeleting ? 'Deleting...' : 'Delete'}
         </button>
       </div>
+
+      {/* Confirmation Dialogs */}
+      {showDeactivateConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Deactivate Target</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to deactivate this target? You can create a new one anytime.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeactivateConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeactivate}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Delete Target</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to permanently delete this target? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

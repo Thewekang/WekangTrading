@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import { ToastContainer } from '@/components/ui/Toast';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -47,6 +48,7 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
         </div>
       </nav>
       <main>{children}</main>
+      <ToastContainer />
     </div>
   );
 }
