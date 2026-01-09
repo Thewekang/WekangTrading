@@ -40,9 +40,6 @@ export default function TargetCard({ target }: TargetCardProps) {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this target?')) return;
-
-  const handleDelete = async () => {
     setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
