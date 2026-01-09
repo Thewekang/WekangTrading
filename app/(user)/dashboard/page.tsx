@@ -1,29 +1,6 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-
-async function getPersonalStats(userId: string) {
-  try {
-    // Server-side fetch to our API (internal call)
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/stats/personal?period=month`, {
-      cache: 'no-store', // Always get fresh data
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      console.error('Failed to fetch stats:', response.status);
-      return null;
-    }
-
-    const result = await response.json();
-    return result.success ? result.data : null;
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-    return null;
-  }
-}
+import { getPersonalStats, getDailyTrends } from '@/lib/services/statsService';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -32,16 +9,15 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch real stats from daily_summaries
-  const data = await getPersonalStats(session.user.id);
-  const stats = data?.stats;
+  // Fetch real stats directly from service (server-side)
+  const stats = await getPersonalStats(session.user.id, 'month');
 
   // Fallback to zeros if no data yet
-  const totalTrades = stats?.totalTrades || 0;
-  const winRate = stats?.winRate || 0;
-  const sopRate = stats?.sopRate || 0;
-  const netProfitLoss = stats?.totalProfitLossUsd || 0;
-  const bestSession = stats?.bestSession;
+  const totalTrades = stats.totalTrades;
+  const winRate = stats.winRate;
+  const sopRate = stats.sopRate;
+  const netProfitLoss = stats.totalProfitLossUsd;
+  const bestSession = stats.bestSession;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -69,7 +45,7 @@ export default async function DashboardPage() {
               {winRate.toFixed(1)}%
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              {stats?.totalWins || 0} wins / {stats?.totalLosses || 0} losses
+              {stats.totalWins} wins / {stats.totalLosses} losses
             </p>
           </div>
 
@@ -79,7 +55,7 @@ export default async function DashboardPage() {
               {sopRate.toFixed(1)}%
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              {stats?.totalSopFollowed || 0} / {totalTrades} trades
+              {stats.totalSopFollowed} / {totalTrades} trades
             </p>
           </div>
 
