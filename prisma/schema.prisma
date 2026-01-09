@@ -75,9 +75,13 @@ model DailySummary {
   totalSopNotFollowed     Int      @default(0) @map("total_sop_not_followed")
   totalProfitLossUsd      Float    @default(0) @map("total_profit_loss_usd")
   asiaSessionTrades       Int      @default(0) @map("asia_session_trades")
+  asiaSessionWins         Int      @default(0) @map("asia_session_wins")
   europeSessionTrades     Int      @default(0) @map("europe_session_trades")
+  europeSessionWins       Int      @default(0) @map("europe_session_wins")
   usSessionTrades         Int      @default(0) @map("us_session_trades")
+  usSessionWins           Int      @default(0) @map("us_session_wins")
   overlapSessionTrades    Int      @default(0) @map("overlap_session_trades")
+  overlapSessionWins      Int      @default(0) @map("overlap_session_wins")
   bestSession             String? @map("best_session")
   notes                   String?
   createdAt               DateTime @default(now()) @map("created_at")

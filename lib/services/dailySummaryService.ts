@@ -60,16 +60,23 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
 
   // Count trades per session
   const asiaSessionTrades = trades.filter(t => t.marketSession === 'ASIA').length;
+  const asiaSessionWins = trades.filter(t => t.marketSession === 'ASIA' && t.result === 'WIN').length;
+  
   const europeSessionTrades = trades.filter(t => t.marketSession === 'EUROPE').length;
+  const europeSessionWins = trades.filter(t => t.marketSession === 'EUROPE' && t.result === 'WIN').length;
+  
   const usSessionTrades = trades.filter(t => t.marketSession === 'US').length;
+  const usSessionWins = trades.filter(t => t.marketSession === 'US' && t.result === 'WIN').length;
+  
   const overlapSessionTrades = trades.filter(t => t.marketSession === 'OVERLAP').length;
+  const overlapSessionWins = trades.filter(t => t.marketSession === 'OVERLAP' && t.result === 'WIN').length;
 
   // Determine best session (highest win rate with at least 1 trade)
   const sessionStats = [
-    { session: 'ASIA', trades: asiaSessionTrades, wins: trades.filter(t => t.marketSession === 'ASIA' && t.result === 'WIN').length },
-    { session: 'EUROPE', trades: europeSessionTrades, wins: trades.filter(t => t.marketSession === 'EUROPE' && t.result === 'WIN').length },
-    { session: 'US', trades: usSessionTrades, wins: trades.filter(t => t.marketSession === 'US' && t.result === 'WIN').length },
-    { session: 'OVERLAP', trades: overlapSessionTrades, wins: trades.filter(t => t.marketSession === 'OVERLAP' && t.result === 'WIN').length },
+    { session: 'ASIA', trades: asiaSessionTrades, wins: asiaSessionWins },
+    { session: 'EUROPE', trades: europeSessionTrades, wins: europeSessionWins },
+    { session: 'US', trades: usSessionTrades, wins: usSessionWins },
+    { session: 'OVERLAP', trades: overlapSessionTrades, wins: overlapSessionWins },
   ];
 
   const bestSessionData = sessionStats
@@ -94,9 +101,13 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
       totalSopNotFollowed,
       totalProfitLossUsd,
       asiaSessionTrades,
+      asiaSessionWins,
       europeSessionTrades,
+      europeSessionWins,
       usSessionTrades,
+      usSessionWins,
       overlapSessionTrades,
+      overlapSessionWins,
       bestSession,
       updatedAt: new Date(),
     },
@@ -110,9 +121,13 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
       totalSopNotFollowed,
       totalProfitLossUsd,
       asiaSessionTrades,
+      asiaSessionWins,
       europeSessionTrades,
+      europeSessionWins,
       usSessionTrades,
+      usSessionWins,
       overlapSessionTrades,
+      overlapSessionWins,
       bestSession,
     },
   });
