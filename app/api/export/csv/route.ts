@@ -36,14 +36,17 @@ export async function GET(req: NextRequest) {
     if (searchParams.get('marketSession')) {
       filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
     }
-    if (searchParams.get('sopFollowed')) {
-      filters.sopFollowed = searchParams.get('sopFollowed') === 'true';
+    const sopParam = searchParams.get('sopFollowed');
+    if (sopParam && sopParam !== '') {
+      filters.sopFollowed = sopParam === 'true';
     }
-    if (searchParams.get('minProfitLoss')) {
-      filters.minProfitLoss = parseFloat(searchParams.get('minProfitLoss')!);
+    const minProfitParam = searchParams.get('minProfitLoss');
+    if (minProfitParam && minProfitParam !== '') {
+      filters.minProfitLoss = parseFloat(minProfitParam);
     }
-    if (searchParams.get('maxProfitLoss')) {
-      filters.maxProfitLoss = parseFloat(searchParams.get('maxProfitLoss')!);
+    const maxProfitParam = searchParams.get('maxProfitLoss');
+    if (maxProfitParam && maxProfitParam !== '') {
+      filters.maxProfitLoss = parseFloat(maxProfitParam);
     }
 
     // Get trades

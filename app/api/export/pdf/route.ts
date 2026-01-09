@@ -30,9 +30,17 @@ export async function POST(req: NextRequest) {
     if (body.endDate) filters.endDate = new Date(body.endDate);
     if (body.result) filters.result = body.result as 'WIN' | 'LOSS';
     if (body.marketSession) filters.marketSession = body.marketSession as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
-    if (body.sopFollowed !== undefined) filters.sopFollowed = body.sopFollowed;
-    if (body.minProfitLoss !== undefined) filters.minProfitLoss = body.minProfitLoss;
-    if (body.maxProfitLoss !== undefined) filters.maxProfitLoss = body.maxProfitLoss;
+    // Handle boolean sopFollowed - skip empty strings
+    if (body.sopFollowed !== undefined && body.sopFollowed !== '') {
+      filters.sopFollowed = body.sopFollowed;
+    }
+    // Handle numeric profit/loss - skip empty strings
+    if (body.minProfitLoss !== undefined && body.minProfitLoss !== '') {
+      filters.minProfitLoss = Number(body.minProfitLoss);
+    }
+    if (body.maxProfitLoss !== undefined && body.maxProfitLoss !== '') {
+      filters.maxProfitLoss = Number(body.maxProfitLoss);
+    }
 
     // Get trades
     const trades = await getTradesForExport(filters);
