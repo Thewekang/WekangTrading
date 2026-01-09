@@ -342,16 +342,20 @@ export async function getTargetSuggestions(
 
   const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
   const totalWins = summaries.reduce((sum, s) => sum + s.totalWins, 0);
-  const totalSopCompliant = summaries.reduce((sum, s) => sum + s.sopCompliantTrades, 0);
+  const totalSopCompliant = summaries.reduce((sum, s) => sum + (s.sopCompliantTrades || 0), 0);
   const totalProfit = summaries.reduce((sum, s) => sum + s.netProfitLossUsd, 0);
   const avgProfitPerDay = summaries.length > 0 ? totalProfit / summaries.length : 0;
 
   const currentWinRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 50;
   const currentSopRate = totalTrades > 0 ? (totalSopCompliant / totalTrades) * 100 : 70;
 
+  // Ensure no NaN values
+  const safeWinRate = isNaN(currentWinRate) ? 50 : currentWinRate;
+  const safeSopRate = isNaN(currentSopRate) ? 70 : currentSopRate;
+
   // Suggest 5-10% improvement
-  const suggestedWinRate = Math.min(Math.round((currentWinRate * 1.05) * 10) / 10, 100);
-  const suggestedSopRate = Math.min(Math.round((currentSopRate * 1.05) * 10) / 10, 100);
+  const suggestedWinRate = Math.min(Math.round((safeWinRate * 1.05) * 10) / 10, 100);
+  const suggestedSopRate = Math.min(Math.round((safeSopRate * 1.05) * 10) / 10, 100);
   
   // Calculate profit based on target type
   let daysInPeriod = 7;
@@ -371,6 +375,6 @@ export async function getTargetSuggestions(
     suggestedWinRate,
     suggestedSopRate,
     suggestedProfitUsd: Math.max(suggestedProfitUsd, 100),
-    reasoning: `Based on your last 30 days (${currentWinRate.toFixed(1)}% win rate, ${currentSopRate.toFixed(1)}% SOP), targeting 5-10% improvement`,
+    reasoning: `Based on your last 30 days (${safeWinRate.toFixed(1)}% win rate, ${safeSopRate.toFixed(1)}% SOP), targeting 5-10% improvement`,
   };
 }
