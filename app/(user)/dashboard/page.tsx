@@ -1,7 +1,8 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getPersonalStats, getDailyTrends, getSessionStats } from '@/lib/services/statsService';
+import { getPersonalStats, getDailyTrends, getSessionStats, getHourlyStats } from '@/lib/services/statsService';
 import SessionComparisonChart from '@/components/charts/SessionComparisonChart';
+import HourlyHeatmap from '@/components/charts/HourlyHeatmap';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -13,6 +14,7 @@ export default async function DashboardPage() {
   // Fetch real stats directly from service (server-side)
   const stats = await getPersonalStats(session.user.id, 'month');
   const sessionStats = await getSessionStats(session.user.id, 'month');
+  const hourlyStats = await getHourlyStats(session.user.id, 'month');
 
   // Fallback to zeros if no data yet
   const totalTrades = stats.totalTrades;
@@ -193,6 +195,17 @@ export default async function DashboardPage() {
               Visual breakdown of your performance across different trading sessions
             </p>
             <SessionComparisonChart data={sessionStats} bestSession={bestSession} />
+          </div>
+        )}
+
+        {/* Hourly Performance Heatmap */}
+        {totalTrades > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">🕐 Hourly Performance Heatmap</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Identify your most profitable trading hours (UTC timezone)
+            </p>
+            <HourlyHeatmap data={hourlyStats} />
           </div>
         )}
 

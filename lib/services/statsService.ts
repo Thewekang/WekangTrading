@@ -38,6 +38,13 @@ export interface DailyTrend {
   winRate: number;
 }
 
+export interface HourlyStats {
+  hour: number; // 0-23 UTC
+  totalTrades: number;
+  totalWins: number;
+  winRate: number;
+}
+
 /**
  * Get personal statistics for a user within a timeframe
  * @param userId - User ID
@@ -268,4 +275,75 @@ export async function getDailyTrends(
       winRate,
     };
   }).reverse(); // Oldest to newest for charts
+}
+
+/**
+ * Get hourly performance statistics (0-23 UTC)
+ * @param userId - User ID
+ * @param timeframe - 'week' | 'month' | 'year' | 'all' (default: 'month')
+ */
+export async function getHourlyStats(
+  userId: string,
+  timeframe: 'week' | 'month' | 'year' | 'all' = 'month'
+): Promise<HourlyStats[]> {
+  // Calculate date range
+  const now = new Date();
+  let startDate: Date | undefined;
+
+  switch (timeframe) {
+    case 'week':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case 'month':
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case 'year':
+      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      break;
+    case 'all':
+      startDate = undefined;
+      break;
+  }
+
+  // Query individual trades (need timestamp precision)
+  const trades = await prisma.individualTrade.findMany({
+    where: {
+      userId,
+      ...(startDate && { tradeTimestamp: { gte: startDate } }),
+    },
+    select: {
+      tradeTimestamp: true,
+      result: true,
+    },
+  });
+
+  // Group by hour (UTC)
+  const hourlyData: Record<number, { trades: number; wins: number }> = {};
+  
+  // Initialize all 24 hours
+  for (let hour = 0; hour < 24; hour++) {
+    hourlyData[hour] = { trades: 0, wins: 0 };
+  }
+
+  // Count trades per hour
+  trades.forEach((trade) => {
+    const hour = trade.tradeTimestamp.getUTCHours();
+    hourlyData[hour].trades++;
+    if (trade.result === 'WIN') {
+      hourlyData[hour].wins++;
+    }
+  });
+
+  // Convert to array with win rates
+  return Array.from({ length: 24 }, (_, hour) => {
+    const data = hourlyData[hour];
+    const winRate = data.trades > 0 ? Math.round((data.wins / data.trades) * 100 * 10) / 10 : 0;
+    
+    return {
+      hour,
+      totalTrades: data.trades,
+      totalWins: data.wins,
+      winRate,
+    };
+  });
 }
