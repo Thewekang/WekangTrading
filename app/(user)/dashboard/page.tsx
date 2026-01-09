@@ -98,6 +98,32 @@ export default async function DashboardPage() {
           </div>
         )}
 
+        {/* No Targets Callout */}
+        {activeTargets.length === 0 && totalTrades > 0 && (
+          <div className="mb-8">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-4xl">🎯</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Set Your Trading Goals
+                  </h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    Create targets to track your progress towards specific win rate, SOP compliance, and profit goals. 
+                    Get AI-powered suggestions based on your recent performance!
+                  </p>
+                  <Link
+                    href="/targets"
+                    className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Create Your First Target →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Performance Legend */}
         {totalTrades > 0 && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
