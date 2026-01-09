@@ -1,8 +1,11 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getPersonalStats, getDailyTrends, getSessionStats, getHourlyStats } from '@/lib/services/statsService';
+import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import SessionComparisonChart from '@/components/charts/SessionComparisonChart';
 import HourlyHeatmap from '@/components/charts/HourlyHeatmap';
+import TargetProgressCard from '@/components/dashboard/TargetProgressCard';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -11,10 +14,13 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch real stats directly from service (server-side)
-  const stats = await getPersonalStats(session.user.id, 'month');
-  const sessionStats = await getSessionStats(session.user.id, 'month');
-  const hourlyStats = await getHourlyStats(session.user.id, 'month');
+  // Fetch real stats and targets
+  const [stats, sessionStats, hourlyStats, activeTargets] = await Promise.all([
+    getPersonalStats(session.user.id, 'month'),
+    getSessionStats(session.user.id, 'month'),
+    getHourlyStats(session.user.id, 'month'),
+    getActiveTargetsWithProgress(session.user.id),
+  ]);
 
   // Fallback to zeros if no data yet
   const totalTrades = stats.totalTrades;
@@ -71,6 +77,26 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted-foreground mt-2">This month</p>
           </div>
         </div>
+
+        {/* Active Targets Progress */}
+        {activeTargets.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">🎯 Active Targets</h2>
+              <Link
+                href="/targets"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                View All →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeTargets.map((target) => (
+                <TargetProgressCard key={target.id} target={target} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Performance Legend */}
         {totalTrades > 0 && (
