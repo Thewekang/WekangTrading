@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ExportModal } from '@/components/ExportModal';
 
 interface Trade {
   id: string;
@@ -45,6 +46,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [savedPresets, setSavedPresets] = useState<Array<{ name: string; filters: any }>>([]);
   const [presetName, setPresetName] = useState('');
   const [showPresetInput, setShowPresetInput] = useState(false);
+  
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -597,6 +601,14 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           <Button size="sm" variant="outline" onClick={handleClearFilters} disabled={isLoading}>
             Clear Filters
           </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setShowExportModal(true)}
+            className="ml-auto"
+          >
+            📥 Export Data
+          </Button>
         </div>
       </div>
 
@@ -804,6 +816,21 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           )}
         </div>
       )}
+      
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        currentFilters={{
+          startDate,
+          endDate,
+          result: resultFilter,
+          marketSession: sessionFilter.join(','),
+          sopFollowed: sopFilter,
+          minProfitLoss,
+          maxProfitLoss,
+        }}
+      />
     </>
   );
 }
