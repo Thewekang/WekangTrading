@@ -13,6 +13,18 @@ import { z } from 'zod';
 // Query params validation
 const querySchema = z.object({
   period: z.enum(['week', 'month', 'year', 'all']).optional().default('month'),
+  timezone: z
+    .string()
+    .optional()
+    .default('0')
+    .transform((val) => {
+      const offset = parseInt(val, 10);
+      // Validate timezone offset range (-12 to +14)
+      if (isNaN(offset) || offset < -12 || offset > 14) {
+        return 0; // Default to UTC if invalid
+      }
+      return offset;
+    }),
 });
 
 export async function GET(req: NextRequest) {
@@ -29,15 +41,19 @@ export async function GET(req: NextRequest) {
     // Parse and validate query params
     const { searchParams } = new URL(req.url);
     const periodParam = searchParams.get('period') || 'month';
+    const timezoneParam = searchParams.get('timezone') || '0';
     
-    const validation = querySchema.safeParse({ period: periodParam });
+    const validation = querySchema.safeParse({ 
+      period: periodParam,
+      timezone: timezoneParam 
+    });
     if (!validation.success) {
       return NextResponse.json(
         { 
           success: false, 
           error: { 
             code: 'VALIDATION_ERROR', 
-            message: 'Invalid period parameter. Must be one of: week, month, year, all',
+            message: 'Invalid query parameters',
             details: validation.error.format()
           } 
         },
@@ -45,10 +61,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { period } = validation.data;
+    const { period, timezone } = validation.data;
 
-    // Get hourly stats
-    const stats = await getHourlyStats(session.user.id, period);
+    // Get hourly stats with timezone conversion
+    const stats = await getHourlyStats(session.user.id, period, timezone);
 
     return NextResponse.json({
       success: true,

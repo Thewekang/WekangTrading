@@ -278,13 +278,15 @@ export async function getDailyTrends(
 }
 
 /**
- * Get hourly performance statistics (0-23 UTC)
+ * Get hourly performance statistics with timezone conversion
  * @param userId - User ID
  * @param timeframe - 'week' | 'month' | 'year' | 'all' (default: 'month')
+ * @param timezoneOffset - Timezone offset in hours from UTC (e.g., 8 for UTC+8 Malaysia, default: 0)
  */
 export async function getHourlyStats(
   userId: string,
-  timeframe: 'week' | 'month' | 'year' | 'all' = 'month'
+  timeframe: 'week' | 'month' | 'year' | 'all' = 'month',
+  timezoneOffset: number = 0
 ): Promise<HourlyStats[]> {
   // Calculate date range
   const now = new Date();
@@ -317,7 +319,7 @@ export async function getHourlyStats(
     },
   });
 
-  // Group by hour (UTC)
+  // Group by hour with timezone conversion
   const hourlyData: Record<number, { trades: number; wins: number }> = {};
   
   // Initialize all 24 hours
@@ -325,12 +327,18 @@ export async function getHourlyStats(
     hourlyData[hour] = { trades: 0, wins: 0 };
   }
 
-  // Count trades per hour
+  // Count trades per hour with timezone conversion
   trades.forEach((trade) => {
-    const hour = trade.tradeTimestamp.getUTCHours();
-    hourlyData[hour].trades++;
+    const utcHour = trade.tradeTimestamp.getUTCHours();
+    // Convert to selected timezone
+    let localHour = utcHour + timezoneOffset;
+    // Handle day wrap-around
+    if (localHour >= 24) localHour -= 24;
+    if (localHour < 0) localHour += 24;
+    
+    hourlyData[localHour].trades++;
     if (trade.result === 'WIN') {
-      hourlyData[hour].wins++;
+      hourlyData[localHour].wins++;
     }
   });
 

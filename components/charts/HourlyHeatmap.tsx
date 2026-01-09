@@ -1,9 +1,10 @@
 /**
  * Hourly Performance Heatmap Component
- * Displays win rate for each hour of the day (0-23 UTC)
+ * Displays win rate for each hour of the day with timezone conversion
  */
 'use client';
 
+import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface HourlyData {
@@ -15,7 +16,15 @@ interface HourlyData {
 
 interface HourlyHeatmapProps {
   data: HourlyData[];
+  userId: string;
+  period?: 'week' | 'month' | 'year' | 'all';
 }
+
+// Available timezone options
+const TIMEZONES = [
+  { value: '0', label: 'UTC (GMT+0)', offset: 0 },
+  { value: '8', label: 'Malaysia (GMT+8)', offset: 8 },
+];
 
 // Color scale based on win rate
 const getColorByWinRate = (winRate: number, hasTrades: boolean): string => {
@@ -35,7 +44,48 @@ const formatHour = (hour: number): string => {
   return `${hour - 12} PM`;
 };
 
-export default function HourlyHeatmap({ data }: HourlyHeatmapProps) {
+export default function HourlyHeatmap({ data: initialData, userId, period = 'month' }: HourlyHeatmapProps) {
+  const [timezone, setTimezone] = useState<string>('0');
+  const [data, setData] = useState<HourlyData[]>(initialData);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load timezone preference from localStorage
+  useEffect(() => {
+    const savedTimezone = localStorage.getItem('hourlyHeatmapTimezone');
+    if (savedTimezone && TIMEZONES.find(tz => tz.value === savedTimezone)) {
+      setTimezone(savedTimezone);
+      // Fetch data with saved timezone
+      if (savedTimezone !== '0') {
+        fetchData(savedTimezone);
+      }
+    }
+  }, []);
+
+  // Fetch data with selected timezone
+  const fetchData = async (tz: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/stats/by-hour?period=${period}&timezone=${tz}`);
+      const result = await response.json();
+      if (result.success) {
+        setData(result.data.hours);
+      }
+    } catch (error) {
+      console.error('Failed to fetch hourly stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle timezone change
+  const handleTimezoneChange = (newTimezone: string) => {
+    setTimezone(newTimezone);
+    localStorage.setItem('hourlyHeatmapTimezone', newTimezone);
+    fetchData(newTimezone);
+  };
+
+  const selectedTimezone = TIMEZONES.find(tz => tz.value === timezone);
+  
   // Transform data for chart
   const chartData = data.map(item => ({
     hour: item.hour,
@@ -58,7 +108,7 @@ export default function HourlyHeatmap({ data }: HourlyHeatmapProps) {
       return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
           <p className="font-semibold text-gray-900 mb-2">
-            {data.hourLabel} ({data.hourShort} UTC)
+            {data.hourLabel} ({data.hourShort} {selectedTimezone?.label})
           </p>
           {data.hasTrades ? (
             <div className="space-y-1 text-sm">
@@ -83,11 +133,36 @@ export default function HourlyHeatmap({ data }: HourlyHeatmapProps) {
 
   return (
     <div className="w-full">
+      {/* Timezone Selector */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="timezone-select" className="text-sm font-medium text-gray-700">
+            Timezone:
+          </label>
+          <select
+            id="timezone-select"
+            value={timezone}
+            onChange={(e) => handleTimezoneChange(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={isLoading}
+          >
+            {TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {isLoading && (
+          <span className="text-xs text-gray-500 italic">Loading...</span>
+        )}
+      </div>
+
       {/* Best Hour Insight */}
       {bestHour && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-green-800">
-            <span className="font-semibold">🌟 Best Trading Hour:</span> {formatHour(bestHour.hour)} UTC 
+            <span className="font-semibold">🌟 Best Trading Hour:</span> {formatHour(bestHour.hour)} ({selectedTimezone?.label})
             with {bestHour.winRate.toFixed(1)}% win rate ({bestHour.totalWins}/{bestHour.totalTrades} trades)
           </p>
         </div>

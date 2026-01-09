@@ -203,9 +203,13 @@ export default async function DashboardPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">🕐 Hourly Performance Heatmap</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Identify your most profitable trading hours (UTC timezone)
+              Identify your most profitable trading hours by time of day
             </p>
-            <HourlyHeatmap data={hourlyStats} />
+            <HourlyHeatmap 
+              data={hourlyStats} 
+              userId={session.user.id}
+              period="month"
+            />
           </div>
         )}
 
