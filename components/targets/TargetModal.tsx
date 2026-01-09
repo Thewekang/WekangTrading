@@ -171,15 +171,15 @@ export default function TargetModal({ onClose }: TargetModalProps) {
               <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
                 <div className="bg-white rounded px-2 py-1">
                   <p className="text-gray-600">Win Rate</p>
-                  <p className="font-semibold text-gray-900">{suggestions.suggestedWinRate}%</p>
+                  <p className="font-semibold text-gray-900">{suggestions.suggestedWinRate?.toFixed(1) || '60.0'}%</p>
                 </div>
                 <div className="bg-white rounded px-2 py-1">
                   <p className="text-gray-600">SOP Rate</p>
-                  <p className="font-semibold text-gray-900">{suggestions.suggestedSopRate}%</p>
+                  <p className="font-semibold text-gray-900">{suggestions.suggestedSopRate?.toFixed(1) || '80.0'}%</p>
                 </div>
                 <div className="bg-white rounded px-2 py-1">
                   <p className="text-gray-600">Profit</p>
-                  <p className="font-semibold text-gray-900">${suggestions.suggestedProfitUsd}</p>
+                  <p className="font-semibold text-gray-900">${suggestions.suggestedProfitUsd?.toLocaleString() || '1,000'}</p>
                 </div>
               </div>
             </div>

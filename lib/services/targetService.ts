@@ -343,7 +343,8 @@ export async function getTargetSuggestions(
   const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
   const totalWins = summaries.reduce((sum, s) => sum + s.totalWins, 0);
   const totalSopCompliant = summaries.reduce((sum, s) => sum + s.sopCompliantTrades, 0);
-  const avgProfitPerDay = summaries.reduce((sum, s) => sum + s.netProfitLossUsd, 0) / summaries.length;
+  const totalProfit = summaries.reduce((sum, s) => sum + s.netProfitLossUsd, 0);
+  const avgProfitPerDay = summaries.length > 0 ? totalProfit / summaries.length : 0;
 
   const currentWinRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 50;
   const currentSopRate = totalTrades > 0 ? (totalSopCompliant / totalTrades) * 100 : 70;
@@ -357,7 +358,14 @@ export async function getTargetSuggestions(
   if (targetType === 'MONTHLY') daysInPeriod = 30;
   if (targetType === 'YEARLY') daysInPeriod = 365;
   
-  const suggestedProfitUsd = Math.round(avgProfitPerDay * daysInPeriod * 1.1); // 10% improvement
+  // If profit is negative or zero, suggest a modest positive target
+  let suggestedProfitUsd: number;
+  if (avgProfitPerDay > 0) {
+    suggestedProfitUsd = Math.round(avgProfitPerDay * daysInPeriod * 1.1); // 10% improvement
+  } else {
+    // Suggest modest targets based on period
+    suggestedProfitUsd = targetType === 'WEEKLY' ? 500 : targetType === 'MONTHLY' ? 2000 : 20000;
+  }
 
   return {
     suggestedWinRate,
