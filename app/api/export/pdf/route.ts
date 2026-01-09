@@ -11,12 +11,14 @@ export async function POST(req: NextRequest) {
   try {
     // Check authentication
     const session = await auth();
-    if (!session?.user?.id || !session?.user?.name) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
       );
     }
+    
+    const userName = session.user.name || session.user.email || 'Trader';
 
     // Get filters from request body
     const body = await req.json();
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate HTML for PDF (client-side will use browser print to PDF)
-    const html = generatePDFHTML(trades, session.user.name, {
+    const html = generatePDFHTML(trades, userName, {
       startDate: body.startDate,
       endDate: body.endDate,
       result: body.result,

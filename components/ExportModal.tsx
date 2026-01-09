@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -68,11 +69,11 @@ export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProp
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
           
-          alert('✅ CSV exported successfully!');
+          toast.success('CSV exported successfully!');
           onClose();
         } else {
           const data = await response.json();
-          alert(`❌ Export failed: ${data.error?.message || 'Unknown error'}`);
+          toast.error(data.error?.message || 'Export failed');
         }
       } else {
         // PDF Export
@@ -97,16 +98,20 @@ export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProp
                 printWindow.print();
               }, 500);
             };
+            
+            toast.success('PDF report opened! Use browser print to save.');
+          } else {
+            toast.error('Please allow pop-ups to view PDF report');
           }
           
           onClose();
         } else {
-          alert(`❌ Export failed: ${data.error?.message || 'Unknown error'}`);
+          toast.error(data.error?.message || 'Failed to generate PDF');
         }
       }
     } catch (error) {
       console.error('Export error:', error);
-      alert('❌ Export failed. Please try again.');
+      toast.error('Export failed. Please try again.');
     } finally {
       setIsExporting(false);
     }
