@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,15 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState<any>(null);
+
+  useEffect(() => {
+    // Check database connection on mount
+    fetch('/api/debug/db-status')
+      .then(res => res.json())
+      .then(data => setDbStatus(data))
+      .catch(err => setDbStatus({ status: 'error', error: err.message }));
+  }, []);
 
   const {
     register,
@@ -71,6 +80,40 @@ export default function LoginPage() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
+          {/* Database Status Debug Info */}
+          {dbStatus && (
+            <div className={`p-3 rounded-md text-xs font-mono ${
+              dbStatus.status === 'connected' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            }`}>
+              <div className="font-bold mb-2">🔍 Database Debug Info:</div>
+              <div className="space-y-1">
+                <div>Status: <span className={dbStatus.database_working ? 'text-green-600' : 'text-red-600'}>
+                  {dbStatus.database_working ? '✅ Connected' : '❌ Failed'}
+                </span></div>
+                {dbStatus.total_users !== undefined && (
+                  <div>Total Users: {dbStatus.total_users}</div>
+                )}
+                {dbStatus.admin_exists !== undefined && (
+                  <div>Admin Exists: {dbStatus.admin_exists ? '✅ Yes' : '❌ No'}</div>
+                )}
+                {dbStatus.admin_details && (
+                  <div className="text-[10px] mt-1">
+                    Admin: {dbStatus.admin_details.email} ({dbStatus.admin_details.role})
+                  </div>
+                )}
+                {dbStatus.error && (
+                  <div className="text-red-600 mt-1">Error: {dbStatus.error}</div>
+                )}
+                {dbStatus.env && (
+                  <div className="text-[10px] mt-2 pt-2 border-t border-gray-300">
+                    <div>DB URL: {dbStatus.env.DATABASE_URL_set ? '✅ Set' : '❌ Missing'}</div>
+                    <div>NEXTAUTH_URL: {dbStatus.env.NEXTAUTH_URL || 'Not set'}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 rounded-md bg-destructive/15 text-destructive text-sm">
               {error}
