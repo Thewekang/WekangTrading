@@ -64,7 +64,11 @@ export default function TrendIndicatorCard({
         <div>
           <h3 className="text-sm font-medium text-gray-700">{metricLabel}</h3>
           <p className={`text-2xl font-bold ${getDirectionColor()} mt-1`}>
-            {direction === 'improving' ? '↗' : direction === 'declining' ? '↘' : '→'} {metric === 'profitLoss' ? formatter(Math.abs(changePercent)) : `${Math.abs(changePercent)}%`}
+            {direction === 'improving' ? '↗' : direction === 'declining' ? '↘' : '→'}{' '}
+            {metric === 'profitLoss' 
+              ? (changePercent >= 0 ? '+' : '') + formatter(changePercent)
+              : (changePercent >= 0 ? '+' : '') + changePercent.toFixed(1) + '%'
+            }
           </p>
         </div>
         {getDirectionIcon()}
@@ -74,14 +78,14 @@ export default function TrendIndicatorCard({
         <div className="flex justify-between">
           <span className="text-gray-600">7-Day Change:</span>
           <span className={`font-medium ${trend7Day > 0 ? 'text-green-600' : trend7Day < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-            {trend7Day > 0 ? '+' : ''}{formatter(trend7Day)}
+            {trend7Day > 0 ? '+' : ''}{metric === 'profitLoss' ? '$' : ''}{formatter(trend7Day)}
             {metric !== 'profitLoss' && '%'}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">30-Day Change:</span>
           <span className={`font-medium ${trend30Day > 0 ? 'text-green-600' : trend30Day < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-            {trend30Day > 0 ? '+' : ''}{formatter(trend30Day)}
+            {trend30Day > 0 ? '+' : ''}{metric === 'profitLoss' ? '$' : ''}{formatter(trend30Day)}
             {metric !== 'profitLoss' && '%'}
           </span>
         </div>

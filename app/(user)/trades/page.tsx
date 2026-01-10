@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getTrades } from '@/lib/services/individualTradeService';
 import { TradesList } from '@/components/TradesList';
+import DailyLossAlert from '@/components/alerts/DailyLossAlert';
 
 export const metadata = {
   title: 'My Trades | WekangTradingJournal',
@@ -45,6 +46,9 @@ export default async function TradesPage() {
             </Link>
           </div>
         </div>
+
+        {/* Daily Loss Alert */}
+        <DailyLossAlert className="mb-6" />
 
         <TradesList initialTrades={trades} userId={session.user.id} />
       </div>

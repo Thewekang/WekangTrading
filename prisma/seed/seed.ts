@@ -43,6 +43,30 @@ async function main() {
     console.log('✅ Created trader:', user.email);
   }
 
+  // Create default SOP types
+  const defaultSopTypes = [
+    { name: 'Trend Following', description: 'Trading with the main market trend', sortOrder: 1 },
+    { name: 'Support/Resistance', description: 'Trading at key support and resistance levels', sortOrder: 2 },
+    { name: 'Breakout', description: 'Trading price breakouts from consolidation', sortOrder: 3 },
+    { name: 'Reversal', description: 'Identifying and trading trend reversals', sortOrder: 4 },
+    { name: 'News Trading', description: 'Trading around major news events', sortOrder: 5 },
+    { name: 'Scalping', description: 'Quick trades for small profits', sortOrder: 6 },
+  ];
+
+  for (const sopType of defaultSopTypes) {
+    const created = await prisma.sopType.upsert({
+      where: { name: sopType.name },
+      update: {},
+      create: {
+        name: sopType.name,
+        description: sopType.description,
+        sortOrder: sopType.sortOrder,
+        active: true,
+      },
+    });
+    console.log('✅ Created SOP type:', created.name);
+  }
+
   console.log('🎉 Database seed complete!');
   console.log('\n📝 Test Accounts Created:');
   console.log('Admin: admin@wekangtradingjournal.com / admin123');

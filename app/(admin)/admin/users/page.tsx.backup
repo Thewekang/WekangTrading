@@ -1,0 +1,280 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { UserStats } from '@/lib/services/adminStatsService';
+import { LoadingSpinner } from '@/components/ui/loading';
+
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<UserStats[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'winRate' | 'sopRate' | 'profitLoss' | 'trades'>('winRate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    filterAndSortUsers();
+  }, [users, searchQuery, sortBy, sortOrder]);
+
+  async function fetchUsers() {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/admin/users');
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setUsers(data.data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function filterAndSortUsers() {
+    let filtered = [...users];
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.userName.toLowerCase().includes(query) ||
+          user.userEmail.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'winRate':
+          comparison = a.winRate - b.winRate;
+          break;
+        case 'sopRate':
+          comparison = a.sopRate - b.sopRate;
+          break;
+        case 'profitLoss':
+          comparison = a.netProfitLoss - b.netProfitLoss;
+          break;
+        case 'trades':
+          comparison = a.totalTrades - b.totalTrades;
+          break;
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    setFilteredUsers(filtered);
+  }
+
+  function handleSort(column: typeof sortBy) {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(column);
+      setSortOrder('desc');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+        <p className="mt-2 text-sm text-gray-600">
+          View and manage all users and their trading statistics
+        </p>
+      </div>
+
+      {/* Search and Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Search Users</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+            <div className="text-sm text-gray-600">
+              Click column headers to sort
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              {searchQuery ? 'No users found matching your search' : 'No users found'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Rank
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th
+                      onClick={() => handleSort('trades')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    >
+                      <div className="flex items-center gap-1">
+                        Trades
+                        {sortBy === 'trades' && (
+                          sortOrder === 'desc' ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('winRate')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    >
+                      <div className="flex items-center gap-1">
+                        Win Rate
+                        {sortBy === 'winRate' && (
+                          sortOrder === 'desc' ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('sopRate')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    >
+                      <div className="flex items-center gap-1">
+                        SOP Rate
+                        {sortBy === 'sopRate' && (
+                          sortOrder === 'desc' ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('profitLoss')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    >
+                      <div className="flex items-center gap-1">
+                        P&L
+                        {sortBy === 'profitLoss' && (
+                          sortOrder === 'desc' ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Best Session
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Last Trade
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.userId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {user.rank === 1 && <span className="text-2xl">🥇</span>}
+                          {user.rank === 2 && <span className="text-2xl">🥈</span>}
+                          {user.rank === 3 && <span className="text-2xl">🥉</span>}
+                          {(user.rank || 0) > 3 && (
+                            <span className="text-sm font-medium text-gray-900">
+                              #{user.rank}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.userName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {user.userEmail}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {user.totalTrades}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {user.totalWins}W / {user.totalLosses}L
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.winRate >= 60 ? 'bg-green-100 text-green-800' :
+                          user.winRate >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {user.winRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.sopRate >= 80 ? 'bg-green-100 text-green-800' :
+                          user.sopRate >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {user.sopRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className={`text-sm font-medium ${
+                          user.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          ${user.netProfitLoss >= 0 ? '+' : ''}{user.netProfitLoss.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ${user.avgProfitPerTrade.toFixed(2)}/trade
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {user.bestSession || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {user.lastTradeDate
+                          ? new Date(user.lastTradeDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : 'Never'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

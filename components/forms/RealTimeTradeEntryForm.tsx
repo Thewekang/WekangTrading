@@ -14,6 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
 
+interface SopType {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 // Helper function to format Date to datetime-local format
 function formatDateForInput(date: Date): string {
   const year = date.getFullYear();
@@ -29,6 +35,8 @@ export function RealTimeTradeEntryForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [sopTypes, setSopTypes] = useState<SopType[]>([]);
+  const [loadingSopTypes, setLoadingSopTypes] = useState(true);
 
   const {
     register,
@@ -43,6 +51,7 @@ export function RealTimeTradeEntryForm() {
     defaultValues: {
       result: 'WIN',
       sopFollowed: undefined,
+      sopTypeId: null,
       profitLossUsd: 0,
       notes: '',
     },
@@ -53,6 +62,26 @@ export function RealTimeTradeEntryForm() {
     const now = new Date();
     setValue('tradeTimestamp', now);
   }, [setValue]);
+
+  // Fetch SOP types
+  useEffect(() => {
+    const fetchSopTypes = async () => {
+      try {
+        const response = await fetch('/api/sop-types');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setSopTypes(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load SOP types:', error);
+      } finally {
+        setLoadingSopTypes(false);
+      }
+    };
+    fetchSopTypes();
+  }, []);
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
@@ -76,6 +105,7 @@ export function RealTimeTradeEntryForm() {
         tradeTimestamp: data.tradeTimestamp instanceof Date ? data.tradeTimestamp.toISOString() : new Date(data.tradeTimestamp).toISOString(),
         result: data.result,
         sopFollowed: data.sopFollowed,
+        sopTypeId: data.sopTypeId || null,
         profitLossUsd: profitLoss,
         notes: data.notes || undefined,
       };
@@ -96,10 +126,16 @@ export function RealTimeTradeEntryForm() {
       // Success
       setSuccessMessage('✅ Trade recorded successfully!');
       
+      // Refresh daily loss alert if available
+      if (typeof (window as any).refreshDailyLossAlert === 'function') {
+        (window as any).refreshDailyLossAlert();
+      }
+      
       // Reset form for next entry
       reset({
         result: 'WIN',
         sopFollowed: undefined,
+        sopTypeId: null,
         profitLossUsd: 0,
         notes: '',
       });
@@ -241,6 +277,32 @@ export function RealTimeTradeEntryForm() {
           />
           {errors.sopFollowed && (
             <p className="mt-1 text-sm text-red-600">{errors.sopFollowed.message}</p>
+          )}
+        </div>
+
+        {/* SOP Type */}
+        <div>
+          <Label htmlFor="sopTypeId">SOP Type</Label>
+          <select
+            id="sopTypeId"
+            {...register('sopTypeId')}
+            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            disabled={loadingSopTypes}
+          >
+            <option value="">Others (No specific SOP)</option>
+            {sopTypes.map((sopType) => (
+              <option key={sopType.id} value={sopType.id}>
+                {sopType.name}
+              </option>
+            ))}
+          </select>
+          {sopTypes.length === 0 && !loadingSopTypes && (
+            <p className="mt-1 text-xs text-gray-500">
+              No SOP types configured. Contact admin to add SOP types.
+            </p>
+          )}
+          {errors.sopTypeId && (
+            <p className="mt-1 text-sm text-red-600">{errors.sopTypeId.message}</p>
           )}
         </div>
 

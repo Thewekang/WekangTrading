@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { RealTimeTradeEntryForm } from '@/components/forms/RealTimeTradeEntryForm';
+import DailyLossAlert from '@/components/alerts/DailyLossAlert';
 
 export const metadata = {
   title: 'New Trade | WekangTradingJournal',
@@ -17,6 +18,9 @@ export default async function NewTradePage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* Daily Loss Alert */}
+        <DailyLossAlert className="mb-6" />
+        
         <RealTimeTradeEntryForm />
         
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { validateInviteCode, useInviteCode } from '@/lib/services/inviteCodeService';
 
 const registerSchema = z.object({
   name: z.string().min(2).max(50),
   email: z.string().email(),
   password: z.string().min(8).max(100),
+  inviteCode: z.string().length(8),
 });
 
 export async function POST(request: Request) {
@@ -15,6 +17,21 @@ export async function POST(request: Request) {
     
     // Validate input
     const validatedData = registerSchema.parse(body);
+
+    // Validate invite code
+    const inviteValidation = await validateInviteCode(validatedData.inviteCode);
+    if (!inviteValidation.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'INVALID_INVITE_CODE',
+            message: inviteValidation.message || 'Invalid invite code',
+          },
+        },
+        { status: 400 }
+      );
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -37,13 +54,14 @@ export async function POST(request: Request) {
     // Hash password
     const passwordHash = await bcrypt.hash(validatedData.password, 10);
 
-    // Create user
+    // Create user with invite code
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
         email: validatedData.email,
         passwordHash,
         role: 'USER',
+        inviteCodeId: inviteValidation.inviteCodeId,
       },
       select: {
         id: true,
@@ -53,6 +71,9 @@ export async function POST(request: Request) {
         createdAt: true,
       },
     });
+
+    // Mark invite code as used
+    await useInviteCode(validatedData.inviteCode);
 
     return NextResponse.json(
       {

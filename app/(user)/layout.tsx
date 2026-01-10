@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { ToastContainer } from '@/components/ui/Toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -32,10 +33,10 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
                   🎯 Targets
                 </Link>
                 <Link href="/analytics/trends" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  📈 Trends
+                  📈 Analytics
                 </Link>
-                <Link href="/analytics" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Analytics
+                <Link href="/settings" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                  ⚙️ Settings
                 </Link>
               </div>
             </div>
@@ -50,7 +51,11 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
           </div>
         </div>
       </nav>
-      <main>{children}</main>
+      <main>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </main>
       <ToastContainer />
     </div>
   );

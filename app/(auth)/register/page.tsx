@@ -38,6 +38,7 @@ export default function RegisterPage() {
           name: data.name,
           email: data.email,
           password: data.password,
+          inviteCode: data.inviteCode,
         }),
       });
 
@@ -101,6 +102,28 @@ export default function RegisterPage() {
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email.message}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="inviteCode">Invite Code</Label>
+            <Input
+              id="inviteCode"
+              type="text"
+              placeholder="XXXXXXXX"
+              maxLength={8}
+              {...register('inviteCode')}
+              disabled={isLoading}
+              className="uppercase"
+              onChange={(e) => {
+                e.target.value = e.target.value.toUpperCase();
+              }}
+            />
+            {errors.inviteCode && (
+              <p className="text-sm text-destructive">{errors.inviteCode.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Contact admin to get an invite code
+            </p>
           </div>
 
           <div className="space-y-2">

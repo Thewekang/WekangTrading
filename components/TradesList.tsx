@@ -9,13 +9,19 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { ExportModal } from '@/components/ExportModal';
+import { LoadingSpinner, LoadingTable } from '@/components/ui/loading';
+import { NoTradesEmptyState, NoResultsEmptyState } from '@/components/ui/empty-state';
+import { showToast } from '@/components/ui/Toast';
 
 interface Trade {
   id: string;
   tradeTimestamp: Date;
   result: string;
   sopFollowed: boolean;
+  sopTypeId: string | null;
+  sopType: { id: string; name: string } | null;
   profitLossUsd: number;
   marketSession: string;
   notes: string | null;
@@ -49,6 +55,11 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
+  
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -325,6 +336,56 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     setSopFilter(preset.filters.sopFilter);
     setMinProfitLoss(preset.filters.minProfitLoss);
     setMaxProfitLoss(preset.filters.maxProfitLoss);
+  };
+  
+  // Delete trade handler
+  const handleDeleteTrade = async () => {
+    if (!tradeToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/trades/individual/${tradeToDelete.id}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Failed to delete trade');
+      }
+      
+      showToast('Trade deleted successfully', 'success');
+      setShowDeleteModal(false);
+      setTradeToDelete(null);
+      
+      // Refresh daily loss alert if available
+      if (typeof (window as any).refreshDailyLossAlert === 'function') {
+        (window as any).refreshDailyLossAlert();
+      }
+      
+      // Refresh trades list
+      handleApplyFilters(currentPage);
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to delete trade';
+      if (errorMessage.includes('24 hours')) {
+        showToast('Trades can only be deleted within 24 hours of creation', 'error');
+      } else {
+        showToast(errorMessage, 'error');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  const openDeleteModal = (trade: Trade) => {
+    setTradeToDelete(trade);
+    setShowDeleteModal(true);
+  };
+  
+  // Check if trade can be deleted (within 24 hours)
+  const canDeleteTrade = (trade: Trade) => {
+    const hoursSinceCreation = (Date.now() - new Date(trade.tradeTimestamp).getTime()) / (1000 * 60 * 60);
+    return hoursSinceCreation <= 24;
   };
   
   // Delete filter preset
@@ -612,8 +673,27 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         </div>
       </div>
 
+      {/* 24-Hour Deletion Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">ℹ️</span>
+          <div>
+            <h3 className="font-semibold text-blue-900 mb-1">Trade Deletion Policy</h3>
+            <p className="text-sm text-blue-800">
+              You can delete trades within <strong>24 hours</strong> of creation. After 24 hours, trades are locked to maintain data integrity. 
+              The 🗑️ delete button will be disabled for older trades.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Trades Table */}
-      <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md border overflow-hidden relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
+            <LoadingSpinner size="lg" text="Loading trades..." />
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
@@ -629,26 +709,49 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             <tbody className="divide-y divide-gray-200">
               {trades.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center justify-center">
-                      <p className="text-lg font-semibold mb-2">No trades found</p>
-                      <p className="text-sm mb-4">
-                        {startDate || endDate || resultFilter || sessionFilter || sopFilter 
-                          ? 'Try adjusting your filters or add a new trade'
-                          : 'Start tracking your performance by adding your first trade'
-                        }
-                      </p>
-                      <Link href="/trades/new">
-                        <Button>➕ Add Trade</Button>
-                      </Link>
-                    </div>
+                  <td colSpan={7} className="px-4 py-12">
+                    {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
+                      <div className="text-center">
+                        <div className="text-5xl mb-4">🔍</div>
+                        <p className="text-lg font-semibold text-gray-900 mb-2">No results found</p>
+                        <p className="text-sm text-gray-600 mb-4">
+                          No trades match your current filters. Try adjusting your search criteria.
+                        </p>
+                        <Button onClick={handleClearFilters} variant="outline">
+                          🔄 Clear All Filters
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-5xl mb-4">📊</div>
+                        <p className="text-lg font-semibold text-gray-900 mb-2">No trades yet</p>
+                        <p className="text-sm text-gray-600 mb-4">
+                          Start tracking your performance by adding your first trade
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                          <Link href="/trades/new">
+                            <Button>➕ Add Trade</Button>
+                          </Link>
+                          <Link href="/trades/bulk">
+                            <Button variant="outline">📋 Bulk Entry</Button>
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (
                 trades.map((trade) => (
                   <tr key={trade.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                      {formatDateTime(trade.tradeTimestamp)}
+                      <div className="flex items-center gap-2">
+                        {formatDateTime(trade.tradeTimestamp)}
+                        {canDeleteTrade(trade) && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Can be deleted (within 24 hours)">
+                            🕒
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -673,6 +776,15 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                         <span className="text-orange-600">✗ No</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-sm">
+                      {trade.sopType ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                          {trade.sopType.name}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">Others</span>
+                      )}
+                    </td>
                     <td className={`px-4 py-3 text-sm text-right font-semibold ${
                       trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
@@ -683,6 +795,20 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                         <Link href={`/trades/${trade.id}`}>
                           <Button size="sm" variant="outline">View</Button>
                         </Link>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => openDeleteModal(trade)}
+                          disabled={!canDeleteTrade(trade)}
+                          title={
+                            canDeleteTrade(trade) 
+                              ? 'Delete this trade (within 24-hour window)' 
+                              : `Cannot delete: Trade is ${Math.floor((Date.now() - new Date(trade.tradeTimestamp).getTime()) / (1000 * 60 * 60))} hours old (24-hour limit exceeded)`
+                          }
+                          className={!canDeleteTrade(trade) ? 'opacity-50 cursor-not-allowed' : ''}
+                        >
+                          🗑️
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -831,6 +957,66 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           maxProfitLoss,
         }}
       />
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && tradeToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md p-6">
+            <h2 className="text-2xl font-bold mb-4 text-red-600">⚠️ Delete Trade</h2>
+            <div className="space-y-4">
+              <p className="text-gray-700">
+                Are you sure you want to delete this trade?
+              </p>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <p className="text-sm">
+                  <span className="font-semibold">Time:</span> {formatDateTime(tradeToDelete.tradeTimestamp)}
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold">Result:</span>{' '}
+                  <span className={tradeToDelete.result === 'WIN' ? 'text-green-600' : 'text-red-600'}>
+                    {tradeToDelete.result}
+                  </span>
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold">P/L:</span>{' '}
+                  <span className={tradeToDelete.profitLossUsd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {tradeToDelete.profitLossUsd >= 0 ? '+' : ''}${tradeToDelete.profitLossUsd.toFixed(2)}
+                  </span>
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold">Session:</span> {getSessionBadge(tradeToDelete.marketSession)}
+                </p>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> This action cannot be undone. The daily summary will be automatically updated.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTradeToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteTrade}
+                  disabled={isDeleting}
+                  className="flex-1"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Trade'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }

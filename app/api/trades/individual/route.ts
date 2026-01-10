@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       tradeTimestamp: new Date(validatedData.tradeTimestamp),
       result: validatedData.result,
       sopFollowed: validatedData.sopFollowed,
+      sopTypeId: validatedData.sopTypeId,
       profitLossUsd: validatedData.profitLossUsd,
       notes: validatedData.notes,
     });

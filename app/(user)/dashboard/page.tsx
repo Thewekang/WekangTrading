@@ -3,9 +3,13 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getPersonalStats, getDailyTrends, getSessionStats, getHourlyStats } from '@/lib/services/statsService';
 import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
+import { getBestSopType } from '@/lib/services/sopTypeService';
 import SessionComparisonChart from '@/components/charts/SessionComparisonChart';
 import HourlyHeatmap from '@/components/charts/HourlyHeatmap';
 import TargetProgressCard from '@/components/dashboard/TargetProgressCard';
+import { BestSopCard } from '@/components/dashboard/BestSopCard';
+import { NoTradesEmptyState } from '@/components/ui/empty-state';
+import DailyLossAlert from '@/components/alerts/DailyLossAlert';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -15,11 +19,12 @@ export default async function DashboardPage() {
   }
 
   // Fetch real stats and targets
-  const [stats, sessionStats, hourlyStats, activeTargets] = await Promise.all([
+  const [stats, sessionStats, hourlyStats, activeTargets, bestSop] = await Promise.all([
     getPersonalStats(session.user.id, 'month'),
     getSessionStats(session.user.id, 'month'),
     getHourlyStats(session.user.id, 'month'),
     getActiveTargetsWithProgress(session.user.id),
+    getBestSopType(session.user.id, 'month'),
   ]);
 
   // Fallback to zeros if no data yet
@@ -28,6 +33,25 @@ export default async function DashboardPage() {
   const sopRate = stats.sopRate;
   const netProfitLoss = stats.totalProfitLossUsd;
   const bestSession = stats.bestSession;
+
+  // Show empty state if no trades
+  if (totalTrades === 0) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">
+              Welcome back, {session.user.name}! 🏍️💰
+            </h1>
+            <p className="text-muted-foreground">
+              Track your trading performance and analyze your results
+            </p>
+          </div>
+          <NoTradesEmptyState />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -41,40 +65,51 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-          <div className="p-6 bg-white rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Total Trades</h3>
-            <p className="text-3xl font-bold">{totalTrades}</p>
-            <p className="text-sm text-muted-foreground mt-2">This month</p>
+        {/* Daily Loss Alert */}
+        <DailyLossAlert className="mb-6" />
+
+        {/* Stats Cards and Best SOP */}
+        <div className="grid gap-6 lg:grid-cols-3 mb-6">
+          {/* Stats Cards - 2 columns on large screens */}
+          <div className="lg:col-span-2 grid gap-6 md:grid-cols-2">
+            <div className="p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Total Trades</h3>
+              <p className="text-3xl font-bold">{totalTrades}</p>
+              <p className="text-sm text-muted-foreground mt-2">This month</p>
+            </div>
+
+            <div className="p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Win Rate</h3>
+              <p className={`text-3xl font-bold ${winRate >= 60 ? 'text-green-600' : winRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                {winRate.toFixed(1)}%
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {stats.totalWins} wins / {stats.totalLosses} losses
+              </p>
+            </div>
+
+            <div className="p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">SOP Compliance</h3>
+              <p className={`text-3xl font-bold ${sopRate >= 80 ? 'text-green-600' : sopRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                {sopRate.toFixed(1)}%
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {stats.totalSopFollowed} / {totalTrades} trades
+              </p>
+            </div>
+
+            <div className="p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Net P/L</h3>
+              <p className={`text-3xl font-bold ${netProfitLoss > 0 ? 'text-green-600' : netProfitLoss < 0 ? 'text-red-600' : ''}`}>
+                ${Math.abs(netProfitLoss).toFixed(2)}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">This month</p>
+            </div>
           </div>
 
-          <div className="p-6 bg-white rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Win Rate</h3>
-            <p className={`text-3xl font-bold ${winRate >= 60 ? 'text-green-600' : winRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-              {winRate.toFixed(1)}%
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {stats.totalWins} wins / {stats.totalLosses} losses
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">SOP Compliance</h3>
-            <p className={`text-3xl font-bold ${sopRate >= 80 ? 'text-green-600' : sopRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-              {sopRate.toFixed(1)}%
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {stats.totalSopFollowed} / {totalTrades} trades
-            </p>
-          </div>
-
-          <div className="p-6 bg-white rounded-lg shadow border">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">Net P/L</h3>
-            <p className={`text-3xl font-bold ${netProfitLoss > 0 ? 'text-green-600' : netProfitLoss < 0 ? 'text-red-600' : ''}`}>
-              ${Math.abs(netProfitLoss).toFixed(2)}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">This month</p>
+          {/* Best SOP Card - 1 column on large screens */}
+          <div className="lg:col-span-1">
+            <BestSopCard data={bestSop} period="month" />
           </div>
         </div>
 

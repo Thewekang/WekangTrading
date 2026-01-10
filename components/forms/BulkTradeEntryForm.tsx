@@ -5,17 +5,23 @@
  * Table-like interface for entering multiple trades at once
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+interface SopType {
+  id: string;
+  name: string;
+}
 
 interface BulkTradeRow {
   id: string;
   time: string;
   result: 'WIN' | 'LOSS' | '';
   sopFollowed: boolean | null;
+  sopTypeId: string;
   amount: string;
   notes: string;
 }
@@ -23,14 +29,36 @@ interface BulkTradeRow {
 export function BulkTradeEntryForm() {
   const router = useRouter();
   const [tradeDate, setTradeDate] = useState('');
+  const [sopTypes, setSopTypes] = useState<SopType[]>([]);
+  const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [rows, setRows] = useState<BulkTradeRow[]>([
-    { id: '1', time: '', result: '', sopFollowed: null, amount: '', notes: '' },
-    { id: '2', time: '', result: '', sopFollowed: null, amount: '', notes: '' },
-    { id: '3', time: '', result: '', sopFollowed: null, amount: '', notes: '' },
+    { id: '1', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
+    { id: '2', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
+    { id: '3', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Fetch SOP types
+  useEffect(() => {
+    const fetchSopTypes = async () => {
+      try {
+        const response = await fetch('/api/sop-types');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setSopTypes(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load SOP types:', error);
+      } finally {
+        setLoadingSopTypes(false);
+      }
+    };
+    fetchSopTypes();
+  }, []);
 
   // Add new row
   const handleAddRow = () => {
@@ -39,7 +67,7 @@ export function BulkTradeEntryForm() {
       return;
     }
     const newId = (Math.max(...rows.map(r => parseInt(r.id))) + 1).toString();
-    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, amount: '', notes: '' }]);
+    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' }]);
   };
 
   // Remove row
@@ -107,6 +135,7 @@ export function BulkTradeEntryForm() {
         tradeTimestamp: tradeTimestamp.toISOString(),
         result: row.result,
         sopFollowed: row.sopFollowed,
+        sopTypeId: row.sopTypeId || null,
         profitLossUsd: profitLoss,
         notes: row.notes || undefined,
       };
@@ -188,6 +217,7 @@ export function BulkTradeEntryForm() {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP *</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount (USD) *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Actions</th>
@@ -225,6 +255,21 @@ export function BulkTradeEntryForm() {
                       <option value="">Select</option>
                       <option value="true">✓ Yes</option>
                       <option value="false">✗ No</option>
+                    </select>
+                  </td>
+                  <td className="px-3 py-3">
+                    <select
+                      value={row.sopTypeId}
+                      onChange={(e) => handleUpdateRow(row.id, 'sopTypeId', e.target.value)}
+                      disabled={loadingSopTypes}
+                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">Others</option>
+                      {sopTypes.map((sopType) => (
+                        <option key={sopType.id} value={sopType.id}>
+                          {sopType.name}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td className="px-3 py-3">

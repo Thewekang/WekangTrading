@@ -7,6 +7,7 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name must be less than 50 characters'),
   email: z.string().email('Invalid email address'),
+  inviteCode: z.string().length(8, 'Invite code must be 8 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100, 'Password must be less than 100 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -39,6 +40,7 @@ export const individualTradeSchema = z.object({
   }),
   result: z.enum(['WIN', 'LOSS']),
   sopFollowed: z.boolean(),
+  sopTypeId: z.string().nullable().optional(),
   profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),
@@ -61,6 +63,7 @@ export const individualTradeApiSchema = z.object({
   sopFollowed: z
     .union([z.boolean(), z.literal('true'), z.literal('false')])
     .transform((v) => (v === true || v === 'true')),
+  sopTypeId: z.string().nullable().optional(),
   profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),

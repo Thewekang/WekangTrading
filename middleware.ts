@@ -15,11 +15,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protect dashboard routes
-  if (pathname.startsWith('/dashboard')) {
+  // Protect dashboard routes (user-only)
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/trades') || pathname.startsWith('/targets') || pathname.startsWith('/analytics')) {
     if (!token) {
       // Redirect to login if not authenticated
       return NextResponse.redirect(new URL('/login', request.url));
+    }
+    // Redirect admins to admin panel
+    if (token.role === 'ADMIN') {
+      return NextResponse.redirect(new URL('/admin/overview', request.url));
     }
     return NextResponse.next();
   }
@@ -42,6 +46,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/trades/:path*',
+    '/targets/:path*',
+    '/analytics/:path*',
     '/admin/:path*',
     '/login',
     '/register',

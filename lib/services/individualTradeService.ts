@@ -13,6 +13,7 @@ interface CreateTradeInput {
   tradeTimestamp: Date;
   result: 'WIN' | 'LOSS';
   sopFollowed: boolean;
+  sopTypeId?: string | null;
   profitLossUsd: number;
   notes?: string;
 }
@@ -21,6 +22,7 @@ interface UpdateTradeInput {
   tradeTimestamp?: Date;
   result?: 'WIN' | 'LOSS';
   sopFollowed?: boolean;
+  sopTypeId?: string | null;
   profitLossUsd?: number;
   notes?: string;
 }
@@ -69,6 +71,7 @@ export async function createTrade(input: CreateTradeInput) {
       tradeTimestamp: input.tradeTimestamp,
       result: input.result,
       sopFollowed: input.sopFollowed,
+      sopTypeId: input.sopTypeId || null,
       profitLossUsd: input.profitLossUsd,
       marketSession,
       notes: input.notes || null,
@@ -105,6 +108,7 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
     tradeTimestamp: trade.tradeTimestamp,
     result: trade.result,
     sopFollowed: trade.sopFollowed,
+    sopTypeId: trade.sopTypeId || null,
     profitLossUsd: trade.profitLossUsd,
     marketSession: calculateMarketSession(trade.tradeTimestamp),
     notes: trade.notes || null,
@@ -175,6 +179,14 @@ export async function getTrades(filters: GetTradesFilters) {
       orderBy: { tradeTimestamp: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: {
+        sopType: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     }),
     prisma.individualTrade.count({ where }),
     // Get all trades for summary statistics (only fetch needed fields)
@@ -283,10 +295,20 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
 
 /**
  * Delete a trade
+ * Users can only delete trades created within 24 hours
  */
-export async function deleteTrade(id: string, userId: string) {
+export async function deleteTrade(id: string, userId: string, isAdmin: boolean = false) {
   // Check trade exists and belongs to user
   const trade = await getTradeById(id, userId);
+
+  // Check 24-hour window for regular users
+  if (!isAdmin) {
+    const hoursSinceCreation = (Date.now() - trade.createdAt.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceCreation > 24) {
+      throw new Error('Trades can only be deleted within 24 hours of creation. Contact admin for assistance.');
+    }
+  }
 
   // Delete trade
   await prisma.individualTrade.delete({
