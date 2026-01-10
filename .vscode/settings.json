@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
         "Move-Item": true
+    },
+    "prisma.showPrismaDataPlatformNotification": false,
+    "[prisma]": {
+        "editor.defaultFormatter": "Prisma.prisma"
     }
 }
