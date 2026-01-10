@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:recalculate": "tsx scripts/recalculate-summaries.ts",
     "db:migrate": "prisma migrate dev",
