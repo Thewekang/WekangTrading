@@ -103,7 +103,24 @@ export default function AdminTradesPage() {
       if (!response.ok) throw new Error('Failed to fetch trades');
       
       const data = await response.json();
-      setTrades(data.data.trades);
+      
+      // Transform API response to match component's Trade interface
+      const transformedTrades = data.data.trades.map((trade: any) => ({
+        id: trade.id,
+        tradeTimestamp: trade.tradeTimestamp,
+        result: trade.result,
+        marketSession: trade.marketSession,
+        sopFollowed: trade.sopFollowed,
+        profitLossUsd: trade.profitLossUsd,
+        notes: trade.notes,
+        user: {
+          id: trade.userId,
+          name: trade.userName || 'Unknown',
+          email: trade.userEmail || 'N/A'
+        }
+      }));
+      
+      setTrades(transformedTrades);
       setPagination(data.data.pagination);
     } catch (error) {
       console.error('Error fetching trades:', error);
@@ -184,7 +201,7 @@ export default function AdminTradesPage() {
               className="w-full p-2 border rounded"
             >
               <option value="">All Users</option>
-              {users.map((user) => (
+              {users.filter(user => user && user.name).map((user) => (
                 <option key={user.id} value={user.id}>{user.name}</option>
               ))}
             </select>
