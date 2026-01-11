@@ -69,22 +69,31 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
   const usSessionTrades = trades.filter(t => t.marketSession === 'US').length;
   const usSessionWins = trades.filter(t => t.marketSession === 'US' && t.result === 'WIN').length;
   
-  const overlapSessionTrades = trades.filter(t => t.marketSession === 'OVERLAP').length;
-  const overlapSessionWins = trades.filter(t => t.marketSession === 'OVERLAP' && t.result === 'WIN').length;
+  // Overlap sessions: sum both types for backwards compatibility with DB schema
+  const asiaEuropeOverlapTrades = trades.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP').length;
+  const asiaEuropeOverlapWins = trades.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP' && t.result === 'WIN').length;
+  
+  const europeUsOverlapTrades = trades.filter(t => t.marketSession === 'EUROPE_US_OVERLAP').length;
+  const europeUsOverlapWins = trades.filter(t => t.marketSession === 'EUROPE_US_OVERLAP' && t.result === 'WIN').length;
+  
+  // Total overlap (for DB column)
+  const overlapSessionTrades = asiaEuropeOverlapTrades + europeUsOverlapTrades;
+  const overlapSessionWins = asiaEuropeOverlapWins + europeUsOverlapWins;
 
   // Determine best session (highest win rate with at least 1 trade)
   const sessionStats = [
     { session: 'ASIA', trades: asiaSessionTrades, wins: asiaSessionWins },
     { session: 'EUROPE', trades: europeSessionTrades, wins: europeSessionWins },
     { session: 'US', trades: usSessionTrades, wins: usSessionWins },
-    { session: 'OVERLAP', trades: overlapSessionTrades, wins: overlapSessionWins },
+    { session: 'ASIA_EUROPE_OVERLAP', trades: asiaEuropeOverlapTrades, wins: asiaEuropeOverlapWins },
+    { session: 'EUROPE_US_OVERLAP', trades: europeUsOverlapTrades, wins: europeUsOverlapWins },
   ];
 
   const bestSessionData = sessionStats
     .filter(s => s.trades > 0)
     .sort((a, b) => (b.wins / b.trades) - (a.wins / a.trades))[0];
 
-  const bestSession = bestSessionData ? bestSessionData.session as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP' : null;
+  const bestSession = bestSessionData ? bestSessionData.session as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP' : null;
 
   // Check if summary exists
   const [existingSummary] = await db
