@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/utils/apiErrors';
 import { getUserStats } from '@/lib/services/adminStatsService';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { asc } from 'drizzle-orm';
 

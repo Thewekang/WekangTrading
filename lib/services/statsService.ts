@@ -76,10 +76,9 @@ export async function getPersonalStats(
   }
 
   // Query daily_summaries (FAST, pre-aggregated)
-  const startDateUnix = startDate ? Math.floor(startDate.getTime() / 1000) : undefined;
   const conditions = [eq(dailySummaries.userId, userId)];
-  if (startDateUnix) {
-    conditions.push(gte(dailySummaries.tradeDate, startDateUnix));
+  if (startDate) {
+    conditions.push(gte(dailySummaries.tradeDate, startDate));
   }
 
   const summaries = await db
@@ -186,10 +185,9 @@ export async function getSessionStats(
   }
 
   // Query individual trades directly for accurate session stats
-  const startDateUnix = startDate ? Math.floor(startDate.getTime() / 1000) : undefined;
   const conditions = [eq(individualTrades.userId, userId)];
-  if (startDateUnix) {
-    conditions.push(gte(individualTrades.tradeTimestamp, startDateUnix));
+  if (startDate) {
+    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
   }
 
   const trades = await db
@@ -257,8 +255,6 @@ export async function getDailyTrends(
       break;
   }
 
-  const startDateUnix = Math.floor(startDate.getTime() / 1000);
-
   // Query daily_summaries
   const summaries = await db
     .select()
@@ -266,7 +262,7 @@ export async function getDailyTrends(
     .where(
       and(
         eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDateUnix)
+        gte(dailySummaries.tradeDate, startDate)
       )
     )
     .orderBy(dailySummaries.tradeDate)
@@ -275,8 +271,7 @@ export async function getDailyTrends(
   // Map to trend data
   return summaries.map((s: DailySummary) => {
     const winRate = s.totalTrades > 0 ? Math.round((s.totalWins / s.totalTrades) * 100 * 10) / 10 : 0;
-    const tradeDateMs = s.tradeDate * 1000; // Convert Unix timestamp to milliseconds
-    const date = new Date(tradeDateMs);
+    const date = s.tradeDate; // Already a Date object
     
     return {
       date: date.toISOString().split('T')[0], // YYYY-MM-DD
@@ -318,10 +313,9 @@ export async function getHourlyStats(
   }
 
   // Query individual trades (need timestamp precision)
-  const startDateUnix = startDate ? Math.floor(startDate.getTime() / 1000) : undefined;
   const conditions = [eq(individualTrades.userId, userId)];
-  if (startDateUnix) {
-    conditions.push(gte(individualTrades.tradeTimestamp, startDateUnix));
+  if (startDate) {
+    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
   }
 
   const trades = await db
@@ -342,9 +336,8 @@ export async function getHourlyStats(
 
   // Count trades per hour with timezone conversion
   trades.forEach((trade) => {
-    // Convert Unix timestamp to Date
-    const tradeDate = new Date(trade.tradeTimestamp * 1000);
-    const utcHour = tradeDate.getUTCHours();
+    // tradeTimestamp is already a Date object
+    const utcHour = trade.tradeTimestamp.getUTCHours();
     // Convert to selected timezone
     let localHour = utcHour + timezoneOffset;
     // Handle day wrap-around

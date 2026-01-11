@@ -64,17 +64,14 @@ export async function getDailyTrends(
   startDate: Date,
   endDate: Date
 ): Promise<DailyTrend[]> {
-  const startDateUnix = Math.floor(startDate.getTime() / 1000);
-  const endDateUnix = Math.floor(endDate.getTime() / 1000);
-
   const summaries = await db
     .select()
     .from(dailySummaries)
     .where(
       and(
         eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDateUnix),
-        lte(dailySummaries.tradeDate, endDateUnix)
+        gte(dailySummaries.tradeDate, startDate),
+        lte(dailySummaries.tradeDate, endDate)
       )
     )
     .orderBy(dailySummaries.tradeDate);
@@ -88,7 +85,7 @@ export async function getDailyTrends(
       : 0;
 
     return {
-      date: format(new Date(summary.tradeDate * 1000), 'yyyy-MM-dd'),
+      date: format(summary.tradeDate, 'yyyy-MM-dd'),
       winRate: Math.round(winRate * 10) / 10,
       sopRate: Math.round(sopRate * 10) / 10,
       profitLoss: Math.round(summary.totalProfitLossUsd * 100) / 100,
@@ -169,17 +166,14 @@ export async function getMonthlyComparison(userId: string): Promise<ComparisonDa
  * Get aggregate stats for a period
  */
 async function getPeriodStats(userId: string, startDate: Date, endDate: Date) {
-  const startDateUnix = Math.floor(startDate.getTime() / 1000);
-  const endDateUnix = Math.floor(endDate.getTime() / 1000);
-
   const summaries = await db
     .select()
     .from(dailySummaries)
     .where(
       and(
         eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDateUnix),
-        lte(dailySummaries.tradeDate, endDateUnix)
+        gte(dailySummaries.tradeDate, startDate),
+        lte(dailySummaries.tradeDate, endDate)
       )
     );
 

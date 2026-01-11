@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { individualTrades, users as usersTable } from '@/lib/db/schema';
 import { eq, and, gte, lte, like, or, count, desc, SQL, sql } from 'drizzle-orm';
 

@@ -37,10 +37,10 @@ export async function getTradesForExport(filters: ExportFilters): Promise<Indivi
   const conditions = [eq(individualTrades.userId, userId)];
 
   if (startDate) {
-    conditions.push(gte(individualTrades.tradeTimestamp, Math.floor(startDate.getTime() / 1000)));
+    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
   }
   if (endDate) {
-    conditions.push(lte(individualTrades.tradeTimestamp, Math.floor(endDate.getTime() / 1000)));
+    conditions.push(lte(individualTrades.tradeTimestamp, endDate));
   }
   if (result) conditions.push(eq(individualTrades.result, result));
   if (marketSession) conditions.push(eq(individualTrades.marketSession, marketSession));
@@ -75,7 +75,7 @@ export function generateCSV(trades: IndividualTrade[]): string {
   // CSV Rows
   const rows = trades.map(trade => [
     trade.id,
-    new Date(trade.tradeTimestamp * 1000).toLocaleString('en-US', {
+    trade.tradeTimestamp.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

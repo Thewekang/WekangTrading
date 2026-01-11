@@ -5,7 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { deleteTrade } from '@/lib/services/individualTradeService';
+import { db } from '@/lib/db';
+import { individualTrades } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { updateDailySummary } from '@/lib/services/dailySummaryService';
 
 export async function DELETE(
   request: NextRequest,
@@ -23,15 +26,25 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Delete trade (service handles daily summary update)
-    const result = await deleteTrade(id);
+    // Get trade first to find userId for summary update
+    const [trade] = await db
+      .select()
+      .from(individualTrades)
+      .where(eq(individualTrades.id, id))
+      .limit(1);
 
-    if (!result.success) {
+    if (!trade) {
       return NextResponse.json(
-        { success: false, error: { code: 'NOT_FOUND', message: result.error || 'Trade not found' } },
+        { success: false, error: { code: 'NOT_FOUND', message: 'Trade not found' } },
         { status: 404 }
       );
     }
+
+    // Delete trade
+    await db.delete(individualTrades).where(eq(individualTrades.id, id));
+
+    // Update daily summary
+    await updateDailySummary(trade.userId, trade.tradeTimestamp);
 
     return NextResponse.json({
       success: true,
