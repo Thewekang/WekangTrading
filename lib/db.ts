@@ -24,9 +24,12 @@ const client = createClient({
 });
 
 // Create Drizzle ORM instance with schema
+// Note: Logger disabled to reduce console noise. 
+// Drizzle's default logger prefixes queries with "Query:" which can be confusing.
+// Enable only for debugging: logger: true
 export const db = globalForDb.db ?? drizzle(client, { 
   schema,
-  logger: !isProduction,
+  logger: false, // Disabled - was showing "Failed query" for normal empty results
 });
 
 if (!isProduction) globalForDb.db = db;
