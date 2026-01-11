@@ -53,20 +53,14 @@ export default function LoginPage() {
         
         console.log('[LOGIN DEBUG] Session data:', session);
         
-        // Redirect based on role
+        // Redirect based on role - use hard redirect to ensure session is picked up
         if (session?.user?.role === 'ADMIN') {
           console.log('[LOGIN DEBUG] Redirecting to admin dashboard...');
-          console.log('[LOGIN DEBUG] Current URL:', window.location.href);
-          const targetUrl = '/admin/overview';
-          console.log('[LOGIN DEBUG] Target URL:', targetUrl);
-          router.push(targetUrl);
-          console.log('[LOGIN DEBUG] Router.push called');
+          window.location.href = '/admin/overview';
         } else {
           console.log('[LOGIN DEBUG] Redirecting to user dashboard...');
-          router.push('/dashboard');
+          window.location.href = '/dashboard';
         }
-        console.log('[LOGIN DEBUG] Calling router.refresh()...');
-        router.refresh();
       } else {
         console.error('[LOGIN DEBUG] Unexpected result:', result);
         setError('Unexpected login result: ' + JSON.stringify(result));
