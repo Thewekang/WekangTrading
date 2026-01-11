@@ -162,6 +162,28 @@ export async function getActiveTargetsWithProgress(
 ): Promise<TargetWithProgress[]> {
   try {
     const now = new Date();
+    
+    // Get current date in Malaysia timezone (GMT+8)
+    const malaysiaOffset = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    const nowMalaysia = new Date(now.getTime() + malaysiaOffset);
+    
+    // Get start of day in Malaysia timezone (for date-only comparison)
+    const startOfDayMalaysia = new Date(
+      nowMalaysia.getUTCFullYear(),
+      nowMalaysia.getUTCMonth(),
+      nowMalaysia.getUTCDate(),
+      0, 0, 0, 0
+    );
+    
+    // Convert back to UTC timestamp for comparison
+    const startOfDayUTC = new Date(startOfDayMalaysia.getTime() - malaysiaOffset);
+    
+    console.log('[getActiveTargetsWithProgress] Date comparison:');
+    console.log('  Now UTC:', now.toISOString());
+    console.log('  Now Malaysia:', nowMalaysia.toISOString());
+    console.log('  Start of day (Malaysia):', startOfDayMalaysia.toISOString());
+    console.log('  Start of day (UTC for comparison):', startOfDayUTC.toISOString());
+    
     const activeTargets = await db
       .select()
       .from(userTargets)
@@ -169,11 +191,13 @@ export async function getActiveTargetsWithProgress(
         and(
           eq(userTargets.userId, userId),
           eq(userTargets.active, true),
-          lte(userTargets.startDate, now),
-          gte(userTargets.endDate, now)
+          lte(userTargets.startDate, startOfDayUTC), // Start date <= today (Malaysia time)
+          gte(userTargets.endDate, startOfDayUTC)    // End date >= today (Malaysia time)
         )
       )
       .orderBy(desc(userTargets.createdAt));
+
+    console.log(`  Found ${activeTargets.length} active targets`);
 
     const targetsWithProgress = await Promise.all(
       activeTargets.map(async (target) => {
