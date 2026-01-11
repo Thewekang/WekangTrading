@@ -247,6 +247,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Can be in the past (for tracking ongoing prop firm targets)</p>
             </div>
 
             <div>
@@ -256,10 +257,12 @@ export default function TargetModal({ onClose }: TargetModalProps) {
               <input
                 type="date"
                 value={formData.endDate}
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Must be in the future</p>
             </div>
           </div>
 

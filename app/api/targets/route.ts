@@ -141,23 +141,21 @@ export async function POST(req: NextRequest) {
 
     const data = validation.data;
 
-    // Validate dates are not in the past
+    // Validate end date must be in the future (to allow measuring against ongoing prop firm targets)
     const now = new Date();
-    if (data.startDate < now) {
-      // Allow start date to be today
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (data.startDate < today) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: 'Start date cannot be in the past',
-            },
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (data.endDate < today) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'End date must be in the future. Start date can be in the past to track ongoing targets.',
           },
-          { status: 400 }
-        );
-      }
+        },
+        { status: 400 }
+      );
     }
 
     // Create target
