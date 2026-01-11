@@ -37,6 +37,7 @@ export function RealTimeTradeEntryForm() {
   const [successMessage, setSuccessMessage] = useState('');
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
+  const [isClient, setIsClient] = useState(false);
 
   const {
     register,
@@ -59,6 +60,7 @@ export function RealTimeTradeEntryForm() {
 
   // Set timestamp after component mounts to avoid hydration mismatch
   useEffect(() => {
+    setIsClient(true);
     const now = new Date();
     setValue('tradeTimestamp', now);
   }, [setValue]);
@@ -196,7 +198,7 @@ export function RealTimeTradeEntryForm() {
               <Input
                 id="tradeTimestamp"
                 type="datetime-local"
-                value={field.value instanceof Date ? formatDateForInput(field.value) : ''}
+                value={isClient && field.value instanceof Date ? formatDateForInput(field.value) : ''}
                 onChange={(e) => field.onChange(new Date(e.target.value))}
                 className="mt-1 text-base"
               />
