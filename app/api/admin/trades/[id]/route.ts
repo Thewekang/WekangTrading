@@ -5,8 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
-import { updateDailySummary } from '@/lib/services/dailySummaryService';
+import { deleteTrade } from '@/lib/services/individualTradeService';
 
 export async function DELETE(
   request: NextRequest,
@@ -24,31 +23,15 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Get trade info before deleting (for daily summary update)
-    const trade = await prisma.individualTrade.findUnique({
-      where: { id },
-      select: {
-        userId: true,
-        tradeTimestamp: true,
-      },
-    });
+    // Delete trade (service handles daily summary update)
+    const result = await deleteTrade(id);
 
-    if (!trade) {
+    if (!result.success) {
       return NextResponse.json(
-        { success: false, error: { code: 'NOT_FOUND', message: 'Trade not found' } },
+        { success: false, error: { code: 'NOT_FOUND', message: result.error || 'Trade not found' } },
         { status: 404 }
       );
     }
-
-    // Delete trade
-    await prisma.individualTrade.delete({
-      where: { id },
-    });
-
-    // Update daily summary
-    const tradeDate = new Date(trade.tradeTimestamp);
-    tradeDate.setHours(0, 0, 0, 0);
-    await updateDailySummary(trade.userId, tradeDate);
 
     return NextResponse.json({
       success: true,

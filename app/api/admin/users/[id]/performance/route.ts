@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db/client';
+import { users, dailySummaries } from '@/lib/db/schema';
+import { eq, and, gte, lte } from 'drizzle-orm';
 
 /**
  * GET /api/admin/users/[id]/performance?year=2025&month=1

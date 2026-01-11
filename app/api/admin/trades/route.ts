@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db/client';
+import { individualTrades, users as usersTable } from '@/lib/db/schema';
+import { eq, and, gte, lte, like, or, count, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {

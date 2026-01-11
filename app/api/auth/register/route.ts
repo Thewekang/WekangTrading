@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db/client';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { validateInviteCode, useInviteCode } from '@/lib/services/inviteCodeService';
 
 const registerSchema = z.object({
@@ -34,9 +36,11 @@ export async function POST(request: Request) {
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
-    });
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, validatedData.email))
+      .limit(1);
 
     if (existingUser) {
       return NextResponse.json(
@@ -55,22 +59,25 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(validatedData.password, 10);
 
     // Create user with invite code
-    const user = await prisma.user.create({
-      data: {
+    const [user] = await db
+      .insert(users)
+      .values({
         name: validatedData.name,
         email: validatedData.email,
         passwordHash,
         role: 'USER',
         inviteCodeId: inviteValidation.inviteCodeId,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+        resetCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        createdAt: users.createdAt,
+      });
 
     // Mark invite code as used
     await useInviteCode(validatedData.inviteCode);

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db/client';
+import { users } from '@/lib/db/schema';
+import { eq, count as countFn } from 'drizzle-orm';
 
 export async function GET() {
   try {

@@ -7,7 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/utils/apiErrors';
 import { getUserStats } from '@/lib/services/adminStatsService';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db/client';
+import { users } from '@/lib/db/schema';
+import { asc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,21 +19,21 @@ export async function GET(req: NextRequest) {
     if (adminError) return adminError;
 
     // Get ALL users (including admins) for user management page
-    const users = await prisma.user.findMany({
-      select: { 
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        resetCount: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    const allUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        resetCount: users.resetCount,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(asc(users.createdAt));
 
     // Get stats for each user
     const usersWithStats = await Promise.all(
-      users.map(async (user) => {
+      allUsers.map(async (user) => {
         const stats = await getUserStats(user.id);
         return {
           userId: user.id,

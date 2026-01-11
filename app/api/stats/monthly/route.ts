@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db/client';
+import { dailySummaries } from '@/lib/db/schema';
+import { and, gte, lte, eq, asc } from 'drizzle-orm';
 
 interface MonthlyStats {
   month: number; // 1-12
