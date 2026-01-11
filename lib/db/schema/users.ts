@@ -22,3 +22,5 @@ export const users = sqliteTable('users', {
 // Export types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Role = User['role'];
+

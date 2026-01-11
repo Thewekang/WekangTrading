@@ -8,7 +8,6 @@ import { auth } from '@/lib/auth';
 import { createTradesBulk } from '@/lib/services/individualTradeService';
 import { bulkTradeEntrySchema } from '@/lib/validations';
 import { ZodError } from 'zod';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,13 +81,14 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-    }
 
-    if (error instanceof PrismaClientKnownRequestError) {
-      return NextResponse.json(
-        { success: false, error: { code: 'DATABASE_ERROR', message: 'Database operation failed' } },
-        { status: 500 }
-      );
+      // Database errors (generic)
+      if (error.message.toLowerCase().includes('database') || error.message.toLowerCase().includes('unique constraint')) {
+        return NextResponse.json(
+          { success: false, error: { code: 'DATABASE_ERROR', message: 'Database operation failed' } },
+          { status: 500 }
+        );
+      }
     }
 
     console.error('[POST /api/trades/bulk]', error);

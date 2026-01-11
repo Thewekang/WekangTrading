@@ -48,41 +48,34 @@ export async function GET(
       );
     }
 
-    // TODO: Implement full Drizzle queries for performance calendar
-    return NextResponse.json({
-      success: false,
-      error: { code: 'NOT_IMPLEMENTED', message: 'Performance calendar temporarily unavailable during migration' },
-    }, { status: 501 });
-
-    /* COMMENTED OUT - TODO: Convert to Drizzle
     if (monthParam) {
       // Monthly view - return daily breakdown
       const month = parseInt(monthParam);
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0); // Last day of month
 
-      const dailySummaries = await prisma.dailySummary.findMany({
-        where: {
-          userId,
-          tradeDate: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        orderBy: { tradeDate: 'asc' },
-        select: {
-          tradeDate: true,
-          totalTrades: true,
-          totalWins: true,
-          totalLosses: true,
-          totalProfitLossUsd: true,
-          totalSopFollowed: true
-        }
-      });
+      const summaries = await db
+        .select({
+          tradeDate: dailySummaries.tradeDate,
+          totalTrades: dailySummaries.totalTrades,
+          totalWins: dailySummaries.totalWins,
+          totalLosses: dailySummaries.totalLosses,
+          totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+          totalSopFollowed: dailySummaries.totalSopFollowed,
+        })
+        .from(dailySummaries)
+        .where(
+          and(
+            eq(dailySummaries.userId, userId),
+            gte(dailySummaries.tradeDate, startDate),
+            lte(dailySummaries.tradeDate, endDate)
+          )
+        )
+        .orderBy(dailySummaries.tradeDate);
 
       // Create a map for quick lookup
       const performanceMap = new Map(
-        dailySummaries.map(summary => [
+        summaries.map(summary => [
           summary.tradeDate.getDate(),
           {
             date: summary.tradeDate.getDate(),
@@ -127,11 +120,11 @@ export async function GET(
         winRate: number;
         sopRate: number;
       } = {
-        profitLoss: dailySummaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
-        totalTrades: dailySummaries.reduce((sum, s) => sum + s.totalTrades, 0),
-        totalWins: dailySummaries.reduce((sum, s) => sum + s.totalWins, 0),
-        totalLosses: dailySummaries.reduce((sum, s) => sum + s.totalLosses, 0),
-        totalSopFollowed: dailySummaries.reduce((sum, s) => sum + s.totalSopFollowed, 0),
+        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
+        totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
+        totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
+        totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
+        totalSopFollowed: summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0),
         winRate: 0,
         sopRate: 0
       };
@@ -161,23 +154,23 @@ export async function GET(
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31);
 
-      const dailySummaries = await prisma.dailySummary.findMany({
-        where: {
-          userId,
-          tradeDate: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        select: {
-          tradeDate: true,
-          totalTrades: true,
-          totalWins: true,
-          totalLosses: true,
-          totalProfitLossUsd: true,
-          totalSopFollowed: true
-        }
-      });
+      const summaries = await db
+        .select({
+          tradeDate: dailySummaries.tradeDate,
+          totalTrades: dailySummaries.totalTrades,
+          totalWins: dailySummaries.totalWins,
+          totalLosses: dailySummaries.totalLosses,
+          totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+          totalSopFollowed: dailySummaries.totalSopFollowed,
+        })
+        .from(dailySummaries)
+        .where(
+          and(
+            eq(dailySummaries.userId, userId),
+            gte(dailySummaries.tradeDate, startDate),
+            lte(dailySummaries.tradeDate, endDate)
+          )
+        );
 
       // Group by month
       const monthlyMap = new Map<number, {
@@ -188,7 +181,7 @@ export async function GET(
         profitLoss: number;
       }>();
 
-      dailySummaries.forEach(summary => {
+      summaries.forEach(summary => {
         const month = summary.tradeDate.getMonth(); // 0-11
         const existing = monthlyMap.get(month) || {
           totalTrades: 0,
@@ -240,11 +233,11 @@ export async function GET(
         winRate: number;
         sopRate: number;
       } = {
-        profitLoss: dailySummaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
-        totalTrades: dailySummaries.reduce((sum, s) => sum + s.totalTrades, 0),
-        totalWins: dailySummaries.reduce((sum, s) => sum + s.totalWins, 0),
-        totalLosses: dailySummaries.reduce((sum, s) => sum + s.totalLosses, 0),
-        totalSopFollowed: dailySummaries.reduce((sum, s) => sum + s.totalSopFollowed, 0),
+        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
+        totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
+        totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
+        totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
+        totalSopFollowed: summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0),
         winRate: 0,
         sopRate: 0
       };

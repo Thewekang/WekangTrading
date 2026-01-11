@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getTradeById, updateTrade, deleteTrade } from '@/lib/services/individualTradeService';
 import { ZodError } from 'zod';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 interface RouteParams {
   params: Promise<{

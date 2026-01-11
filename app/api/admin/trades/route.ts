@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db/client';
 import { individualTrades, users as usersTable } from '@/lib/db/schema';
-import { eq, and, gte, lte, like, or, count, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, like, or, count, desc, SQL, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,32 +35,82 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     const search = searchParams.get('search');
 
-    // Build where clause
-    const where: any = {};
+    // Build where conditions array
+    const conditions: SQL[] = [];
 
-    if (userId) where.userId = userId;
-    if (result) where.result = result;
-    if (session_) where.marketSession = session_;
-    
-    if (dateFrom || dateTo) {
-      where.tradeTimestamp = {};
-      if (dateFrom) where.tradeTimestamp.gte = new Date(dateFrom);
-      if (dateTo) where.tradeTimestamp.lte = new Date(dateTo);
+    if (userId) {
+      conditions.push(eq(individualTrades.userId, userId));
     }
-
+    if (result) {
+      conditions.push(eq(individualTrades.result, result as any));
+    }
+    if (session_) {
+      conditions.push(eq(individualTrades.marketSession, session_ as any));
+    }
+    if (dateFrom) {
+      conditions.push(gte(individualTrades.tradeTimestamp, new Date(dateFrom)));
+    }
+    if (dateTo) {
+      conditions.push(lte(individualTrades.tradeTimestamp, new Date(dateTo)));
+    }
     if (search) {
-      where.OR = [
-        { user: { name: { contains: search, mode: 'insensitive' } } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
-        { notes: { contains: search, mode: 'insensitive' } },
-      ];
+      // Search in user name, email, or trade notes
+      conditions.push(
+        or(
+          like(usersTable.name, `%${search}%`),
+          like(usersTable.email, `%${search}%`),
+          like(individualTrades.notes, `%${search}%`)
+        )!
+      );
     }
 
-    // For now, return empty result - TODO: implement admin getAllTrades with filters
+    // Combine conditions
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(individualTrades)
+      .leftJoin(usersTable, eq(individualTrades.userId, usersTable.id))
+      .where(whereClause);
+
+    // Get trades with user info
+    const trades = await db
+      .select({
+        id: individualTrades.id,
+        userId: individualTrades.userId,
+        tradeTimestamp: individualTrades.tradeTimestamp,
+        result: individualTrades.result,
+        sopFollowed: individualTrades.sopFollowed,
+        profitLossUsd: individualTrades.profitLossUsd,
+        marketSession: individualTrades.marketSession,
+        notes: individualTrades.notes,
+        sopTypeId: individualTrades.sopTypeId,
+        dailySummaryId: individualTrades.dailySummaryId,
+        createdAt: individualTrades.createdAt,
+        updatedAt: individualTrades.updatedAt,
+        userName: usersTable.name,
+        userEmail: usersTable.email,
+      })
+      .from(individualTrades)
+      .leftJoin(usersTable, eq(individualTrades.userId, usersTable.id))
+      .where(whereClause)
+      .orderBy(desc(individualTrades.tradeTimestamp))
+      .limit(pageSize)
+      .offset(skip);
+
     return NextResponse.json({
-      success: false,
-      error: { code: 'NOT_IMPLEMENTED', message: 'Admin trades list temporarily unavailable during migration' },
-    }, { status: 501 });
+      success: true,
+      data: {
+        trades,
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      },
+    });
   } catch (error) {
     console.error('Error fetching trades:', error);
     return NextResponse.json(
