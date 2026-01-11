@@ -283,7 +283,7 @@ async function calculateTargetProgress(
   // Determine overall status
   let status: TargetWithProgress['progress']['status'];
   
-  if (now > targetEndDate) {
+  if (now > startOfEndDate) {
     // Target period ended
     const allAchieved = 
       currentWinRate >= target.targetWinRate &&
