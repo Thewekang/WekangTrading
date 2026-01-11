@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ExportModal } from '@/components/ExportModal';
@@ -791,10 +790,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                       {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/trades/${trade.id}`}>
-                          <Button size="sm" variant="outline">View</Button>
-                        </Link>
+                      <div className="flex justify-end">
                         <Button 
                           size="sm" 
                           variant="destructive"
