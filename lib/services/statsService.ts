@@ -199,19 +199,23 @@ export async function getSessionStats(
       .from(individualTrades)
       .where(and(...conditions));
 
-  // Aggregate by session
+  // Aggregate by session (including new overlap types)
   const sessionTotals: Record<MarketSession, { trades: number; wins: number }> = {
     ASIA: { trades: 0, wins: 0 },
     EUROPE: { trades: 0, wins: 0 },
     US: { trades: 0, wins: 0 },
-    OVERLAP: { trades: 0, wins: 0 },
+    ASIA_EUROPE_OVERLAP: { trades: 0, wins: 0 },
+    EUROPE_US_OVERLAP: { trades: 0, wins: 0 },
   };
 
   trades.forEach((trade) => {
     const session = trade.marketSession as MarketSession;
-    sessionTotals[session].trades++;
-    if (trade.result === 'WIN') {
-      sessionTotals[session].wins++;
+    // Safety check in case of unknown session type
+    if (sessionTotals[session]) {
+      sessionTotals[session].trades++;
+      if (trade.result === 'WIN') {
+        sessionTotals[session].wins++;
+      }
     }
   });
 
