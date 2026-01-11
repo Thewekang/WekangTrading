@@ -250,22 +250,27 @@ async function calculateTargetProgress(
     : null;
 
   // Calculate time-based metrics
+  // Normalize to start of day for accurate day counting
   const now = new Date();
-  const targetStartDate = target.startDate;
-  const targetEndDate = target.endDate;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  const startDate = new Date(target.startDate);
+  const startOfStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  
+  const endDate = new Date(target.endDate);
+  const startOfEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
   
   // Calculate total days (inclusive of both start and end dates)
-  const daysTotal = Math.ceil(
-    (targetEndDate.getTime() - targetStartDate.getTime()) / (1000 * 60 * 60 * 24)
-  ) + 1;
+  const daysDiff = Math.round((startOfEndDate.getTime() - startOfStartDate.getTime()) / (1000 * 60 * 60 * 24));
+  const daysTotal = daysDiff + 1; // +1 to include both start and end date
   
-  const daysElapsed = Math.ceil(
-    (now.getTime() - targetStartDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const daysRemaining = Math.max(
-    Math.ceil((targetEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) + 1,
-    0
-  );
+  // Days elapsed (from start to today, inclusive)
+  const daysElapsedDiff = Math.max(0, Math.round((today.getTime() - startOfStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysElapsed = Math.min(daysElapsedDiff + 1, daysTotal);
+  
+  // Days remaining (from today to end, inclusive)
+  const daysRemainingDiff = Math.max(0, Math.round((startOfEndDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysRemaining = daysRemainingDiff + 1;
 
   // Determine if on track (considering time elapsed)
   const expectedProgress = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
