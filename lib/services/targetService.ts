@@ -163,26 +163,31 @@ export async function getActiveTargetsWithProgress(
   try {
     const now = new Date();
     
-    // Get current date in Malaysia timezone (GMT+8)
-    const malaysiaOffset = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-    const nowMalaysia = new Date(now.getTime() + malaysiaOffset);
+    // Get today's date in Malaysia timezone (GMT+8)
+    const malaysiaOffset = 8 * 60; // 8 hours in minutes
+    const malaysiaTime = new Date(now.getTime() + malaysiaOffset * 60 * 1000);
     
-    // Get start of day in Malaysia timezone (for date-only comparison)
-    const startOfDayMalaysia = new Date(
-      nowMalaysia.getUTCFullYear(),
-      nowMalaysia.getUTCMonth(),
-      nowMalaysia.getUTCDate(),
+    // Get start of today in Malaysia (00:00:00 Malaysia time)
+    const todayMalaysiaStart = new Date(Date.UTC(
+      malaysiaTime.getUTCFullYear(),
+      malaysiaTime.getUTCMonth(),
+      malaysiaTime.getUTCDate(),
       0, 0, 0, 0
-    );
+    ));
     
-    // Convert back to UTC timestamp for comparison
-    const startOfDayUTC = new Date(startOfDayMalaysia.getTime() - malaysiaOffset);
+    // Get end of today in Malaysia (23:59:59 Malaysia time)
+    const todayMalaysiaEnd = new Date(Date.UTC(
+      malaysiaTime.getUTCFullYear(),
+      malaysiaTime.getUTCMonth(),
+      malaysiaTime.getUTCDate(),
+      23, 59, 59, 999
+    ));
     
     console.log('[getActiveTargetsWithProgress] Date comparison:');
-    console.log('  Now UTC:', now.toISOString());
-    console.log('  Now Malaysia:', nowMalaysia.toISOString());
-    console.log('  Start of day (Malaysia):', startOfDayMalaysia.toISOString());
-    console.log('  Start of day (UTC for comparison):', startOfDayUTC.toISOString());
+    console.log('  Current UTC:', now.toISOString());
+    console.log('  Current Malaysia:', malaysiaTime.toISOString());
+    console.log('  Today Malaysia start:', todayMalaysiaStart.toISOString());
+    console.log('  Today Malaysia end:', todayMalaysiaEnd.toISOString());
     
     const activeTargets = await db
       .select()
@@ -191,8 +196,8 @@ export async function getActiveTargetsWithProgress(
         and(
           eq(userTargets.userId, userId),
           eq(userTargets.active, true),
-          lte(userTargets.startDate, startOfDayUTC), // Start date <= today (Malaysia time)
-          gte(userTargets.endDate, startOfDayUTC)    // End date >= today (Malaysia time)
+          lte(userTargets.startDate, todayMalaysiaEnd),   // Target starts on or before today
+          gte(userTargets.endDate, todayMalaysiaStart)    // Target ends on or after today
         )
       )
       .orderBy(desc(userTargets.createdAt));
