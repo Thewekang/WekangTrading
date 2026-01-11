@@ -2,6 +2,149 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-01-12
+
+### Target Management Enhancements & Session Type Migration ✅
+
+#### Feature: Custom Target Names
+- **Database Schema**
+  - Added `name` TEXT field to `user_targets` table
+  - Migration: `0001_optimal_annihilus.sql`
+  - Updated 5 existing targets with default names
+
+- **User Interface**
+  - New name input field in target creation modal
+  - Required field, 1-100 characters
+  - Prominent display in TargetCard component
+  - Examples: "MAVEN Prop Firm Phase 1", "Q1 Personal Goal"
+
+- **Use Cases**
+  - Better organization for multiple targets
+  - Clear identification of prop firm challenges
+  - Custom labeling for different trading strategies
+
+#### Feature: Prop Firm vs Personal Target Categories
+- **Database Schema**
+  - Added `targetCategory` ENUM field ('PROP_FIRM', 'PERSONAL')
+  - Default: 'PERSONAL'
+  - Migration: `0002_overconfident_whizzer.sql`
+
+- **Differentiated Status Logic**
+  - **Prop Firm (Absolute Performance)**:
+    - Minimum 10 trades for statistical significance
+    - On Track: current ≥ 95% of target
+    - At Risk: current ≥ 85% of target OR insufficient trades
+    - Behind: current < 85% of target
+    - Ignores time/pace - evaluates actual results only
+
+  - **Personal (Pace-Based Performance)**:
+    - Expected progress = (daysElapsed / daysTotal) × 100
+    - On Track: progress ≥ 90% of expected pace
+    - At Risk: progress ≥ 70% of expected pace
+    - Behind: progress < 70% of expected pace
+    - Time-aware - tracks if on schedule
+
+- **User Interface**
+  - Category selector in target modal (Prop Firm / Personal)
+  - Visual badges: 🏆 Purple for Prop Firm, 📊 Blue for Personal
+  - Explanatory text for each category
+
+- **Use Cases**
+  - Track prop firm challenges with absolute metrics
+  - Monitor personal goals with pace-based progress
+  - Different evaluation criteria for different target types
+
+#### Enhancement: Flexible Target Dates
+- **Validation Changes**
+  - Start date can now be in the past
+  - End date must still be in the future
+  - Helpful UI hints explaining the rules
+
+- **Use Cases**
+  - Track ongoing prop firm challenges (started in past)
+  - Add existing targets to the system
+  - Historical tracking for current challenges
+
+#### Enhancement: Multiple Active Targets
+- **Logic Changes**
+  - Removed auto-deactivation of existing targets
+  - Users can have unlimited active targets simultaneously
+  - Each target tracked independently
+
+- **Use Cases**
+  - Track prop firm challenge + personal goal concurrently
+  - Monitor multiple prop firm phases at once
+  - Parallel goal tracking without conflicts
+
+#### Bug Fix: Days Remaining Calculation (CRITICAL)
+- **Issue**: Displayed "8/7" then "9/8" after first fix attempt
+- **Root Cause**: Date time components causing incorrect Math.ceil rounding
+- **Solution**: 
+  - Normalize all dates to midnight (start of day)
+  - Use Math.round instead of Math.ceil
+  - Inclusive counting (both start and end dates)
+- **Result**: Accurate day counting (Jan 12 → Jan 19 = 8 days)
+
+#### Bug Fix: User Deletion Cascade (CRITICAL)
+- **Issue**: Admin deleting user left orphaned data in database
+- **Root Cause**: SQLite foreign key constraints not defined, no automatic cascade
+- **Solution**: Implemented manual cascade deletion in correct order:
+  1. individual_trades (by userId)
+  2. daily_summaries (by userId)
+  3. user_targets (by userId)
+  4. sessions (by userId)
+  5. users (by id)
+- **Benefits**:
+  - Clean database with no orphaned records
+  - Auditability through console logging
+  - User existence validation before deletion
+
+#### Bug Fix: Dashboard Session Performance Error (CRITICAL)
+- **Issue**: `TypeError: Cannot set properties of undefined (setting 'winRate')`
+- **Root Cause**: `sessionBreakdown` tried to access old `OVERLAP` key from `daily_summaries`
+- **Solution**: Query `individual_trades` directly instead of aggregating from `daily_summaries`
+- **Result**: Dashboard loads without errors, shows current session breakdown
+
+#### Session Type Migration Completion
+- **Background**: Split `OVERLAP` session into two distinct types:
+  - `ASIA_EUROPE_OVERLAP` (07:00-09:00 UTC)
+  - `EUROPE_US_OVERLAP` (13:00-16:00 UTC)
+
+- **Deployment Fixes** (Multiple Files Updated):
+  - `dailySummaryService.ts`: Calculate both overlap types, sum for DB compatibility
+  - `exportService.ts`: Updated filters, stats calculation, PDF template
+  - `statsService.ts`: Updated MarketSession type definition
+  - `individualTradeService.ts`: Updated filter interfaces
+  - `app/api/trades/individual/route.ts`: Updated type casts
+  - `app/api/export/pdf/route.ts`: Updated type casts
+  - `app/api/export/csv/route.ts`: Updated type casts
+
+- **PDF Export Enhancement**:
+  - Now shows both overlap sessions separately
+  - 🔄 Asia-Europe Overlap
+  - 🔄 Europe-US Overlap
+
+#### Code Cleanup
+- **Removed Debug Logs**
+  - Cleaned up 6 debug console.log statements in `targetService.ts`
+  - Kept error logging in try-catch blocks
+  - Production-ready logging practices
+
+#### Files Changed
+- **Database Schema**: 2 migrations applied to production
+- **Services**: 6 files updated (target, summary, export, stats, trade, user management)
+- **API Routes**: 4 files updated (targets, trades, export endpoints)
+- **Components**: 2 files updated (TargetModal, TargetCard)
+- **Validation**: Updated target validation schemas
+
+#### Deployment
+- **Total Commits**: 27 commits pushed to production
+- **Build Status**: ✅ Successful
+- **Production URL**: https://wekangtrading.vercel.app
+- **Database**: libsql://wekangtrading-prod-thewekang.aws-eu-west-1.turso.io
+
+---
+
 ## [0.3.0] - 2026-01-10
 
 ### Phase 5B (Phases 1-3) Complete - Security & User Management ✅
