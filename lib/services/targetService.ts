@@ -41,18 +41,9 @@ export async function createTarget(
     notes?: string;
   }
 ): Promise<UserTarget> {
-  // Deactivate any existing active targets of the same type
-  await db
-    .update(userTargets)
-    .set({ active: false })
-    .where(
-      and(
-        eq(userTargets.userId, userId),
-        eq(userTargets.targetType, data.targetType),
-        eq(userTargets.active, true)
-      )
-    );
-
+  // Allow multiple overlapping targets - users can track multiple challenges simultaneously
+  // (e.g., prop firm challenge + personal goal)
+  
   // Create new target
   const [newTarget] = await db
     .insert(userTargets)
