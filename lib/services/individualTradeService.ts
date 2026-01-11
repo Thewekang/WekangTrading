@@ -3,7 +3,9 @@
  * All business logic for trade operations
  */
 
-import { prisma } from '../db';
+import { db } from '../db';
+import { individualTrades, sopTypes } from '../db/schema';
+import { eq, and, desc, gte, lte, inArray, count } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { updateDailySummary } from './dailySummaryService';
 import { VALIDATION, PAGINATION } from '../constants';
@@ -65,8 +67,9 @@ export async function createTrade(input: CreateTradeInput) {
   }
 
   // Create trade
-  const trade = await prisma.individualTrade.create({
-    data: {
+  const [trade] = await db
+    .insert(individualTrades)
+    .values({
       userId: input.userId,
       tradeTimestamp: input.tradeTimestamp,
       result: input.result,
@@ -75,8 +78,8 @@ export async function createTrade(input: CreateTradeInput) {
       profitLossUsd: input.profitLossUsd,
       marketSession,
       notes: input.notes || null,
-    },
-  });
+    })
+    .returning();
 
   // Update daily summary for this date
   await updateDailySummary(input.userId, input.tradeTimestamp);
@@ -115,9 +118,9 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   }));
 
   // Bulk insert
-  await prisma.individualTrade.createMany({
-    data: tradesWithSessions,
-  });
+  await db
+    .insert(individualTrades)
+    .values(tradesWithSessions);
 
   // Update daily summaries for all affected dates
   const uniqueDates = new Set(trades.map(t => t.tradeTimestamp.toISOString().split('T')[0]));
@@ -146,59 +149,88 @@ export async function getTrades(filters: GetTradesFilters) {
     pageSize = PAGINATION.PAGINATION_PAGE_SIZE,
   } = filters;
 
-  const where: any = { userId };
+  // Build where conditions
+  const conditions: any[] = [eq(individualTrades.userId, userId)];
 
-  if (startDate || endDate) {
-    where.tradeTimestamp = {};
-    if (startDate) where.tradeTimestamp.gte = startDate;
-    if (endDate) where.tradeTimestamp.lte = endDate;
+  if (startDate) {
+    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
   }
-
-  if (result) where.result = result;
+  if (endDate) {
+    conditions.push(lte(individualTrades.tradeTimestamp, endDate));
+  }
+  if (result) {
+    conditions.push(eq(individualTrades.result, result));
+  }
   
   // Handle multi-select sessions
   if (marketSessions && marketSessions.length > 0) {
-    where.marketSession = { in: marketSessions };
+    conditions.push(inArray(individualTrades.marketSession, marketSessions));
   } else if (marketSession) {
     // Backward compatibility
-    where.marketSession = marketSession;
+    conditions.push(eq(individualTrades.marketSession, marketSession));
   }
   
-  if (sopFollowed !== undefined) where.sopFollowed = sopFollowed;
+  if (sopFollowed !== undefined) {
+    conditions.push(eq(individualTrades.sopFollowed, sopFollowed));
+  }
   
   // Handle P/L range filters
-  if (minProfitLoss !== undefined || maxProfitLoss !== undefined) {
-    where.profitLossUsd = {};
-    if (minProfitLoss !== undefined) where.profitLossUsd.gte = minProfitLoss;
-    if (maxProfitLoss !== undefined) where.profitLossUsd.lte = maxProfitLoss;
+  if (minProfitLoss !== undefined) {
+    conditions.push(gte(individualTrades.profitLossUsd, minProfitLoss));
+  }
+  if (maxProfitLoss !== undefined) {
+    conditions.push(lte(individualTrades.profitLossUsd, maxProfitLoss));
   }
 
-  const [trades, totalCount, allFilteredTrades] = await Promise.all([
-    prisma.individualTrade.findMany({
-      where,
-      orderBy: { tradeTimestamp: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: {
+  const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+  // Execute queries in parallel
+  const [tradeResults, countResults, allFilteredTrades] = await Promise.all([
+    // Get paginated trades with SOP type
+    db
+      .select({
+        id: individualTrades.id,
+        userId: individualTrades.userId,
+        dailySummaryId: individualTrades.dailySummaryId,
+        sopTypeId: individualTrades.sopTypeId,
+        tradeTimestamp: individualTrades.tradeTimestamp,
+        result: individualTrades.result,
+        sopFollowed: individualTrades.sopFollowed,
+        profitLossUsd: individualTrades.profitLossUsd,
+        marketSession: individualTrades.marketSession,
+        notes: individualTrades.notes,
+        createdAt: individualTrades.createdAt,
+        updatedAt: individualTrades.updatedAt,
         sopType: {
-          select: {
-            id: true,
-            name: true,
-          },
+          id: sopTypes.id,
+          name: sopTypes.name,
         },
-      },
-    }),
-    prisma.individualTrade.count({ where }),
+      })
+      .from(individualTrades)
+      .leftJoin(sopTypes, eq(individualTrades.sopTypeId, sopTypes.id))
+      .where(whereCondition)
+      .orderBy(desc(individualTrades.tradeTimestamp))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    
+    // Get total count
+    db
+      .select({ count: count() })
+      .from(individualTrades)
+      .where(whereCondition),
+    
     // Get all trades for summary statistics (only fetch needed fields)
-    prisma.individualTrade.findMany({
-      where,
-      select: {
-        result: true,
-        sopFollowed: true,
-        profitLossUsd: true,
-      },
-    }),
+    db
+      .select({
+        result: individualTrades.result,
+        sopFollowed: individualTrades.sopFollowed,
+        profitLossUsd: individualTrades.profitLossUsd,
+      })
+      .from(individualTrades)
+      .where(whereCondition),
   ]);
+
+  const totalCount = countResults[0].count;
 
   // Calculate summary statistics from ALL filtered trades
   const totalWins = allFilteredTrades.filter(t => t.result === 'WIN').length;
@@ -208,7 +240,7 @@ export async function getTrades(filters: GetTradesFilters) {
   const sopRate = totalCount > 0 ? (totalSopFollowed / totalCount) * 100 : 0;
 
   return {
-    trades,
+    trades: tradeResults,
     pagination: {
       page,
       pageSize,
@@ -231,9 +263,14 @@ export async function getTrades(filters: GetTradesFilters) {
  * Get single trade by ID
  */
 export async function getTradeById(id: string, userId: string) {
-  const trade = await prisma.individualTrade.findFirst({
-    where: { id, userId },
-  });
+  const [trade] = await db
+    .select()
+    .from(individualTrades)
+    .where(and(
+      eq(individualTrades.id, id),
+      eq(individualTrades.userId, userId)
+    ))
+    .limit(1);
 
   if (!trade) {
     throw new Error('Trade not found');
@@ -278,11 +315,16 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
     updateData.notes = input.notes || null;
   }
 
+  if (input.sopTypeId !== undefined) {
+    updateData.sopTypeId = input.sopTypeId || null;
+  }
+
   // Update trade
-  const updatedTrade = await prisma.individualTrade.update({
-    where: { id },
-    data: updateData,
-  });
+  const [updatedTrade] = await db
+    .update(individualTrades)
+    .set(updateData)
+    .where(eq(individualTrades.id, id))
+    .returning();
 
   // Update daily summaries (old date and new date if changed)
   await updateDailySummary(userId, existingTrade.tradeTimestamp);
@@ -311,9 +353,9 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
   }
 
   // Delete trade
-  await prisma.individualTrade.delete({
-    where: { id },
-  });
+  await db
+    .delete(individualTrades)
+    .where(eq(individualTrades.id, id));
 
   // Update daily summary for this date
   await updateDailySummary(userId, trade.tradeTimestamp);

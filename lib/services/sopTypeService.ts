@@ -1,28 +1,27 @@
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
+import { sopTypes, individualTrades } from '@/lib/db/schema';
+import { eq, ne, and, gte, count, isNotNull } from 'drizzle-orm';
+import { asc } from 'drizzle-orm';
 
 /**
  * Get all active SOP types
  */
 export async function getActiveSopTypes() {
-  return await prisma.sopType.findMany({
-    where: { active: true },
-    orderBy: [
-      { sortOrder: 'asc' },
-      { name: 'asc' }
-    ]
-  });
+  return await db
+    .select()
+    .from(sopTypes)
+    .where(eq(sopTypes.active, true))
+    .orderBy(asc(sopTypes.sortOrder), asc(sopTypes.name));
 }
 
 /**
  * Get all SOP types (including inactive) - Admin only
  */
 export async function getAllSopTypes() {
-  return await prisma.sopType.findMany({
-    orderBy: [
-      { sortOrder: 'asc' },
-      { name: 'asc' }
-    ]
-  });
+  return await db
+    .select()
+    .from(sopTypes)
+    .orderBy(asc(sopTypes.sortOrder), asc(sopTypes.name));
 }
 
 /**
@@ -34,22 +33,27 @@ export async function createSopType(data: {
   sortOrder?: number;
 }) {
   // Check if name already exists
-  const existing = await prisma.sopType.findUnique({
-    where: { name: data.name }
-  });
+  const [existing] = await db
+    .select()
+    .from(sopTypes)
+    .where(eq(sopTypes.name, data.name))
+    .limit(1);
 
   if (existing) {
     throw new Error('SOP type with this name already exists');
   }
 
-  return await prisma.sopType.create({
-    data: {
+  const [newSopType] = await db
+    .insert(sopTypes)
+    .values({
       name: data.name,
       description: data.description,
       sortOrder: data.sortOrder ?? 0,
       active: true
-    }
-  });
+    })
+    .returning();
+
+  return newSopType;
 }
 
 /**
@@ -66,22 +70,32 @@ export async function updateSopType(
 ) {
   // If updating name, check for duplicates
   if (data.name) {
-    const existing = await prisma.sopType.findFirst({
-      where: {
-        name: data.name,
-        id: { not: id }
-      }
-    });
+    const [existing] = await db
+      .select()
+      .from(sopTypes)
+      .where(
+        and(
+          eq(sopTypes.name, data.name),
+          ne(sopTypes.id, id)
+        )
+      )
+      .limit(1);
 
     if (existing) {
       throw new Error('SOP type with this name already exists');
     }
   }
 
-  return await prisma.sopType.update({
-    where: { id },
-    data
-  });
+  const [updated] = await db
+    .update(sopTypes)
+    .set({
+      ...data,
+      updatedAt: new Date()
+    })
+    .where(eq(sopTypes.id, id))
+    .returning();
+
+  return updated;
 }
 
 /**
@@ -89,17 +103,20 @@ export async function updateSopType(
  */
 export async function deleteSopType(id: string) {
   // Check if any trades use this SOP type
-  const tradesCount = await prisma.individualTrade.count({
-    where: { sopTypeId: id }
-  });
+  const [result] = await db
+    .select({ count: count() })
+    .from(individualTrades)
+    .where(eq(individualTrades.sopTypeId, id));
+
+  const tradesCount = result?.count || 0;
 
   if (tradesCount > 0) {
     throw new Error(`Cannot delete SOP type: ${tradesCount} trades are using it. Deactivate instead.`);
   }
 
-  return await prisma.sopType.delete({
-    where: { id }
-  });
+  await db
+    .delete(sopTypes)
+    .where(eq(sopTypes.id, id));
 }
 
 /**
@@ -110,17 +127,21 @@ export async function getSopPerformanceStats(
   period: 'week' | 'month' | 'year' | 'all' = 'month'
 ) {
   const dateFilter = getDateFilter(period);
+  const conditions = [eq(individualTrades.userId, userId), isNotNull(individualTrades.sopTypeId)];
+  if (dateFilter) {
+    conditions.push(gte(individualTrades.tradeTimestamp, new Date(dateFilter)));
+  }
 
-  const trades = await prisma.individualTrade.findMany({
-    where: {
-      userId,
-      tradeTimestamp: dateFilter,
-      sopTypeId: { not: null }
-    },
-    include: {
-      sopType: true
-    }
-  });
+  const trades = await db
+    .select({
+      sopTypeId: individualTrades.sopTypeId,
+      result: individualTrades.result,
+      profitLossUsd: individualTrades.profitLossUsd,
+      sopTypeName: sopTypes.name
+    })
+    .from(individualTrades)
+    .leftJoin(sopTypes, eq(individualTrades.sopTypeId, sopTypes.id))
+    .where(and(...conditions));
 
   // Group by SOP type
   const sopStats = new Map<string, {
@@ -134,11 +155,11 @@ export async function getSopPerformanceStats(
   }>();
 
   trades.forEach(trade => {
-    if (!trade.sopType) return;
+    if (!trade.sopTypeId || !trade.sopTypeName) return;
 
-    const existing = sopStats.get(trade.sopTypeId!) || {
-      sopTypeId: trade.sopTypeId!,
-      sopTypeName: trade.sopType.name,
+    const existing = sopStats.get(trade.sopTypeId) || {
+      sopTypeId: trade.sopTypeId,
+      sopTypeName: trade.sopTypeName,
       totalTrades: 0,
       wins: 0,
       losses: 0,
@@ -180,24 +201,24 @@ export async function getBestSopType(
 }
 
 // Helper function
-function getDateFilter(period: 'week' | 'month' | 'year' | 'all') {
+function getDateFilter(period: 'week' | 'month' | 'year' | 'all'): number | undefined {
   const now = new Date();
   
   switch (period) {
     case 'week': {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return { gte: weekAgo };
+      return Math.floor(weekAgo.getTime() / 1000);
     }
     case 'month': {
       const monthAgo = new Date(now);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return { gte: monthAgo };
+      return Math.floor(monthAgo.getTime() / 1000);
     }
     case 'year': {
       const yearAgo = new Date(now);
       yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-      return { gte: yearAgo };
+      return Math.floor(yearAgo.getTime() / 1000);
     }
     case 'all':
     default:

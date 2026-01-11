@@ -1,13 +1,13 @@
 # Database Schema Design
 
 ## Document Control
-- **Version**: 2.1
-- **Last Updated**: January 9, 2026
-- **Implementation Status**: ✅ Fully Implemented & Tested
+- **Version**: 2.2
+- **Last Updated**: January 11, 2026
+- **Implementation Status**: 🔄 Migrating to Drizzle ORM
 - **Original Version**: 2.0
-- **Status**: UPDATED - Individual Trade Tracking Model
-- **Last Updated**: January 7, 2026
-- **Database**: Turso (SQLite-compatible)
+- **Status**: MIGRATION IN PROGRESS - Prisma → Drizzle ORM
+- **Database**: Turso (SQLite-compatible) + Drizzle ORM
+- **ORM**: Drizzle ORM (was Prisma)
 
 ---
 

@@ -5,8 +5,10 @@
  * CRITICAL: Query daily_summaries (fast, pre-aggregated) NOT individual_trades
  */
 
-import { prisma } from '@/lib/db';
-import { DailySummary } from '@prisma/client';
+import { db } from '@/lib/db';
+import { dailySummaries, individualTrades } from '@/lib/db/schema';
+import { eq, and, gte } from 'drizzle-orm';
+import type { DailySummary } from '@/lib/db/schema/summaries';
 
 type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
 
@@ -74,15 +76,17 @@ export async function getPersonalStats(
   }
 
   // Query daily_summaries (FAST, pre-aggregated)
-  const summaries = await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      ...(startDate && { tradeDate: { gte: startDate } }),
-    },
-    orderBy: {
-      tradeDate: 'desc',
-    },
-  });
+  const startDateUnix = startDate ? Math.floor(startDate.getTime() / 1000) : undefined;
+  const conditions = [eq(dailySummaries.userId, userId)];
+  if (startDateUnix) {
+    conditions.push(gte(dailySummaries.tradeDate, startDateUnix));
+  }
+
+  const summaries = await db
+    .select()
+    .from(dailySummaries)
+    .where(and(...conditions))
+    .orderBy(dailySummaries.tradeDate);
 
   // Aggregate across days
   const totalTrades = summaries.reduce((sum: number, s: DailySummary) => sum + s.totalTrades, 0);
@@ -182,16 +186,19 @@ export async function getSessionStats(
   }
 
   // Query individual trades directly for accurate session stats
-  const trades = await prisma.individualTrade.findMany({
-    where: {
-      userId,
-      ...(startDate && { tradeTimestamp: { gte: startDate } }),
-    },
-    select: {
-      marketSession: true,
-      result: true,
-    },
-  });
+  const startDateUnix = startDate ? Math.floor(startDate.getTime() / 1000) : undefined;
+  const conditions = [eq(individualTrades.userId, userId)];
+  if (startDateUnix) {
+    conditions.push(gte(individualTrades.tradeTimestamp, startDateUnix));
+  }
+
+  const trades = await db
+    .select({
+      marketSession: individualTrades.marketSession,
+      result: individualTrades.result,
+    })
+    .from(individualTrades)
+    .where(and(...conditions));
 
   // Aggregate by session
   const sessionTotals: Record<MarketSession, { trades: number; wins: number }> = {
@@ -250,24 +257,29 @@ export async function getDailyTrends(
       break;
   }
 
+  const startDateUnix = Math.floor(startDate.getTime() / 1000);
+
   // Query daily_summaries
-  const summaries = await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      tradeDate: { gte: startDate },
-    },
-    orderBy: {
-      tradeDate: 'desc',
-    },
-    take: limit,
-  });
+  const summaries = await db
+    .select()
+    .from(dailySummaries)
+    .where(
+      and(
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, startDateUnix)
+      )
+    )
+    .orderBy(dailySummaries.tradeDate)
+    .limit(limit);
 
   // Map to trend data
   return summaries.map((s: DailySummary) => {
     const winRate = s.totalTrades > 0 ? Math.round((s.totalWins / s.totalTrades) * 100 * 10) / 10 : 0;
+    const tradeDateMs = s.tradeDate * 1000; // Convert Unix timestamp to milliseconds
+    const date = new Date(tradeDateMs);
     
     return {
-      date: s.tradeDate.toISOString().split('T')[0], // YYYY-MM-DD
+      date: date.toISOString().split('T')[0], // YYYY-MM-DD
       totalTrades: s.totalTrades,
       totalWins: s.totalWins,
       winRate,
@@ -306,16 +318,19 @@ export async function getHourlyStats(
   }
 
   // Query individual trades (need timestamp precision)
-  const trades = await prisma.individualTrade.findMany({
-    where: {
-      userId,
-      ...(startDate && { tradeTimestamp: { gte: startDate } }),
-    },
-    select: {
-      tradeTimestamp: true,
-      result: true,
-    },
-  });
+  const startDateUnix = startDate ? Math.floor(startDate.getTime() / 1000) : undefined;
+  const conditions = [eq(individualTrades.userId, userId)];
+  if (startDateUnix) {
+    conditions.push(gte(individualTrades.tradeTimestamp, startDateUnix));
+  }
+
+  const trades = await db
+    .select({
+      tradeTimestamp: individualTrades.tradeTimestamp,
+      result: individualTrades.result,
+    })
+    .from(individualTrades)
+    .where(and(...conditions));
 
   // Group by hour with timezone conversion
   const hourlyData: Record<number, { trades: number; wins: number }> = {};
@@ -327,7 +342,9 @@ export async function getHourlyStats(
 
   // Count trades per hour with timezone conversion
   trades.forEach((trade) => {
-    const utcHour = trade.tradeTimestamp.getUTCHours();
+    // Convert Unix timestamp to Date
+    const tradeDate = new Date(trade.tradeTimestamp * 1000);
+    const utcHour = tradeDate.getUTCHours();
     // Convert to selected timezone
     let localHour = utcHour + timezoneOffset;
     // Handle day wrap-around

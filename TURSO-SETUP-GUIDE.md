@@ -19,11 +19,11 @@
    - Click "Create"
 
 3. **Get Connection Credentials**:
-   - Click on your new database `wekangtrading-prod`
+   - Click on your new database `wekangtrading-prod`  - outdated need verification
    - You'll see:
-     - **Database URL**: `libsql://wekangtrading-prod-[your-name].turso.io`
+     - **Database URL**: `libsql://wekangtrading-prod-[your-name].turso.io` outdated need verification
      - Click "Create Token" button
-     - Copy the **Auth Token** (starts with `eyJ...`)
+     - Copy the **Auth Token** (starts with `eyJ...`) outdated need verification
 
 **📝 Save these 2 values** - you need them for Vercel!
 

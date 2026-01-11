@@ -3,8 +3,10 @@
  * Business logic for target tracking and management
  */
 
-import { prisma } from '@/lib/db';
-import type { UserTarget } from '@prisma/client';
+import { db } from '@/lib/db';
+import { userTargets, dailySummaries } from '@/lib/db/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import type { UserTarget } from '@/lib/db/schema/targets';
 import { getPersonalStats } from './statsService';
 
 export interface TargetWithProgress extends UserTarget {
@@ -40,25 +42,34 @@ export async function createTarget(
   }
 ): Promise<UserTarget> {
   // Deactivate any existing active targets of the same type
-  await prisma.userTarget.updateMany({
-    where: {
-      userId,
-      targetType: data.targetType,
-      active: true,
-    },
-    data: {
-      active: false,
-    },
-  });
+  await db
+    .update(userTargets)
+    .set({ active: false })
+    .where(
+      and(
+        eq(userTargets.userId, userId),
+        eq(userTargets.targetType, data.targetType),
+        eq(userTargets.active, true)
+      )
+    );
 
   // Create new target
-  return prisma.userTarget.create({
-    data: {
-      userId,
-      ...data,
+  const [newTarget] = await db
+    .insert(userTargets)
+    .values({
+      userId: userId,
+      targetType: data.targetType,
+      targetWinRate: data.targetWinRate,
+      targetSopRate: data.targetSopRate,
+      targetProfitUsd: data.targetProfitUsd,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      notes: data.notes,
       active: true,
-    },
-  });
+    })
+    .returning();
+
+  return newTarget;
 }
 
 /**
@@ -72,29 +83,26 @@ export async function getTargets(
     includeExpired?: boolean;
   }
 ): Promise<UserTarget[]> {
-  const where: any = { userId };
+  const conditions = [eq(userTargets.userId, userId)];
 
   if (options?.active !== undefined) {
-    where.active = options.active;
+    conditions.push(eq(userTargets.active, options.active));
   }
 
   if (options?.targetType) {
-    where.targetType = options.targetType;
+    conditions.push(eq(userTargets.targetType, options.targetType));
   }
 
   if (!options?.includeExpired) {
-    where.endDate = {
-      gte: new Date(),
-    };
+    const now = new Date();
+    conditions.push(gte(userTargets.endDate, now));
   }
 
-  return prisma.userTarget.findMany({
-    where,
-    orderBy: [
-      { active: 'desc' },
-      { startDate: 'desc' },
-    ],
-  });
+  return db
+    .select()
+    .from(userTargets)
+    .where(and(...conditions))
+    .orderBy(desc(userTargets.active), desc(userTargets.startDate));
 }
 
 /**
@@ -104,15 +112,23 @@ export async function getActiveTarget(
   userId: string,
   targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 ): Promise<UserTarget | null> {
-  return prisma.userTarget.findFirst({
-    where: {
-      userId,
-      targetType,
-      active: true,
-      startDate: { lte: new Date() },
-      endDate: { gte: new Date() },
-    },
-  });
+  const now = new Date();
+  
+  const [target] = await db
+    .select()
+    .from(userTargets)
+    .where(
+      and(
+        eq(userTargets.userId, userId),
+        eq(userTargets.targetType, targetType),
+        eq(userTargets.active, true),
+        lte(userTargets.startDate, now),
+        gte(userTargets.endDate, now)
+      )
+    )
+    .limit(1);
+
+  return target || null;
 }
 
 /**
@@ -122,9 +138,11 @@ export async function getTargetWithProgress(
   userId: string,
   targetId: string
 ): Promise<TargetWithProgress | null> {
-  const target = await prisma.userTarget.findUnique({
-    where: { id: targetId, userId },
-  });
+  const [target] = await db
+    .select()
+    .from(userTargets)
+    .where(and(eq(userTargets.id, targetId), eq(userTargets.userId, userId)))
+    .limit(1);
 
   if (!target) return null;
 
@@ -142,17 +160,19 @@ export async function getTargetWithProgress(
 export async function getActiveTargetsWithProgress(
   userId: string
 ): Promise<TargetWithProgress[]> {
-  const activeTargets = await prisma.userTarget.findMany({
-    where: {
-      userId,
-      active: true,
-      startDate: { lte: new Date() },
-      endDate: { gte: new Date() },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+  const now = new Date();
+  const activeTargets = await db
+    .select()
+    .from(userTargets)
+    .where(
+      and(
+        eq(userTargets.userId, userId),
+        eq(userTargets.active, true),
+        lte(userTargets.startDate, now),
+        gte(userTargets.endDate, now)
+      )
+    )
+    .orderBy(desc(userTargets.createdAt));
 
   const targetsWithProgress = await Promise.all(
     activeTargets.map(async (target) => {
@@ -178,15 +198,16 @@ async function calculateTargetProgress(
   const stats = await getPersonalStats(userId, 'all'); // Will filter by dates below
 
   // Filter daily summaries within target period
-  const summaries = await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      tradeDate: {
-        gte: target.startDate,
-        lte: target.endDate,
-      },
-    },
-  });
+  const summaries = await db
+    .select()
+    .from(dailySummaries)
+    .where(
+      and(
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, target.startDate),
+        lte(dailySummaries.tradeDate, target.endDate)
+      )
+    );
 
   // Calculate totals
   const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
@@ -210,14 +231,17 @@ async function calculateTargetProgress(
 
   // Calculate time-based metrics
   const now = new Date();
+  const targetStartDate = target.startDate;
+  const targetEndDate = target.endDate;
+  
   const daysTotal = Math.ceil(
-    (target.endDate.getTime() - target.startDate.getTime()) / (1000 * 60 * 60 * 24)
+    (targetEndDate.getTime() - targetStartDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   const daysElapsed = Math.ceil(
-    (now.getTime() - target.startDate.getTime()) / (1000 * 60 * 60 * 24)
+    (now.getTime() - targetStartDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   const daysRemaining = Math.max(
-    Math.ceil((target.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    Math.ceil((targetEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
     0
   );
 
@@ -232,7 +256,7 @@ async function calculateTargetProgress(
   // Determine overall status
   let status: TargetWithProgress['progress']['status'];
   
-  if (now > target.endDate) {
+  if (now > targetEndDate) {
     // Target period ended
     const allAchieved = 
       currentWinRate >= target.targetWinRate &&
@@ -277,10 +301,16 @@ export async function updateTarget(
     active: boolean;
   }>
 ): Promise<UserTarget> {
-  return prisma.userTarget.update({
-    where: { id: targetId, userId },
-    data,
-  });
+  const [updated] = await db
+    .update(userTargets)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(userTargets.id, targetId), eq(userTargets.userId, userId)))
+    .returning();
+
+  return updated;
 }
 
 /**
@@ -290,9 +320,9 @@ export async function deleteTarget(
   userId: string,
   targetId: string
 ): Promise<void> {
-  await prisma.userTarget.delete({
-    where: { id: targetId, userId },
-  });
+  await db
+    .delete(userTargets)
+    .where(and(eq(userTargets.id, targetId), eq(userTargets.userId, userId)));
 }
 
 /**
@@ -302,10 +332,13 @@ export async function deactivateTarget(
   userId: string,
   targetId: string
 ): Promise<UserTarget> {
-  return prisma.userTarget.update({
-    where: { id: targetId, userId },
-    data: { active: false },
-  });
+  const [deactivated] = await db
+    .update(userTargets)
+    .set({ active: false, updatedAt: new Date() })
+    .where(and(eq(userTargets.id, targetId), eq(userTargets.userId, userId)))
+    .returning();
+
+  return deactivated;
 }
 
 /**
@@ -324,12 +357,15 @@ export async function getTargetSuggestions(
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const summaries = await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      tradeDate: { gte: thirtyDaysAgo },
-    },
-  });
+  const summaries = await db
+    .select()
+    .from(dailySummaries)
+    .where(
+      and(
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, thirtyDaysAgo)
+      )
+    );
 
   if (summaries.length === 0) {
     return {

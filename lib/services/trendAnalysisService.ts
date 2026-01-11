@@ -3,7 +3,9 @@
  * Business logic for performance trends, comparisons, and moving averages
  */
 
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
+import { dailySummaries } from '@/lib/db/schema';
+import { eq, and, gte, lte } from 'drizzle-orm';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, subDays, format } from 'date-fns';
 
 export interface DailyTrend {
@@ -62,18 +64,20 @@ export async function getDailyTrends(
   startDate: Date,
   endDate: Date
 ): Promise<DailyTrend[]> {
-  const summaries = await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      tradeDate: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    orderBy: {
-      tradeDate: 'asc',
-    },
-  });
+  const startDateUnix = Math.floor(startDate.getTime() / 1000);
+  const endDateUnix = Math.floor(endDate.getTime() / 1000);
+
+  const summaries = await db
+    .select()
+    .from(dailySummaries)
+    .where(
+      and(
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, startDateUnix),
+        lte(dailySummaries.tradeDate, endDateUnix)
+      )
+    )
+    .orderBy(dailySummaries.tradeDate);
 
   return summaries.map(summary => {
     const winRate = summary.totalTrades > 0 
@@ -84,7 +88,7 @@ export async function getDailyTrends(
       : 0;
 
     return {
-      date: format(new Date(summary.tradeDate), 'yyyy-MM-dd'),
+      date: format(new Date(summary.tradeDate * 1000), 'yyyy-MM-dd'),
       winRate: Math.round(winRate * 10) / 10,
       sopRate: Math.round(sopRate * 10) / 10,
       profitLoss: Math.round(summary.totalProfitLossUsd * 100) / 100,
@@ -165,15 +169,19 @@ export async function getMonthlyComparison(userId: string): Promise<ComparisonDa
  * Get aggregate stats for a period
  */
 async function getPeriodStats(userId: string, startDate: Date, endDate: Date) {
-  const summaries = await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      tradeDate: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-  });
+  const startDateUnix = Math.floor(startDate.getTime() / 1000);
+  const endDateUnix = Math.floor(endDate.getTime() / 1000);
+
+  const summaries = await db
+    .select()
+    .from(dailySummaries)
+    .where(
+      and(
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, startDateUnix),
+        lte(dailySummaries.tradeDate, endDateUnix)
+      )
+    );
 
   const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
   const totalWins = summaries.reduce((sum, s) => sum + s.totalWins, 0);

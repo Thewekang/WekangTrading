@@ -4,7 +4,9 @@
  * Ensures dashboard loads fast by pre-calculating aggregates
  */
 
-import { prisma } from '../db';
+import { db } from '../db';
+import { individualTrades, dailySummaries } from '../db/schema';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 
 interface DailySummaryData {
@@ -38,15 +40,14 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
   endOfDay.setUTCHours(23, 59, 59, 999);
 
   // Fetch all trades for this user and date
-  const trades = await prisma.individualTrade.findMany({
-    where: {
-      userId,
-      tradeTimestamp: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-    },
-  });
+  const trades = await db
+    .select()
+    .from(individualTrades)
+    .where(and(
+      eq(individualTrades.userId, userId),
+      gte(individualTrades.tradeTimestamp, startOfDay),
+      lte(individualTrades.tradeTimestamp, endOfDay)
+    ));
 
   // Calculate aggregates
   const totalTrades = trades.length;
@@ -83,54 +84,55 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
     .filter(s => s.trades > 0)
     .sort((a, b) => (b.wins / b.trades) - (a.wins / a.trades))[0];
 
-  const bestSession = bestSessionData ? bestSessionData.session : null;
+  const bestSession = bestSessionData ? bestSessionData.session as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP' : null;
 
-  // UPSERT into daily_summaries table
-  await prisma.dailySummary.upsert({
-    where: {
-      userId_tradeDate: {
+  // Check if summary exists
+  const [existingSummary] = await db
+    .select()
+    .from(dailySummaries)
+    .where(and(
+      eq(dailySummaries.userId, userId),
+      eq(dailySummaries.tradeDate, startOfDay)
+    ))
+    .limit(1);
+
+  const summaryData = {
+    totalTrades,
+    totalWins,
+    totalLosses,
+    totalSopFollowed,
+    totalSopNotFollowed,
+    totalProfitLossUsd,
+    asiaSessionTrades,
+    asiaSessionWins,
+    europeSessionTrades,
+    europeSessionWins,
+    usSessionTrades,
+    usSessionWins,
+    overlapSessionTrades,
+    overlapSessionWins,
+    bestSession,
+  };
+
+  if (existingSummary) {
+    // Update existing summary
+    await db
+      .update(dailySummaries)
+      .set({
+        ...summaryData,
+        updatedAt: new Date(),
+      })
+      .where(eq(dailySummaries.id, existingSummary.id));
+  } else {
+    // Create new summary
+    await db
+      .insert(dailySummaries)
+      .values({
         userId,
         tradeDate: startOfDay,
-      },
-    },
-    update: {
-      totalTrades,
-      totalWins,
-      totalLosses,
-      totalSopFollowed,
-      totalSopNotFollowed,
-      totalProfitLossUsd,
-      asiaSessionTrades,
-      asiaSessionWins,
-      europeSessionTrades,
-      europeSessionWins,
-      usSessionTrades,
-      usSessionWins,
-      overlapSessionTrades,
-      overlapSessionWins,
-      bestSession,
-      updatedAt: new Date(),
-    },
-    create: {
-      userId,
-      tradeDate: startOfDay,
-      totalTrades,
-      totalWins,
-      totalLosses,
-      totalSopFollowed,
-      totalSopNotFollowed,
-      totalProfitLossUsd,
-      asiaSessionTrades,
-      asiaSessionWins,
-      europeSessionTrades,
-      europeSessionWins,
-      usSessionTrades,
-      usSessionWins,
-      overlapSessionTrades,
-      overlapSessionWins,
-      bestSession,
-    },
-  });
+        ...summaryData,
+      });
+  }
 }
 
 /**
@@ -142,18 +144,15 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
  * @param endDate - End date (inclusive)
  */
 export async function getDailySummaries(userId: string, startDate: Date, endDate: Date) {
-  return await prisma.dailySummary.findMany({
-    where: {
-      userId,
-      tradeDate: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    orderBy: {
-      tradeDate: 'desc',
-    },
-  });
+  return await db
+    .select()
+    .from(dailySummaries)
+    .where(and(
+      eq(dailySummaries.userId, userId),
+      gte(dailySummaries.tradeDate, startDate),
+      lte(dailySummaries.tradeDate, endDate)
+    ))
+    .orderBy(desc(dailySummaries.tradeDate));
 }
 
 /**

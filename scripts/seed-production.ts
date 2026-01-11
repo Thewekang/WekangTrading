@@ -5,8 +5,8 @@ async function main() {
   console.log('🌱 Starting production database seed with direct Turso client...\n');
 
   const client = createClient({
-    url: process.env.DATABASE_URL!,
-    authToken: process.env.DATABASE_AUTH_TOKEN!,
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN!,
   });
 
   // Create admin user

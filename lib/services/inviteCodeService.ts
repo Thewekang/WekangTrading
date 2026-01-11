@@ -3,7 +3,9 @@
  * Handles invite code generation, validation, and management
  */
 
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
+import { inviteCodes, users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 
 /**
@@ -31,9 +33,11 @@ export async function createInviteCode(
 
   // Ensure code is unique
   while (!isUnique && attempts < 10) {
-    const existing = await prisma.inviteCode.findUnique({
-      where: { code },
-    });
+    const [existing] = await db
+      .select()
+      .from(inviteCodes)
+      .where(eq(inviteCodes.code, code))
+      .limit(1);
     if (!existing) {
       isUnique = true;
     } else {
@@ -50,15 +54,18 @@ export async function createInviteCode(
     ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
     : null;
 
-  return await prisma.inviteCode.create({
-    data: {
+  const [newCode] = await db
+    .insert(inviteCodes)
+    .values({
       code,
       createdBy,
       maxUses,
       expiresAt,
       active: true,
-    },
-  });
+    })
+    .returning();
+
+  return newCode;
 }
 
 /**
@@ -69,9 +76,11 @@ export async function validateInviteCode(code: string): Promise<{
   message?: string;
   inviteCodeId?: string;
 }> {
-  const inviteCode = await prisma.inviteCode.findUnique({
-    where: { code: code.toUpperCase() },
-  });
+  const [inviteCode] = await db
+    .select()
+    .from(inviteCodes)
+    .where(eq(inviteCodes.code, code.toUpperCase()))
+    .limit(1);
 
   if (!inviteCode) {
     return { valid: false, message: 'Invalid invite code' };
@@ -85,7 +94,8 @@ export async function validateInviteCode(code: string): Promise<{
     return { valid: false, message: 'Invite code has been fully used' };
   }
 
-  if (inviteCode.expiresAt && inviteCode.expiresAt < new Date()) {
+  const now = new Date();
+  if (inviteCode.expiresAt && inviteCode.expiresAt < now) {
     return { valid: false, message: 'Invite code has expired' };
   }
 
@@ -96,50 +106,68 @@ export async function validateInviteCode(code: string): Promise<{
  * Use an invite code (increment usage count)
  */
 export async function useInviteCode(code: string): Promise<void> {
-  await prisma.inviteCode.update({
-    where: { code: code.toUpperCase() },
-    data: {
-      usedCount: {
-        increment: 1,
-      },
-    },
-  });
+  const [inviteCode] = await db
+    .select()
+    .from(inviteCodes)
+    .where(eq(inviteCodes.code, code.toUpperCase()))
+    .limit(1);
+
+  if (inviteCode) {
+    await db
+      .update(inviteCodes)
+      .set({ usedCount: inviteCode.usedCount + 1 })
+      .where(eq(inviteCodes.code, code.toUpperCase()));
+  }
 }
 
 /**
  * Get all invite codes (admin)
  */
 export async function getAllInviteCodes() {
-  return await prisma.inviteCode.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      users: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createdAt: true,
-        },
-      },
-    },
-  });
+  // Get all invite codes
+  const codes = await db
+    .select()
+    .from(inviteCodes)
+    .orderBy(inviteCodes.createdAt);
+
+  // Get users for each invite code
+  const codesWithUsers = await Promise.all(
+    codes.map(async (code) => {
+      const codeUsers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(eq(users.inviteCodeId, code.id));
+
+      return {
+        ...code,
+        users: codeUsers,
+      };
+    })
+  );
+
+  return codesWithUsers;
 }
 
 /**
  * Deactivate an invite code
  */
 export async function deactivateInviteCode(id: string): Promise<void> {
-  await prisma.inviteCode.update({
-    where: { id },
-    data: { active: false },
-  });
+  await db
+    .update(inviteCodes)
+    .set({ active: false })
+    .where(eq(inviteCodes.id, id));
 }
 
 /**
  * Delete an invite code
  */
 export async function deleteInviteCode(id: string): Promise<void> {
-  await prisma.inviteCode.delete({
-    where: { id },
-  });
+  await db
+    .delete(inviteCodes)
+    .where(eq(inviteCodes.id, id));
 }

@@ -1,12 +1,13 @@
 # System Architecture Design
 
 ## Document Control
-- **Version**: 2.1
-- **Last Updated**: January 9, 2026
-- **Implementation Status**: ✅ Phase 2 Complete (Trade Features)
+- **Version**: 2.2
+- **Last Updated**: January 11, 2026
+- **Implementation Status**: 🔄 Phase 2 Complete (Trade Features) + Migrating to Drizzle ORM
+- **ORM**: Drizzle ORM (migration from Prisma in progress)
+- **Database**: Turso (LibSQL - SQLite for edge)
 - **Original Version**: 2.0
-- **Status**: UPDATED - Individual Trade Tracking Model
-- **Last Updated**: January 7, 2026
+- **Status**: MIGRATION IN PROGRESS - Prisma → Drizzle ORM
 
 ---
 
