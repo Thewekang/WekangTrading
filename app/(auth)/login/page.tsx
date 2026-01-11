@@ -30,29 +30,45 @@ export default function LoginPage() {
     setError('');
 
     try {
+      console.log('[LOGIN DEBUG] Starting login attempt...');
+      console.log('[LOGIN DEBUG] Email:', data.email);
+      
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
+      console.log('[LOGIN DEBUG] SignIn result:', result);
+
       if (result?.error) {
-        setError('Invalid email or password');
-      } else {
+        console.error('[LOGIN DEBUG] SignIn error:', result.error);
+        setError('Invalid email or password - ' + result.error);
+      } else if (result?.ok) {
+        console.log('[LOGIN DEBUG] SignIn successful, fetching session...');
+        
         // Fetch session to check role
         const response = await fetch('/api/auth/session');
         const session = await response.json();
         
+        console.log('[LOGIN DEBUG] Session data:', session);
+        
         // Redirect based on role
         if (session?.user?.role === 'ADMIN') {
+          console.log('[LOGIN DEBUG] Redirecting to admin dashboard...');
           router.push('/admin/overview');
         } else {
+          console.log('[LOGIN DEBUG] Redirecting to user dashboard...');
           router.push('/dashboard');
         }
         router.refresh();
+      } else {
+        console.error('[LOGIN DEBUG] Unexpected result:', result);
+        setError('Unexpected login result: ' + JSON.stringify(result));
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
+    } catch (err: any) {
+      console.error('[LOGIN DEBUG] Exception:', err);
+      setError('An unexpected error occurred: ' + err.message);
     } finally {
       setIsLoading(false);
     }
