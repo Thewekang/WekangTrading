@@ -3,7 +3,9 @@
  * Business logic for admin-level statistics and user comparisons
  */
 
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
+import { users, individualTrades, dailySummaries, sopTypes } from '@/lib/db/schema';
+import { eq, and, gte, lte, desc, count, sum } from 'drizzle-orm';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
 export interface UserStats {
@@ -49,42 +51,53 @@ export async function getUserStats(
   startDate?: Date,
   endDate?: Date
 ): Promise<UserStats> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { name: true, email: true },
-  });
+  const [user] = await db
+    .select({
+      name: users.name,
+      email: users.email,
+    })
+    .from(users)
+    .where(eq(users.id, userId));
 
   if (!user) {
     throw new Error('User not found');
   }
 
-  // Build date filter
-  const dateFilter: any = {};
-  if (startDate) dateFilter.gte = startDate;
-  if (endDate) dateFilter.lte = endDate;
+  // Build date filter conditions
+  const conditions = [eq(individualTrades.userId, userId)];
+  if (startDate) {
+    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(individualTrades.tradeTimestamp, endDate));
+  }
 
-  // Get trades
-  const trades = await prisma.individualTrade.findMany({
-    where: {
-      userId,
-      ...(Object.keys(dateFilter).length > 0 && { tradeTimestamp: dateFilter }),
-    },
-    select: {
-      result: true,
-      sopFollowed: true,
-      profitLossUsd: true,
-      marketSession: true,
-      tradeTimestamp: true,
-      sopTypeId: true,
-      sopType: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: { tradeTimestamp: 'desc' },
-  });
+  // Get trades with left join to sopTypes
+  const tradesRaw = await db
+    .select({
+      result: individualTrades.result,
+      sopFollowed: individualTrades.sopFollowed,
+      profitLossUsd: individualTrades.profitLossUsd,
+      marketSession: individualTrades.marketSession,
+      tradeTimestamp: individualTrades.tradeTimestamp,
+      sopTypeId: individualTrades.sopTypeId,
+      sopTypeName: sopTypes.name,
+    })
+    .from(individualTrades)
+    .leftJoin(sopTypes, eq(individualTrades.sopTypeId, sopTypes.id))
+    .where(and(...conditions))
+    .orderBy(desc(individualTrades.tradeTimestamp));
+
+  // Convert to expected format
+  const trades = tradesRaw.map(t => ({
+    result: t.result,
+    sopFollowed: t.sopFollowed,
+    profitLossUsd: t.profitLossUsd,
+    marketSession: t.marketSession,
+    tradeTimestamp: t.tradeTimestamp,
+    sopTypeId: t.sopTypeId,
+    sopType: t.sopTypeName ? { name: t.sopTypeName } : null,
+  }));
 
   const totalTrades = trades.length;
   const totalWins = trades.filter(t => t.result === 'WIN').length;
@@ -173,14 +186,13 @@ export async function getAllUsersStats(
   startDate?: Date,
   endDate?: Date
 ): Promise<UserStats[]> {
-  const users = await prisma.user.findMany({
-    where: { role: 'USER' }, // Only get regular users, not admins
-    select: { id: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  const usersList = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.role, 'USER')); // Only get regular users, not admins
 
   const usersStats = await Promise.all(
-    users.map(user => getUserStats(user.id, startDate, endDate))
+    usersList.map(user => getUserStats(user.id, startDate, endDate))
   );
 
   // Calculate rankings based on win rate (primary), then SOP rate (secondary)
@@ -208,33 +220,41 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   const lastMonthEnd = endOfMonth(subMonths(now, 1));
 
   // Total users (excluding admins)
-  const totalUsers = await prisma.user.count({
-    where: { role: 'USER' },
-  });
+  const [totalUsersResult] = await db
+    .select({ count: count() })
+    .from(users)
+    .where(eq(users.role, 'USER'));
+  const totalUsers = totalUsersResult.count;
 
-  // Active users this month (users who traded)
-  const activeUsersThisMonth = await prisma.individualTrade.groupBy({
-    by: ['userId'],
-    where: {
-      tradeTimestamp: {
-        gte: monthStart,
-        lte: monthEnd,
-      },
-    },
-  });
+  // Active users this month (users who traded) - manual groupBy
+  const activeTradesThisMonth = await db
+    .select({ userId: individualTrades.userId })
+    .from(individualTrades)
+    .where(
+      and(
+        gte(individualTrades.tradeTimestamp, monthStart),
+        lte(individualTrades.tradeTimestamp, monthEnd)
+      )
+    );
+  const activeUsersThisMonth = new Set(activeTradesThisMonth.map(t => t.userId)).size;
 
   // Total trades all time
-  const totalTradesAllTime = await prisma.individualTrade.count();
+  const [totalTradesAllTimeResult] = await db
+    .select({ count: count() })
+    .from(individualTrades);
+  const totalTradesAllTime = totalTradesAllTimeResult.count;
 
   // Total trades this month
-  const totalTradesThisMonth = await prisma.individualTrade.count({
-    where: {
-      tradeTimestamp: {
-        gte: monthStart,
-        lte: monthEnd,
-      },
-    },
-  });
+  const [totalTradesThisMonthResult] = await db
+    .select({ count: count() })
+    .from(individualTrades)
+    .where(
+      and(
+        gte(individualTrades.tradeTimestamp, monthStart),
+        lte(individualTrades.tradeTimestamp, monthEnd)
+      )
+    );
+  const totalTradesThisMonth = totalTradesThisMonthResult.count;
 
   // Get all users stats for calculations
   const allUsersStats = await getAllUsersStats();
@@ -257,24 +277,30 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 
   // Recent activity (last 30 days)
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const dailySummaries = await prisma.dailySummary.findMany({
-    where: {
-      tradeDate: {
-        gte: thirtyDaysAgo,
-        lte: now,
-      },
-    },
-    select: {
-      tradeDate: true,
-      totalTrades: true,
-      userId: true,
-    },
-    orderBy: { tradeDate: 'asc' },
-  });
+  const dailySummariesRaw = await db
+    .select({
+      tradeDate: dailySummaries.tradeDate,
+      totalTrades: dailySummaries.totalTrades,
+      userId: dailySummaries.userId,
+    })
+    .from(dailySummaries)
+    .where(
+      and(
+        gte(dailySummaries.tradeDate, thirtyDaysAgo),
+        lte(dailySummaries.tradeDate, now)
+      )
+    );
+
+  // Convert to expected format (tradeDate is already Date)
+  const dailySummariesData = dailySummariesRaw.map(s => ({
+    tradeDate: s.tradeDate,
+    totalTrades: s.totalTrades,
+    userId: s.userId,
+  }));
 
   // Group by date
   const activityByDate = new Map<string, { totalTrades: number; userIds: Set<string> }>();
-  dailySummaries.forEach(summary => {
+  dailySummariesData.forEach(summary => {
     const dateKey = format(new Date(summary.tradeDate), 'yyyy-MM-dd');
     if (!activityByDate.has(dateKey)) {
       activityByDate.set(dateKey, { totalTrades: 0, userIds: new Set() });
@@ -292,7 +318,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 
   return {
     totalUsers,
-    activeUsersThisMonth: activeUsersThisMonth.length,
+    activeUsersThisMonth,
     totalTradesAllTime,
     totalTradesThisMonth,
     avgWinRateAllUsers: Math.round(avgWinRateAllUsers * 10) / 10,

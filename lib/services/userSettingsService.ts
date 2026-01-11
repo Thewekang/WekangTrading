@@ -3,7 +3,9 @@
  * Business logic for user self-service operations
  */
 
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
+import { users, individualTrades, dailySummaries, userTargets } from '@/lib/db/schema';
+import { eq, count } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -15,10 +17,11 @@ export async function changeUserPassword(
   newPassword: string
 ): Promise<void> {
   // Get user with current password
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { passwordHash: true },
-  });
+  const [user] = await db
+    .select({ passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
 
   if (!user) {
     throw new Error('User not found');
@@ -40,10 +43,10 @@ export async function changeUserPassword(
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   // Update password
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash: hashedPassword },
-  });
+  await db
+    .update(users)
+    .set({ passwordHash: hashedPassword })
+    .where(eq(users.id, userId));
 }
 
 /**
@@ -54,37 +57,57 @@ export async function resetUserAccount(userId: string): Promise<{
   deletedSummaries: number;
   deletedTargets: number;
 }> {
-  // Delete all user data in transaction
-  const result = await prisma.$transaction(async (tx) => {
-    // Delete targets
-    const deletedTargets = await tx.userTarget.deleteMany({
-      where: { userId },
-    });
+  // Delete all user data (Drizzle doesn't support interactive transactions like Prisma)
+  // Delete in correct order to avoid FK constraints
+  
+  // Delete individual trades
+  await db
+    .delete(individualTrades)
+    .where(eq(individualTrades.userId, userId));
+  
+  // Count before deletion
+  const [tradesCount] = await db
+    .select({ count: count() })
+    .from(individualTrades)
+    .where(eq(individualTrades.userId, userId));
+  
+  // Delete daily summaries
+  await db
+    .delete(dailySummaries)
+    .where(eq(dailySummaries.userId, userId));
+  
+  const [summariesCount] = await db
+    .select({ count: count() })
+    .from(dailySummaries)
+    .where(eq(dailySummaries.userId, userId));
+  
+  // Delete targets
+  await db
+    .delete(userTargets)
+    .where(eq(userTargets.userId, userId));
+  
+  const [targetsCount] = await db
+    .select({ count: count() })
+    .from(userTargets)
+    .where(eq(userTargets.userId, userId));
+  
+  // Increment reset count
+  const [user] = await db
+    .select({ resetCount: users.resetCount })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  
+  await db
+    .update(users)
+    .set({ resetCount: (user?.resetCount || 0) + 1 })
+    .where(eq(users.id, userId));
 
-    // Delete daily summaries
-    const deletedSummaries = await tx.dailySummary.deleteMany({
-      where: { userId },
-    });
-
-    // Delete individual trades
-    const deletedTrades = await tx.individualTrade.deleteMany({
-      where: { userId },
-    });
-
-    // Increment reset count
-    await tx.user.update({
-      where: { id: userId },
-      data: { resetCount: { increment: 1 } },
-    });
-
-    return {
-      deletedTrades: deletedTrades.count,
-      deletedSummaries: deletedSummaries.count,
-      deletedTargets: deletedTargets.count,
-    };
-  });
-
-  return result;
+  return {
+    deletedTrades: tradesCount?.count || 0,
+    deletedSummaries: summariesCount?.count || 0,
+    deletedTargets: targetsCount?.count || 0,
+  };
 }
 
 /**
@@ -95,15 +118,15 @@ export async function getUserAccountSummary(userId: string): Promise<{
   totalSummaries: number;
   totalTargets: number;
 }> {
-  const [totalTrades, totalSummaries, totalTargets] = await Promise.all([
-    prisma.individualTrade.count({ where: { userId } }),
-    prisma.dailySummary.count({ where: { userId } }),
-    prisma.userTarget.count({ where: { userId } }),
+  const [tradesResult, summariesResult, targetsResult] = await Promise.all([
+    db.select({ count: count() }).from(individualTrades).where(eq(individualTrades.userId, userId)),
+    db.select({ count: count() }).from(dailySummaries).where(eq(dailySummaries.userId, userId)),
+    db.select({ count: count() }).from(userTargets).where(eq(userTargets.userId, userId)),
   ]);
 
   return {
-    totalTrades,
-    totalSummaries,
-    totalTargets,
+    totalTrades: tradesResult[0]?.count || 0,
+    totalSummaries: summariesResult[0]?.count || 0,
+    totalTargets: targetsResult[0]?.count || 0,
   };
 }

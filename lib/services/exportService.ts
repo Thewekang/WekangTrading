@@ -3,8 +3,10 @@
  * Handle data export in various formats (CSV, PDF)
  */
 
-import { prisma } from '@/lib/db';
-import type { IndividualTrade } from '@prisma/client';
+import { db } from '@/lib/db';
+import { individualTrades } from '@/lib/db/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import type { IndividualTrade } from '@/lib/db/schema/trades';
 
 export interface ExportFilters {
   userId: string;
@@ -32,28 +34,25 @@ export async function getTradesForExport(filters: ExportFilters): Promise<Indivi
     maxProfitLoss,
   } = filters;
 
-  const where: any = { userId };
+  const conditions = [eq(individualTrades.userId, userId)];
 
-  if (startDate || endDate) {
-    where.tradeTimestamp = {};
-    if (startDate) where.tradeTimestamp.gte = startDate;
-    if (endDate) where.tradeTimestamp.lte = endDate;
+  if (startDate) {
+    conditions.push(gte(individualTrades.tradeTimestamp, Math.floor(startDate.getTime() / 1000)));
   }
-
-  if (result) where.result = result;
-  if (marketSession) where.marketSession = marketSession;
-  if (sopFollowed !== undefined) where.sopFollowed = sopFollowed;
-  
-  if (minProfitLoss !== undefined || maxProfitLoss !== undefined) {
-    where.profitLossUsd = {};
-    if (minProfitLoss !== undefined) where.profitLossUsd.gte = minProfitLoss;
-    if (maxProfitLoss !== undefined) where.profitLossUsd.lte = maxProfitLoss;
+  if (endDate) {
+    conditions.push(lte(individualTrades.tradeTimestamp, Math.floor(endDate.getTime() / 1000)));
   }
+  if (result) conditions.push(eq(individualTrades.result, result));
+  if (marketSession) conditions.push(eq(individualTrades.marketSession, marketSession));
+  if (sopFollowed !== undefined) conditions.push(eq(individualTrades.sopFollowed, sopFollowed));
+  if (minProfitLoss !== undefined) conditions.push(gte(individualTrades.profitLossUsd, minProfitLoss));
+  if (maxProfitLoss !== undefined) conditions.push(lte(individualTrades.profitLossUsd, maxProfitLoss));
 
-  const trades = await prisma.individualTrade.findMany({
-    where,
-    orderBy: { tradeTimestamp: 'desc' },
-  });
+  const trades = await db
+    .select()
+    .from(individualTrades)
+    .where(and(...conditions))
+    .orderBy(desc(individualTrades.tradeTimestamp));
 
   return trades;
 }
@@ -76,7 +75,7 @@ export function generateCSV(trades: IndividualTrade[]): string {
   // CSV Rows
   const rows = trades.map(trade => [
     trade.id,
-    new Date(trade.tradeTimestamp).toLocaleString('en-US', {
+    new Date(trade.tradeTimestamp * 1000).toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

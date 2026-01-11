@@ -51,17 +51,20 @@ This document outlines the recommended technology stack for the WekangTradingJou
 
 ### Backend
 - **Runtime**: Next.js API Routes (serverless functions)
-- **ORM**: Prisma
-  - Type-safe database access
-  - Schema migration management
-  - Works with Turso via libSQL driver
+- **ORM**: **Drizzle ORM** ✅
+  - Type-safe database access with better TypeScript inference
+  - Native LibSQL/Turso support (no adapters needed)
+  - SQL-like query syntax
+  - Lightweight and fast (~2x faster than Prisma)
+  - Schema migration management via drizzle-kit
   - Single source of truth for data models
 
 ### Database
 - **Primary Choice**: **Turso** (libSQL - SQLite for serverless)
-  - Connection: `@libsql/client` + `@prisma/adapter-libsql`
+  - Connection: `@libsql/client` (direct, no adapter)
+  - Native Drizzle ORM support
   - SQLite syntax compatibility
-  - Edge-optimized
+  - Edge-optimized with global replication
 
 ### Authentication
 - **Library**: **NextAuth.js v5 (Auth.js)**
