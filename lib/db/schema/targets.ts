@@ -6,6 +6,7 @@ import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core
 export const userTargets = sqliteTable('user_targets', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull(),
+  name: text('name').notNull(),
   targetType: text('target_type', { enum: ['WEEKLY', 'MONTHLY', 'YEARLY'] }).notNull(),
   targetWinRate: real('target_win_rate').notNull(),
   targetSopRate: real('target_sop_rate').notNull(),

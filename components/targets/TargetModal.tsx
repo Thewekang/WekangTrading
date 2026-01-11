@@ -18,6 +18,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<any>(null);
   const [formData, setFormData] = useState({
+    name: '',
     targetType: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY',
     targetWinRate: 60,
     targetSopRate: 80,
@@ -136,6 +137,23 @@ export default function TargetModal({ onClose }: TargetModalProps) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Target Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Target Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., MAVEN Prop Firm Challenge"
+              maxLength={100}
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Give this target a memorable name</p>
+          </div>
+
           {/* Target Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

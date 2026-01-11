@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 // Validation schema for creating a target
 const createTargetSchema = z.object({
+  name: z.string().min(1).max(100),
   targetType: z.enum(['WEEKLY', 'MONTHLY', 'YEARLY']),
   targetWinRate: z.number().min(0).max(100),
   targetSopRate: z.number().min(0).max(100),

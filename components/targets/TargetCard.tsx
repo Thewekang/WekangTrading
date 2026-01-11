@@ -87,13 +87,18 @@ export default function TargetCard({ target }: TargetCardProps) {
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">{target.targetType} Target</h3>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900">{target.name}</h3>
+            <span className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-100 rounded">
+              {target.targetType}
+            </span>
+          </div>
           <p className="text-xs text-gray-500 mt-1" suppressHydrationWarning>
             {new Date(target.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(target.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.bg} ${status.text}`}>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.bg} ${status.text} whitespace-nowrap`}>
           {status.label}
         </span>
       </div>

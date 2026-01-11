@@ -32,6 +32,7 @@ export interface TargetWithProgress extends UserTarget {
 export async function createTarget(
   userId: string,
   data: {
+    name: string;
     targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
     targetWinRate: number;
     targetSopRate: number;
@@ -49,6 +50,7 @@ export async function createTarget(
     .insert(userTargets)
     .values({
       userId: userId,
+      name: data.name,
       targetType: data.targetType,
       targetWinRate: data.targetWinRate,
       targetSopRate: data.targetSopRate,
