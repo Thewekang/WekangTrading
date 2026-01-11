@@ -34,8 +34,8 @@ interface GetTradesFilters {
   startDate?: Date;
   endDate?: Date;
   result?: 'WIN' | 'LOSS';
-  marketSession?: 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
-  marketSessions?: Array<'ASIA' | 'EUROPE' | 'US' | 'OVERLAP'>;
+  marketSession?: 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
+  marketSessions?: Array<'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP'>;
   sopFollowed?: boolean;
   minProfitLoss?: number;
   maxProfitLoss?: number;

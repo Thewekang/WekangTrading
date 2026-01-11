@@ -118,7 +118,8 @@ export function generateSummaryStats(trades: IndividualTrade[]) {
     ASIA: trades.filter(t => t.marketSession === 'ASIA').length,
     EUROPE: trades.filter(t => t.marketSession === 'EUROPE').length,
     US: trades.filter(t => t.marketSession === 'US').length,
-    OVERLAP: trades.filter(t => t.marketSession === 'OVERLAP').length,
+    ASIA_EUROPE_OVERLAP: trades.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP').length,
+    EUROPE_US_OVERLAP: trades.filter(t => t.marketSession === 'EUROPE_US_OVERLAP').length,
   };
 
   return {

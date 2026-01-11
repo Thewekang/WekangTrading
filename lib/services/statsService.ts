@@ -10,7 +10,7 @@ import { dailySummaries, individualTrades } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import type { DailySummary } from '@/lib/db/schema/summaries';
 
-type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
+type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
 
 export interface PersonalStats {
   totalTrades: number;

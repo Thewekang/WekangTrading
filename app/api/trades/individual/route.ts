@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
       filters.result = searchParams.get('result') as 'WIN' | 'LOSS';
     }
     if (searchParams.get('marketSessions')) {
-      filters.marketSessions = searchParams.get('marketSessions')!.split(',') as Array<'ASIA' | 'EUROPE' | 'US' | 'OVERLAP'>;
+      filters.marketSessions = searchParams.get('marketSessions')!.split(',') as Array<'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP'>;
     } else if (searchParams.get('marketSession')) {
       // Backward compatibility
-      filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
+      filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
     }
     if (searchParams.get('sopFollowed')) {
       filters.sopFollowed = searchParams.get('sopFollowed') === 'true';

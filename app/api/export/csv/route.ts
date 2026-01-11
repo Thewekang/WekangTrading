@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       filters.result = searchParams.get('result') as 'WIN' | 'LOSS';
     }
     if (searchParams.get('marketSession')) {
-      filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
+      filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
     }
     const sopParam = searchParams.get('sopFollowed');
     if (sopParam && sopParam !== '') {
