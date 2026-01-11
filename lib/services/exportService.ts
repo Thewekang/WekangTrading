@@ -323,9 +323,14 @@ export function generatePDFHTML(
         <td>${((stats.sessionStats.US / stats.totalTrades) * 100).toFixed(1)}%</td>
       </tr>
       <tr>
-        <td>🔄 Overlap</td>
-        <td>${stats.sessionStats.OVERLAP}</td>
-        <td>${((stats.sessionStats.OVERLAP / stats.totalTrades) * 100).toFixed(1)}%</td>
+        <td>🔄 Asia-Europe Overlap</td>
+        <td>${stats.sessionStats.ASIA_EUROPE_OVERLAP}</td>
+        <td>${((stats.sessionStats.ASIA_EUROPE_OVERLAP / stats.totalTrades) * 100).toFixed(1)}%</td>
+      </tr>
+      <tr>
+        <td>🔄 Europe-US Overlap</td>
+        <td>${stats.sessionStats.EUROPE_US_OVERLAP}</td>
+        <td>${((stats.sessionStats.EUROPE_US_OVERLAP / stats.totalTrades) * 100).toFixed(1)}%</td>
       </tr>
     </table>
   </div>
