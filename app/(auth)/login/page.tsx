@@ -56,11 +56,16 @@ export default function LoginPage() {
         // Redirect based on role
         if (session?.user?.role === 'ADMIN') {
           console.log('[LOGIN DEBUG] Redirecting to admin dashboard...');
-          router.push('/admin/overview');
+          console.log('[LOGIN DEBUG] Current URL:', window.location.href);
+          const targetUrl = '/admin/overview';
+          console.log('[LOGIN DEBUG] Target URL:', targetUrl);
+          router.push(targetUrl);
+          console.log('[LOGIN DEBUG] Router.push called');
         } else {
           console.log('[LOGIN DEBUG] Redirecting to user dashboard...');
           router.push('/dashboard');
         }
+        console.log('[LOGIN DEBUG] Calling router.refresh()...');
         router.refresh();
       } else {
         console.error('[LOGIN DEBUG] Unexpected result:', result);
