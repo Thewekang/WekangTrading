@@ -98,23 +98,34 @@ export async function getPersonalStats(
   const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
 
   // Determine best session across all days
+  // NOTE: daily_summaries still has overlapSessionTrades/Wins (not split yet)
+  // So we need to query individual_trades directly for accurate split
   const sessionTotals: Record<MarketSession, { trades: number; wins: number }> = {
     ASIA: { trades: 0, wins: 0 },
     EUROPE: { trades: 0, wins: 0 },
     US: { trades: 0, wins: 0 },
-    OVERLAP: { trades: 0, wins: 0 },
+    ASIA_EUROPE_OVERLAP: { trades: 0, wins: 0 },
+    EUROPE_US_OVERLAP: { trades: 0, wins: 0 },
   };
 
-  summaries.forEach((s: DailySummary) => {
-    sessionTotals.ASIA.trades += s.asiaSessionTrades;
-    sessionTotals.EUROPE.trades += s.europeSessionTrades;
-    sessionTotals.US.trades += s.usSessionTrades;
-    sessionTotals.OVERLAP.trades += s.overlapSessionTrades;
-    
-    sessionTotals.ASIA.wins += s.asiaSessionWins;
-    sessionTotals.EUROPE.wins += s.europeSessionWins;
-    sessionTotals.US.wins += s.usSessionWins;
-    sessionTotals.OVERLAP.wins += s.overlapSessionWins;
+  // Query individual_trades for accurate session breakdown
+  const tradesForPeriod = await db
+    .select()
+    .from(individualTrades)
+    .where(
+      startDate
+        ? and(eq(individualTrades.userId, userId), gte(individualTrades.tradeTimestamp, startDate))
+        : eq(individualTrades.userId, userId)
+    );
+
+  tradesForPeriod.forEach((trade) => {
+    const session = trade.marketSession as MarketSession;
+    if (sessionTotals[session]) {
+      sessionTotals[session].trades++;
+      if (trade.result === 'WIN') {
+        sessionTotals[session].wins++;
+      }
+    }
   });
 
   // Calculate win rate for each session and find best
