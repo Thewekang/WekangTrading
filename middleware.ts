@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const session = await auth();
   const { pathname } = request.nextUrl;
 
   // Debug logging
   console.log('[MIDDLEWARE] Path:', pathname);
-  console.log('[MIDDLEWARE] Token:', token ? `exists (role: ${token.role})` : 'null');
-  console.log('[MIDDLEWARE] Cookies:', request.cookies.getAll().map(c => c.name));
+  console.log('[MIDDLEWARE] Session:', session ? `exists (role: ${session.user?.role})` : 'null');
 
   // Allow access to auth pages if not authenticated
   if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
-    if (token) {
+    if (session?.user) {
       // Redirect to dashboard if already authenticated
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
@@ -22,12 +21,12 @@ export async function middleware(request: NextRequest) {
 
   // Protect dashboard routes (user-only)
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/trades') || pathname.startsWith('/targets') || pathname.startsWith('/analytics')) {
-    if (!token) {
+    if (!session?.user) {
       // Redirect to login if not authenticated
       return NextResponse.redirect(new URL('/login', request.url));
     }
     // Redirect admins to admin panel
-    if (token.role === 'ADMIN') {
+    if (session.user.role === 'ADMIN') {
       return NextResponse.redirect(new URL('/admin/overview', request.url));
     }
     return NextResponse.next();
@@ -35,10 +34,10 @@ export async function middleware(request: NextRequest) {
 
   // Protect admin routes
   if (pathname.startsWith('/admin')) {
-    if (!token) {
+    if (!session?.user) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    if (token.role !== 'ADMIN') {
+    if (session.user.role !== 'ADMIN') {
       // Redirect to dashboard if not admin
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
