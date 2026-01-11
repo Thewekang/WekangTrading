@@ -17,7 +17,7 @@ import { showToast } from '@/components/ui/Toast';
 
 interface Trade {
   id: string;
-  tradeTimestamp: Date;
+  tradeTimestamp: Date | string;
   result: string;
   sopFollowed: boolean;
   sopTypeId: string | null;
@@ -124,7 +124,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   }, [pageSize]);
 
   // Helper function to format date/time
-  const formatDateTime = (date: Date) => {
+  const formatDateTime = (date: Date | string) => {
     return new Date(date).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -384,7 +384,10 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   
   // Check if trade can be deleted (within 24 hours)
   const canDeleteTrade = (trade: Trade) => {
-    const hoursSinceCreation = (Date.now() - new Date(trade.tradeTimestamp).getTime()) / (1000 * 60 * 60);
+    const tradeDate = trade.tradeTimestamp instanceof Date 
+      ? trade.tradeTimestamp 
+      : new Date(trade.tradeTimestamp);
+    const hoursSinceCreation = (Date.now() - tradeDate.getTime()) / (1000 * 60 * 60);
     return hoursSinceCreation <= 24;
   };
   
