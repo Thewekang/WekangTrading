@@ -165,38 +165,39 @@ export async function getSessionStats(
   userId: string,
   timeframe: 'week' | 'month' | 'year' | 'all' = 'month'
 ): Promise<SessionStats[]> {
-  // Calculate date range
-  const now = new Date();
-  let startDate: Date | undefined;
+  try {
+    // Calculate date range
+    const now = new Date();
+    let startDate: Date | undefined;
 
-  switch (timeframe) {
-    case 'week':
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case 'month':
-      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      break;
-    case 'year':
-      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      break;
-    case 'all':
-      startDate = undefined;
-      break;
-  }
+    switch (timeframe) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+        startDate = undefined;
+        break;
+    }
 
-  // Query individual trades directly for accurate session stats
-  const conditions = [eq(individualTrades.userId, userId)];
-  if (startDate) {
-    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
-  }
+    // Query individual trades directly for accurate session stats
+    const conditions = [eq(individualTrades.userId, userId)];
+    if (startDate) {
+      conditions.push(gte(individualTrades.tradeTimestamp, startDate));
+    }
 
-  const trades = await db
-    .select({
-      marketSession: individualTrades.marketSession,
-      result: individualTrades.result,
-    })
-    .from(individualTrades)
-    .where(and(...conditions));
+    const trades = await db
+      .select({
+        marketSession: individualTrades.marketSession,
+        result: individualTrades.result,
+      })
+      .from(individualTrades)
+      .where(and(...conditions));
 
   // Aggregate by session
   const sessionTotals: Record<MarketSession, { trades: number; wins: number }> = {
@@ -226,6 +227,11 @@ export async function getSessionStats(
       winRate,
     };
   });
+  } catch (error) {
+    console.error('[getSessionStats] Error:', error);
+    // Return empty stats on error
+    return [];
+  }
 }
 
 /**
@@ -293,35 +299,36 @@ export async function getHourlyStats(
   timeframe: 'week' | 'month' | 'year' | 'all' = 'month',
   timezoneOffset: number = 0
 ): Promise<HourlyStats[]> {
-  // Calculate date range
-  const now = new Date();
-  let startDate: Date | undefined;
+  try {
+    // Calculate date range
+    const now = new Date();
+    let startDate: Date | undefined;
 
-  switch (timeframe) {
-    case 'week':
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case 'month':
-      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      break;
-    case 'year':
-      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      break;
-    case 'all':
-      startDate = undefined;
-      break;
-  }
+    switch (timeframe) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+        startDate = undefined;
+        break;
+    }
 
-  // Query individual trades (need timestamp precision)
-  const conditions = [eq(individualTrades.userId, userId)];
-  if (startDate) {
-    conditions.push(gte(individualTrades.tradeTimestamp, startDate));
-  }
+    // Query individual trades (need timestamp precision)
+    const conditions = [eq(individualTrades.userId, userId)];
+    if (startDate) {
+      conditions.push(gte(individualTrades.tradeTimestamp, startDate));
+    }
 
-  const trades = await db
-    .select({
-      tradeTimestamp: individualTrades.tradeTimestamp,
-      result: individualTrades.result,
+    const trades = await db
+      .select({
+        tradeTimestamp: individualTrades.tradeTimestamp,
+        result: individualTrades.result,
     })
     .from(individualTrades)
     .where(and(...conditions));
@@ -362,4 +369,14 @@ export async function getHourlyStats(
       winRate,
     };
   });
+  } catch (error) {
+    console.error('[getHourlyStats] Error:', error);
+    // Return empty hourly data on error
+    return Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      totalTrades: 0,
+      totalWins: 0,
+      winRate: 0,
+    }));
+  }
 }
