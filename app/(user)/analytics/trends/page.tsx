@@ -10,8 +10,9 @@ import TrendLineChart from '@/components/charts/TrendLineChart';
 import ComparisonChart from '@/components/charts/ComparisonChart';
 import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
 import MonthlyAnalyticsChart from '@/components/charts/MonthlyAnalyticsChart';
-import { calculateMovingAverages } from '@/lib/services/trendAnalysisService';
-import type { DailyTrend, ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
+import { calculateMovingAverages } from '@/lib/utils/trendCalculations';
+import type { DailyTrend } from '@/lib/utils/trendCalculations';
+import type { ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
 
 export default function TrendsPage() {
   const [trends, setTrends] = useState<DailyTrend[]>([]);
