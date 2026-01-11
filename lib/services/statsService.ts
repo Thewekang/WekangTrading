@@ -122,7 +122,8 @@ export async function getPersonalStats(
     ASIA: { ...sessionTotals.ASIA, winRate: 0 },
     EUROPE: { ...sessionTotals.EUROPE, winRate: 0 },
     US: { ...sessionTotals.US, winRate: 0 },
-    OVERLAP: { ...sessionTotals.OVERLAP, winRate: 0 },
+    ASIA_EUROPE_OVERLAP: { ...sessionTotals.ASIA_EUROPE_OVERLAP, winRate: 0 },
+    EUROPE_US_OVERLAP: { ...sessionTotals.EUROPE_US_OVERLAP, winRate: 0 },
   };
 
   let bestSession: MarketSession | null = null;

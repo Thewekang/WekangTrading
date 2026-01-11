@@ -258,18 +258,29 @@ export default async function DashboardPage() {
             </p>
             
             {/* Session Breakdown */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(stats.sessionBreakdown).map(([session, data]) => (
-                <div key={session} className="p-3 bg-white rounded-lg border border-gray-200">
-                  <div className="text-xs font-medium text-gray-600 mb-1">{session}</div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {data.trades > 0 ? `${data.winRate.toFixed(1)}%` : 'No data'}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {Object.entries(stats.sessionBreakdown).map(([session, data]) => {
+                const sessionLabels: Record<string, string> = {
+                  ASIA: 'ASIA',
+                  EUROPE: 'EUROPE',
+                  US: 'US',
+                  ASIA_EUROPE_OVERLAP: 'ASIA-EUR',
+                  EUROPE_US_OVERLAP: 'EUR-US',
+                };
+                return (
+                  <div key={session} className="p-3 bg-white rounded-lg border border-gray-200">
+                    <div className="text-xs font-medium text-gray-600 mb-1">
+                      {sessionLabels[session] || session}
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {data.trades > 0 ? `${data.winRate.toFixed(1)}%` : 'No data'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {data.wins}/{data.trades} trades
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {data.wins}/{data.trades} trades
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
