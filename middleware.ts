@@ -6,6 +6,11 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = request.nextUrl;
 
+  // Debug logging
+  console.log('[MIDDLEWARE] Path:', pathname);
+  console.log('[MIDDLEWARE] Token:', token ? `exists (role: ${token.role})` : 'null');
+  console.log('[MIDDLEWARE] Cookies:', request.cookies.getAll().map(c => c.name));
+
   // Allow access to auth pages if not authenticated
   if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
     if (token) {
