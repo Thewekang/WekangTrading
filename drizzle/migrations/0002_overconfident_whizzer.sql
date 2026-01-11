@@ -1,0 +1,1 @@
+ALTER TABLE `user_targets` ADD `target_category` text DEFAULT 'PERSONAL' NOT NULL;

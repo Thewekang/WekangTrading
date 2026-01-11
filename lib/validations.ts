@@ -93,6 +93,7 @@ export const bulkTradeEntrySchema = z.object({
 
 export const userTargetSchema = z.object({
   name: z.string().min(1, 'Target name is required').max(100, 'Name must be less than 100 characters'),
+  targetCategory: z.enum(['PROP_FIRM', 'PERSONAL']),
   targetType: z.enum(['WEEKLY', 'MONTHLY', 'YEARLY']),
   targetWinRate: z.number().min(0, 'Win rate must be at least 0%').max(100, 'Win rate cannot exceed 100%'),
   targetSopRate: z.number().min(0, 'SOP rate must be at least 0%').max(100, 'SOP rate cannot exceed 100%').optional(),

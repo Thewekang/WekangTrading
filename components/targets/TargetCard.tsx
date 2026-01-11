@@ -90,6 +90,13 @@ export default function TargetCard({ target }: TargetCardProps) {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900">{target.name}</h3>
+            <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+              target.targetCategory === 'PROP_FIRM' 
+                ? 'bg-purple-100 text-purple-700' 
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {target.targetCategory === 'PROP_FIRM' ? '🏆 Prop Firm' : '📊 Personal'}
+            </span>
             <span className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-100 rounded">
               {target.targetType}
             </span>

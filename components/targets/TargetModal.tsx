@@ -19,6 +19,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
   const [suggestions, setSuggestions] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
+    targetCategory: 'PERSONAL' as 'PROP_FIRM' | 'PERSONAL',
     targetType: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY',
     targetWinRate: 60,
     targetSopRate: 80,
@@ -152,6 +153,26 @@ export default function TargetModal({ onClose }: TargetModalProps) {
               required
             />
             <p className="text-xs text-gray-500 mt-1">Give this target a memorable name</p>
+          </div>
+
+          {/* Target Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Target Category
+            </label>
+            <select
+              value={formData.targetCategory}
+              onChange={(e) => setFormData({ ...formData, targetCategory: e.target.value as any })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="PERSONAL">Personal Goal</option>
+              <option value="PROP_FIRM">Prop Firm Challenge</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.targetCategory === 'PROP_FIRM' 
+                ? 'Evaluated by absolute performance (current vs target)'
+                : 'Evaluated by pace (progress over time)'}
+            </p>
           </div>
 
           {/* Target Type */}

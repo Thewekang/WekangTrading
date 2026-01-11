@@ -33,6 +33,7 @@ export async function createTarget(
   userId: string,
   data: {
     name: string;
+    targetCategory: 'PROP_FIRM' | 'PERSONAL';
     targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
     targetWinRate: number;
     targetSopRate: number;
@@ -51,6 +52,7 @@ export async function createTarget(
     .values({
       userId: userId,
       name: data.name,
+      targetCategory: data.targetCategory,
       targetType: data.targetType,
       targetWinRate: data.targetWinRate,
       targetSopRate: data.targetSopRate,
@@ -272,13 +274,39 @@ async function calculateTargetProgress(
   const daysRemainingDiff = Math.max(0, Math.round((startOfEndDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
   const daysRemaining = daysRemainingDiff + 1;
 
-  // Determine if on track (considering time elapsed)
-  const expectedProgress = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
-  const isWinRateOnTrack = winRateProgress >= expectedProgress * 0.9; // 90% of expected
-  const isSopRateOnTrack = sopRateProgress >= expectedProgress * 0.9;
-  const isProfitOnTrack = profitProgress !== null 
-    ? profitProgress >= expectedProgress * 0.9 
-    : null;
+  // Determine if on track (different logic for prop firm vs personal)
+  let isWinRateOnTrack: boolean;
+  let isSopRateOnTrack: boolean;
+  let isProfitOnTrack: boolean | null;
+
+  if (target.targetCategory === 'PROP_FIRM') {
+    // Prop Firm: Absolute performance (ignore time/pace)
+    // Requires minimum trades for statistical significance
+    const minTrades = 10;
+    const hasEnoughData = totalTrades >= minTrades;
+
+    if (!hasEnoughData) {
+      // Insufficient data - consider at risk
+      isWinRateOnTrack = false;
+      isSopRateOnTrack = false;
+      isProfitOnTrack = profitProgress !== null ? false : null;
+    } else {
+      // On track if within 5% of target (95% threshold)
+      isWinRateOnTrack = currentWinRate >= target.targetWinRate * 0.95;
+      isSopRateOnTrack = currentSopRate >= target.targetSopRate * 0.95;
+      isProfitOnTrack = profitProgress !== null 
+        ? totalProfitUsd >= (target.targetProfitUsd || 0) * 0.95
+        : null;
+    }
+  } else {
+    // Personal: Pace-based performance (progress vs time elapsed)
+    const expectedProgress = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
+    isWinRateOnTrack = winRateProgress >= expectedProgress * 0.9; // 90% of expected
+    isSopRateOnTrack = sopRateProgress >= expectedProgress * 0.9;
+    isProfitOnTrack = profitProgress !== null 
+      ? profitProgress >= expectedProgress * 0.9 
+      : null;
+  }
 
   // Determine overall status
   let status: TargetWithProgress['progress']['status'];
@@ -292,10 +320,20 @@ async function calculateTargetProgress(
     status = allAchieved ? 'completed' : 'failed';
   } else if (isWinRateOnTrack && isSopRateOnTrack && (isProfitOnTrack === null || isProfitOnTrack)) {
     status = 'on-track';
-  } else if (winRateProgress < expectedProgress * 0.7 || sopRateProgress < expectedProgress * 0.7) {
-    status = 'behind';
+  } else if (target.targetCategory === 'PROP_FIRM') {
+    // Prop Firm: Behind if < 85% of target, otherwise at-risk
+    const winRateBehind = currentWinRate < target.targetWinRate * 0.85;
+    const sopRateBehind = currentSopRate < target.targetSopRate * 0.85;
+    const profitBehind = target.targetProfitUsd && totalProfitUsd < target.targetProfitUsd * 0.85;
+    
+    status = (winRateBehind || sopRateBehind || profitBehind) ? 'behind' : 'at-risk';
   } else {
-    status = 'at-risk';
+    // Personal: Behind if < 70% of expected pace, otherwise at-risk
+    const expectedProgress = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
+    const winRateBehind = winRateProgress < expectedProgress * 0.7;
+    const sopRateBehind = sopRateProgress < expectedProgress * 0.7;
+    
+    status = (winRateBehind || sopRateBehind) ? 'behind' : 'at-risk';
   }
 
   return {
