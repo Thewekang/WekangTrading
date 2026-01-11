@@ -5,24 +5,25 @@ import { eq, count as countFn } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    // Test database connection by counting users
-    const userCount = await prisma.user.count();
+    // TODO: Implement Drizzle count query
+    const [{ value: userCount }] = await db.select({ value: countFn() }).from(users);
     
-    // Test if admin exists
-    const adminExists = await prisma.user.findUnique({
-      where: { email: 'admin@wekangtrading.com' },
-      select: { id: true, email: true, role: true }
-    });
+    // Check if admin exists
+    const [adminUser] = await db
+      .select({ id: users.id, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.email, 'admin@wekangtrading.com'))
+      .limit(1);
 
     return NextResponse.json({
       status: 'connected',
       database_working: true,
       total_users: userCount,
-      admin_exists: !!adminExists,
-      admin_details: adminExists ? {
-        email: adminExists.email,
-        role: adminExists.role,
-        id: adminExists.id
+      admin_exists: !!adminUser,
+      admin_details: adminUser ? {
+        email: adminUser.email,
+        role: adminUser.role,
+        id: adminUser.id
       } : null,
       timestamp: new Date().toISOString(),
       env: {

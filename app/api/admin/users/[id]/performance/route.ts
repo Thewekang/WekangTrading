@@ -35,10 +35,11 @@ export async function GET(
     const monthParam = searchParams.get('month');
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true }
-    });
+    const [user] = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     if (!user) {
       return NextResponse.json(
@@ -47,6 +48,13 @@ export async function GET(
       );
     }
 
+    // TODO: Implement full Drizzle queries for performance calendar
+    return NextResponse.json({
+      success: false,
+      error: { code: 'NOT_IMPLEMENTED', message: 'Performance calendar temporarily unavailable during migration' },
+    }, { status: 501 });
+
+    /* COMMENTED OUT - TODO: Convert to Drizzle
     if (monthParam) {
       // Monthly view - return daily breakdown
       const month = parseInt(monthParam);

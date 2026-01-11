@@ -41,18 +41,17 @@ export async function GET(req: NextRequest) {
     const startDate = new Date(year, 0, 1); // Jan 1
     const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31
 
-    const dailySummaries = await prisma.dailySummary.findMany({
-      where: {
-        userId: session.user.id,
-        tradeDate: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      orderBy: {
-        tradeDate: 'asc',
-      },
-    });
+    const summaries = await db
+      .select()
+      .from(dailySummaries)
+      .where(
+        and(
+          eq(dailySummaries.userId, session.user.id),
+          gte(dailySummaries.tradeDate, startDate),
+          lte(dailySummaries.tradeDate, endDate)
+        )
+      )
+      .orderBy(asc(dailySummaries.tradeDate));
 
     // Group by month
     const monthlyData: MonthlyStats[] = [];
@@ -62,7 +61,7 @@ export async function GET(req: NextRequest) {
     ];
 
     for (let month = 0; month < 12; month++) {
-      const monthSummaries = dailySummaries.filter(summary => {
+      const monthSummaries = summaries.filter(summary => {
         const summaryMonth = new Date(summary.tradeDate).getMonth();
         return summaryMonth === month;
       });

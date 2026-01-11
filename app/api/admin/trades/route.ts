@@ -56,38 +56,11 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Get trades
-    const [trades, total] = await Promise.all([
-      prisma.individualTrade.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: { tradeTimestamp: 'desc' },
-        skip,
-        take: pageSize,
-      }),
-      prisma.individualTrade.count({ where }),
-    ]);
-
+    // For now, return empty result - TODO: implement admin getAllTrades with filters
     return NextResponse.json({
-      success: true,
-      data: {
-        trades,
-        pagination: {
-          page,
-          pageSize,
-          total,
-          totalPages: Math.ceil(total / pageSize),
-        },
-      },
-    });
+      success: false,
+      error: { code: 'NOT_IMPLEMENTED', message: 'Admin trades list temporarily unavailable during migration' },
+    }, { status: 501 });
   } catch (error) {
     console.error('Error fetching trades:', error);
     return NextResponse.json(
