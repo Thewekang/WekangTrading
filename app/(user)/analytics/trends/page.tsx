@@ -21,6 +21,8 @@ export default function TrendsPage() {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasNoData, setHasNoData] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<'winRate' | 'sopRate' | 'profitLoss'>('winRate');
   const [monthlyMetric, setMonthlyMetric] = useState<'winRate' | 'sopRate' | 'profitLoss' | 'totalTrades'>('winRate');
   const [selectedDays, setSelectedDays] = useState(30);
@@ -31,6 +33,7 @@ export default function TrendsPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [trendsRes, weeklyRes, monthlyRes, indicatorsRes, monthlyStatsRes] = await Promise.all([
         fetch(`/api/stats/trends?days=${selectedDays}`),
@@ -48,13 +51,19 @@ export default function TrendsPage() {
         monthlyStatsRes.json(),
       ]);
 
-      if (trendsData.success) setTrends(trendsData.data);
+      if (trendsData.success) setTrends(trendsData.data || []);
       if (weeklyData.success) setWeeklyComparison(weeklyData.data);
       if (monthlyData.success) setMonthlyComparison(monthlyData.data);
-      if (indicatorsData.success) setIndicators(indicatorsData.data);
-      if (monthlyStatsData.success) setMonthlyData(monthlyStatsData.data.months);
+      if (indicatorsData.success) setIndicators(indicatorsData.data || []);
+      if (monthlyStatsData.success) setMonthlyData(monthlyStatsData.data?.months || []);
+
+      // Check if user has any data at all
+      const hasAnyData = (trendsData.data && trendsData.data.length > 0) ||
+                        (monthlyStatsData.data && monthlyStatsData.data.months && monthlyStatsData.data.months.length > 0);
+      setHasNoData(!hasAnyData);
     } catch (error) {
       console.error('Error fetching trends data:', error);
+      setError('Failed to load analytics data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -87,7 +96,58 @@ export default function TrendsPage() {
   };
 
   if (loading) {
+   
+
+  if (error) {
     return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchData}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasNoData) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Performance Trends</h1>
+          <p className="text-gray-600">Analyze your trading performance over time with trends and comparisons</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="mb-6">
+              <svg className="mx-auto h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Trading Data Yet</h3>
+            <p className="text-gray-600 mb-6">
+              Start tracking your trades to see performance trends and analytics. 
+              Your charts and insights will appear here once you have recorded some trades.
+            </p>
+            <a
+              href="/trades/new"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Record Your First Trade
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  } return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
