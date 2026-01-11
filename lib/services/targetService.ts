@@ -254,14 +254,16 @@ async function calculateTargetProgress(
   const targetStartDate = target.startDate;
   const targetEndDate = target.endDate;
   
+  // Calculate total days (inclusive of both start and end dates)
   const daysTotal = Math.ceil(
     (targetEndDate.getTime() - targetStartDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  ) + 1;
+  
   const daysElapsed = Math.ceil(
     (now.getTime() - targetStartDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   const daysRemaining = Math.max(
-    Math.ceil((targetEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    Math.ceil((targetEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) + 1,
     0
   );
 
