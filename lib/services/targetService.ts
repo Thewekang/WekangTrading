@@ -183,12 +183,6 @@ export async function getActiveTargetsWithProgress(
       23, 59, 59, 999
     ));
     
-    console.log('[getActiveTargetsWithProgress] Date comparison:');
-    console.log('  Current UTC:', now.toISOString());
-    console.log('  Current Malaysia:', malaysiaTime.toISOString());
-    console.log('  Today Malaysia start:', todayMalaysiaStart.toISOString());
-    console.log('  Today Malaysia end:', todayMalaysiaEnd.toISOString());
-    
     const activeTargets = await db
       .select()
       .from(userTargets)
@@ -201,8 +195,6 @@ export async function getActiveTargetsWithProgress(
         )
       )
       .orderBy(desc(userTargets.createdAt));
-
-    console.log(`  Found ${activeTargets.length} active targets`);
 
     const targetsWithProgress = await Promise.all(
       activeTargets.map(async (target) => {
