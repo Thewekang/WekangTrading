@@ -111,7 +111,7 @@ turso db tokens create wekangtrading-prod
    npx prisma migrate deploy
    
    # Seed data
-   npx tsx prisma/seed/seed-coach.ts
+   npx tsx scripts/seed-production.ts
    
    # Clear variables
    Remove-Item Env:\DATABASE_URL

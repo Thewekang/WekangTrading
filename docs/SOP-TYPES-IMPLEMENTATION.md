@@ -155,7 +155,7 @@ model SopType {
 
 ## 🌱 Default SOP Types
 
-**Seed File**: `prisma/seed/seed.ts`  
+**Seed File**: `scripts/seed-production.ts`  
 **Default Types Created:**
 1. Trend Following
 2. Support/Resistance
@@ -281,7 +281,7 @@ model SopType {
 4. `app/api/trades/individual/route.ts` - Handle sopTypeId
 5. `components/forms/RealTimeTradeEntryForm.tsx` - SOP type selector
 6. `app/(user)/dashboard/page.tsx` - Best SOP card integration
-7. `prisma/seed/seed.ts` - Default SOP types
+7. `scripts/seed-production.ts` - Default SOP types
 
 ---
 

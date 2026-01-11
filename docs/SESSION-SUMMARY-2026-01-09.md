@@ -37,7 +37,7 @@
   
 - ✅ Session insights & seed script
   - **Commits**: e9c7296, 660bdd6, ad75616
-  - **Files**: prisma/seed.ts, lib/services/dailySummaryService.ts
+  - **Files**: scripts/seed-production.ts, lib/services/dailySummaryService.ts
   - **Features**: 30 days of test data, win/loss breakdown
 
 ---

@@ -42,7 +42,7 @@ $env:DATABASE_AUTH_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3Njg
 npx prisma migrate deploy
 
 # Seed database (creates admin only)
-npx tsx prisma/seed/seed.ts
+npx tsx scripts/seed-production.ts
 
 # Clear credentials from environment
 Remove-Item Env:\DATABASE_URL

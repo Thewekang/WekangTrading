@@ -25,7 +25,7 @@ User requested:
 ## ✅ Completed Tasks
 
 ### 1. Data Reset & Seed Script Creation
-**File**: `prisma/seed/seed-coach.ts`
+**File**: `scripts/seed-production.ts` (formerly `prisma/seed/seed-coach.ts` - now deleted)
 
 Created comprehensive seed script with:
 - **5 Trader Profiles** with distinct performance characteristics
@@ -352,7 +352,7 @@ Complete record of:
 ## 📁 Files Created/Modified
 
 ### Created:
-1. `prisma/seed/seed-coach.ts` - Realistic seed data generator
+1. `scripts/seed-production.ts` - Production seed data (admin + SOP types)
 2. `docs/ADMIN-DASHBOARD-COACHING-GUIDE.md` - Comprehensive coaching guide
 3. `docs/SESSION-SUMMARY-ADMIN-DASHBOARD-2026-01-09.md` - This file
 
@@ -459,7 +459,7 @@ Complete record of:
 
 3. **Seed Data Reset**:
    ```bash
-   npx tsx prisma/seed/seed-coach.ts
+   npx tsx scripts/seed-production.ts
    ```
    Flushes DB and creates fresh 3-month dataset
 

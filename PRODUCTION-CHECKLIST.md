@@ -63,7 +63,7 @@ $env:DATABASE_AUTH_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3Njg
 npx prisma migrate deploy
 
 # Seed production database (admin + SOP types only)
-npx tsx prisma/seed/seed.ts
+npx tsx scripts/seed-production.ts
 
 # Clean up environment variables
 Remove-Item Env:\DATABASE_URL
@@ -104,7 +104,7 @@ Visit your production URL and test:
 - ✅ Added clear CTAs
 - ✅ Added professional footer
 
-### Database Seed (prisma/seed/seed.ts)
+### Database Seed (scripts/seed-production.ts)
 - ❌ Removed 5 test trader accounts
 - ❌ Removed test trade data generation
 - ✅ Only 1 admin account

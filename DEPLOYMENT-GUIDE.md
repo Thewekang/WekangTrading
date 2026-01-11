@@ -347,7 +347,7 @@ $env:DATABASE_URL = "libsql://wekangtrading-prod-[your-org].turso.io"
 $env:DATABASE_AUTH_TOKEN = "eyJ..."
 
 # Run seed script (creates 5 traders with 3 months data)
-npx tsx prisma/seed/seed-coach.ts
+npx tsx scripts/seed-production.ts
 
 # Clear environment variables
 $env:DATABASE_URL = ""

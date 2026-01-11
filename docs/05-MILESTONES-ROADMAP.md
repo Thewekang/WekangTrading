@@ -82,7 +82,7 @@ Phase 5: Polish & Deployment         [Week 9]       ░░░░░░░░░�
 
 **Files to Create**:
 - `prisma/schema.prisma`
-- `prisma/seed.ts`
+- `scripts/seed-production.ts`
 - `lib/db.ts` (Prisma client singleton)
 
 ---

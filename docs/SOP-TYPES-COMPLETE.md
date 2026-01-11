@@ -246,7 +246,7 @@ model IndividualTrade {
 7. `components/TradesList.tsx` - SOP type column display
 8. `app/(admin)/layout.tsx` - Added menu link
 9. `app/(user)/dashboard/page.tsx` - Best SOP card integration
-10. `prisma/seed/seed.ts` - Default SOP types
+10. `scripts/seed-production.ts` - Default SOP types
 
 ---
 
@@ -468,7 +468,7 @@ curl http://localhost:3000/api/stats/best-sop?period=month
 ### Common Issues
 
 **Q: SOP type dropdown is empty**  
-A: Run seed script: `npx tsx prisma/seed/seed.ts`
+A: Run seed script: `npx tsx scripts/seed-production.ts`
 
 **Q: Can't delete SOP type**  
 A: Type has trades referencing it. Deactivate instead.

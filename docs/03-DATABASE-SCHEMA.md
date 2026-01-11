@@ -929,7 +929,7 @@ npx prisma generate
 
 ### 9.2 Seed Data (Admin User)
 ```typescript
-// prisma/seed.ts
+// scripts/seed-production.ts
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
