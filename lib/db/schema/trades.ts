@@ -12,7 +12,7 @@ export const individualTrades = sqliteTable('individual_trades', {
   result: text('result', { enum: ['WIN', 'LOSS'] }).notNull(),
   sopFollowed: integer('sop_followed', { mode: 'boolean' }).notNull(),
   profitLossUsd: real('profit_loss_usd').notNull(),
-  marketSession: text('market_session', { enum: ['ASIA', 'EUROPE', 'US', 'OVERLAP'] }).notNull(),
+  marketSession: text('market_session', { enum: ['ASIA', 'EUROPE', 'US', 'ASIA_EUROPE_OVERLAP', 'EUROPE_US_OVERLAP'] }).notNull(),
   notes: text('notes'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),

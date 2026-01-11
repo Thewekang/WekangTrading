@@ -21,7 +21,7 @@ export const dailySummaries = sqliteTable('daily_summaries', {
   usSessionWins: integer('us_session_wins').notNull().default(0),
   overlapSessionTrades: integer('overlap_session_trades').notNull().default(0),
   overlapSessionWins: integer('overlap_session_wins').notNull().default(0),
-  bestSession: text('best_session', { enum: ['ASIA', 'EUROPE', 'US', 'OVERLAP'] }),
+  bestSession: text('best_session', { enum: ['ASIA', 'EUROPE', 'US', 'ASIA_EUROPE_OVERLAP', 'EUROPE_US_OVERLAP'] }),
   notes: text('notes'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
