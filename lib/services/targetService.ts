@@ -160,31 +160,37 @@ export async function getTargetWithProgress(
 export async function getActiveTargetsWithProgress(
   userId: string
 ): Promise<TargetWithProgress[]> {
-  const now = new Date();
-  const activeTargets = await db
-    .select()
-    .from(userTargets)
-    .where(
-      and(
-        eq(userTargets.userId, userId),
-        eq(userTargets.active, true),
-        lte(userTargets.startDate, now),
-        gte(userTargets.endDate, now)
+  try {
+    const now = new Date();
+    const activeTargets = await db
+      .select()
+      .from(userTargets)
+      .where(
+        and(
+          eq(userTargets.userId, userId),
+          eq(userTargets.active, true),
+          lte(userTargets.startDate, now),
+          gte(userTargets.endDate, now)
+        )
       )
-    )
-    .orderBy(desc(userTargets.createdAt));
+      .orderBy(desc(userTargets.createdAt));
 
-  const targetsWithProgress = await Promise.all(
-    activeTargets.map(async (target) => {
-      const progress = await calculateTargetProgress(userId, target);
-      return {
-        ...target,
-        progress,
-      };
-    })
-  );
+    const targetsWithProgress = await Promise.all(
+      activeTargets.map(async (target) => {
+        const progress = await calculateTargetProgress(userId, target);
+        return {
+          ...target,
+          progress,
+        };
+      })
+    );
 
-  return targetsWithProgress;
+    return targetsWithProgress;
+  } catch (error) {
+    console.error('[getActiveTargetsWithProgress] Error:', error);
+    // Return empty array on error to prevent dashboard crash
+    return [];
+  }
 }
 
 /**
