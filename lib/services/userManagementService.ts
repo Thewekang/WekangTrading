@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { users, individualTrades, dailySummaries, userTargets } from '@/lib/db/schema';
+import { users, individualTrades, dailySummaries, userTargets, sessions } from '@/lib/db/schema';
 import { eq, and, count, sum, ne } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
@@ -94,6 +94,7 @@ export async function updateUserByAdmin(
 
 /**
  * Delete user account (admin only)
+ * Manually cascades to delete all user data
  */
 export async function deleteUserByAdmin(userId: string, currentAdminId: string) {
   // Prevent self-deletion
@@ -107,7 +108,11 @@ export async function deleteUserByAdmin(userId: string, currentAdminId: string) 
     .from(users)
     .where(eq(users.id, userId));
 
-  if (user?.role === 'ADMIN') {
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  if (user.role === 'ADMIN') {
     const [adminCountResult] = await db
       .select({ count: count() })
       .from(users)
@@ -118,8 +123,38 @@ export async function deleteUserByAdmin(userId: string, currentAdminId: string) 
     }
   }
 
-  // Delete user (cascade will handle trades, summaries, targets)
+  // Manual cascade deletion (SQLite doesn't have foreign key constraints defined)
+  console.log(`[Delete User] Starting deletion for user ${userId}...`);
+
+  // 1. Delete individual trades
+  const tradesResult = await db
+    .delete(individualTrades)
+    .where(eq(individualTrades.userId, userId));
+  console.log(`[Delete User] Deleted individual trades`);
+
+  // 2. Delete daily summaries
+  const summariesResult = await db
+    .delete(dailySummaries)
+    .where(eq(dailySummaries.userId, userId));
+  console.log(`[Delete User] Deleted daily summaries`);
+
+  // 3. Delete user targets
+  const targetsResult = await db
+    .delete(userTargets)
+    .where(eq(userTargets.userId, userId));
+  console.log(`[Delete User] Deleted user targets`);
+
+  // 4. Delete user sessions
+  const sessionsResult = await db
+    .delete(sessions)
+    .where(eq(sessions.userId, userId));
+  console.log(`[Delete User] Deleted user sessions`);
+
+  // 5. Delete user account
   await db.delete(users).where(eq(users.id, userId));
+  console.log(`[Delete User] Deleted user account`);
+
+  console.log(`[Delete User] Completed deletion for user ${userId}`);
 }
 
 /**
