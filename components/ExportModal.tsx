@@ -280,7 +280,8 @@ export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProp
                             <option value="ASIA">Asia</option>
                             <option value="EUROPE">Europe</option>
                             <option value="US">US</option>
-                            <option value="OVERLAP">Overlap</option>
+                            <option value="ASIA_EUROPE_OVERLAP">Asia-Europe Overlap</option>
+                            <option value="EUROPE_US_OVERLAP">Europe-US Overlap</option>
                           </select>
                         </div>
                       </div>

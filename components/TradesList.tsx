@@ -139,7 +139,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       ASIA: '🌏 Asia',
       EUROPE: '🇪🇺 Europe',
       US: '🇺🇸 US',
-      OVERLAP: '🔄 Overlap',
+      ASIA_EUROPE_OVERLAP: '🔄 Asia-Europe Overlap',
+      EUROPE_US_OVERLAP: '🔄 Europe-US Overlap',
     };
     return badges[session as keyof typeof badges] || session;
   };
@@ -595,7 +596,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               Session
             </label>
             <div className="space-y-2">
-              {['ASIA', 'EUROPE', 'US', 'OVERLAP'].map((session) => (
+              {['ASIA', 'EUROPE', 'US', 'ASIA_EUROPE_OVERLAP', 'EUROPE_US_OVERLAP'].map((session) => (
                 <label key={session} className="flex items-center">
                   <input
                     type="checkbox"
@@ -613,7 +614,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                     {session === 'ASIA' && '🌏 Asia'}
                     {session === 'EUROPE' && '🇪🇺 Europe'}
                     {session === 'US' && '🇺🇸 US'}
-                    {session === 'OVERLAP' && '🔄 Overlap'}
+                    {session === 'ASIA_EUROPE_OVERLAP' && '🔄 Asia-Europe Overlap'}
+                    {session === 'EUROPE_US_OVERLAP' && '🔄 Europe-US Overlap'}
                   </span>
                 </label>
               ))}

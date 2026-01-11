@@ -22,14 +22,16 @@ const SESSION_COLORS: Record<string, string> = {
   ASIA: '#10b981',      // Green
   EUROPE: '#3b82f6',    // Blue
   US: '#f59e0b',        // Amber
-  OVERLAP: '#8b5cf6',   // Purple
+  ASIA_EUROPE_OVERLAP: '#8b5cf6',   // Purple
+  EUROPE_US_OVERLAP: '#ec4899',     // Pink
 };
 
 const SESSION_LABELS: Record<string, string> = {
   ASIA: 'Asia (00-09 UTC)',
   EUROPE: 'Europe (07-16 UTC)',
   US: 'US (13-22 UTC)',
-  OVERLAP: 'Overlap',
+  ASIA_EUROPE_OVERLAP: 'Asia-Europe Overlap',
+  EUROPE_US_OVERLAP: 'Europe-US Overlap',
 };
 
 export default function SessionComparisonChart({ data, bestSession }: SessionComparisonChartProps) {

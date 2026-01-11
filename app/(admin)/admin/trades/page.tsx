@@ -11,7 +11,7 @@ interface Trade {
   id: string;
   tradeTimestamp: string;
   result: 'WIN' | 'LOSS';
-  marketSession: 'ASIA' | 'EUROPE' | 'US' | 'OVERLAP';
+  marketSession: 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
   sopFollowed: boolean;
   profitLossUsd: number;
   notes: string | null;
@@ -233,7 +233,8 @@ export default function AdminTradesPage() {
               <option value="ASIA">Asia</option>
               <option value="EUROPE">Europe</option>
               <option value="US">US</option>
-              <option value="OVERLAP">Overlap</option>
+              <option value="ASIA_EUROPE_OVERLAP">Asia-Europe Overlap</option>
+              <option value="EUROPE_US_OVERLAP">Europe-US Overlap</option>
             </select>
           </div>
 
