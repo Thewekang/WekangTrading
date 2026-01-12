@@ -200,6 +200,7 @@ export async function getTrades(filters: GetTradesFilters) {
         tradeTimestamp: individualTrades.tradeTimestamp,
         result: individualTrades.result,
         sopFollowed: individualTrades.sopFollowed,
+        symbol: individualTrades.symbol,
         profitLossUsd: individualTrades.profitLossUsd,
         marketSession: individualTrades.marketSession,
         notes: individualTrades.notes,
