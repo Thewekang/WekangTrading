@@ -437,6 +437,67 @@ NEXTAUTH_SECRET="[generate-with-openssl-rand-base64-32]"
 
 ---
 
+## Development Environment Setup
+
+### WSL (Windows Subsystem for Linux)
+- ✅ **Already installed and configured on this machine**
+- Use WSL for Turso CLI operations
+- Reference: https://learn.microsoft.com/en-us/windows/wsl/
+
+### Turso CLI Operations
+- **Documentation**: https://docs.turso.tech/cli/introduction
+- **CRITICAL**: Turso CLI MUST run inside WSL on Windows (not PowerShell)
+- **Installation**: Already installed at `~/.turso/turso` in WSL
+
+**CORRECT Workflow**:
+```powershell
+# Step 1: Enter WSL environment first
+wsl
+
+# Step 2: Wait for WSL prompt (h4mim@H4MIM:...)
+
+# Step 3: Run turso commands directly
+turso db list
+turso db create <name> --location aws-eu-west-1
+turso db show <name> --url
+turso db tokens create <name>
+
+# Step 4: Exit WSL when done
+exit
+```
+
+**WRONG Workflow** (Don't do this):
+```powershell
+# ❌ Don't run turso from PowerShell
+wsl -e bash -c "turso db list"  # This fails!
+
+# ❌ Don't run turso directly in PowerShell
+turso db list  # Command not found
+```
+
+**Common Commands**:
+- `turso auth login` - Authenticate (opens browser)
+- `turso db list` - List all databases
+- `turso db create <name> --location aws-eu-west-1` - Create database (use same region as production)
+- `turso db show <name> --url` - Get database URL
+- `turso db tokens create <name>` - Generate auth token
+- `turso db shell <name>` - Interactive SQL shell
+
+### Drizzle ORM with Turso
+- **Documentation**: https://orm.drizzle.team/docs/tutorials/drizzle-with-turso
+- Schema location: `lib/db/schema/`
+- Migration commands:
+  - `npm run drizzle:generate` - Generate migrations
+  - `npm run drizzle:push` - Push schema to database
+  - `npm run drizzle:studio` - Open Drizzle Studio
+
+### Environment Setup Pattern
+- **Production**: `wekangtrading-prod` database
+- **Staging**: `wekangtrading-staging` database (for develop branch)
+- **Local Development**: Use staging database credentials
+
+---
+
 ## Quick Reference Links
 
 - **Design Docs**: `/docs/` folder
