@@ -15,8 +15,8 @@ Trading Performance Tracking System for monitoring individual and team trading r
 ## Critical Design Principles
 
 ### 1. Single Source of Truth (SSOT)
-- **Database Schema**: `prisma/schema.prisma` is the ONLY source
-- **Types**: Generated from Prisma, extended in `lib/types.ts`
+- **Database Schema**: `lib/db/schema/` is the ONLY source (Drizzle ORM)
+- **Types**: Generated from Drizzle schema using `$inferSelect` and `$inferInsert`
 - **Validation**: `lib/validations.ts` using Zod schemas
 - **Constants**: `lib/constants.ts` for enums and fixed values
 - **Services**: All business logic in `lib/services/`
@@ -44,8 +44,9 @@ Trading Performance Tracking System for monitoring individual and team trading r
 ```typescript
 enum Role { USER, ADMIN }
 enum TradeResult { WIN, LOSS }
-enum MarketSession { ASIA, EUROPE, US, OVERLAP }
+enum MarketSession { ASIA, ASIA_EUROPE_OVERLAP, EUROPE, EUROPE_US_OVERLAP, US }
 enum TargetType { WEEKLY, MONTHLY, YEARLY }
+enum TargetCategory { PROP_FIRM, PERSONAL }
 ```
 
 ---
@@ -147,7 +148,8 @@ try {
   if (error instanceof ZodError) {
     return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR', message: error.message } }, { status: 400 });
   }
-  if (error instanceof PrismaClientKnownRequestError) {
+  if (error && typeof error === 'object' && 'code' in error) {
+    // LibSQL/Drizzle database error
     return NextResponse.json({ success: false, error: { code: 'DATABASE_ERROR', message: 'Database operation failed' } }, { status: 500 });
   }
   console.error(error);
@@ -163,8 +165,8 @@ try {
 - **Dashboard stats**: Query `daily_summaries` (FAST, pre-calculated)
 - **Detailed analysis**: Query `individual_trades` (SLOWER, more data)
 - **ALWAYS use pagination** for `individual_trades` list (50 per page)
-- **Use Prisma `select`** to fetch only needed fields
-- **Batch inserts**: Use `createMany` for bulk trade entry
+- **Use Drizzle `select` syntax** to fetch only needed fields
+- **Batch inserts**: Use Drizzle batch insert for bulk trade entry
 
 ### Indexes (Already defined in schema)
 - `individual_trades.userId`
@@ -310,7 +312,16 @@ components/
 
 lib/
 ├── auth.ts               # NextAuth config
-├── db.ts                 # Prisma client (SSOT singleton)
+├── db.ts                 # Drizzle client (SSOT singleton)
+├── db/
+│   └── schema/           # Drizzle ORM schemas (SSOT)
+│       ├── index.ts      # Export all schemas
+│       ├── users.ts      # User model
+│       ├── trades.ts     # Individual trades
+│       ├── summaries.ts  # Daily summaries
+│       ├── targets.ts    # User targets
+│       ├── sopTypes.ts   # SOP types
+│       └── auth.ts       # Sessions, accounts
 ├── constants.ts          # All constants (SSOT)
 ├── types.ts              # TypeScript types (SSOT)
 ├── validations.ts        # Zod schemas (SSOT)
@@ -362,8 +373,8 @@ xl: 1280px  // Large screens
 
 ## Common Mistakes to AVOID
 
-❌ **DON'T duplicate types** from Prisma schema  
-✅ **DO use** `import { User, IndividualTrade } from '@prisma/client'`
+❌ **DON'T duplicate types** from Drizzle schema  
+✅ **DO use** `import type { User, IndividualTrade } from '@/lib/db/schema'`
 
 ❌ **DON'T manually calculate market session** in multiple places  
 ✅ **DO call** `calculateMarketSession()` from `lib/utils/marketSessions.ts`
@@ -429,7 +440,7 @@ NEXTAUTH_SECRET="[generate-with-openssl-rand-base64-32]"
 ## Quick Reference Links
 
 - **Design Docs**: `/docs/` folder
-- **Database Schema**: `prisma/schema.prisma`
+- **Database Schema**: `lib/db/schema/` (Drizzle ORM)
 - **API Spec**: `/docs/04-API-SPECIFICATION.md`
 - **System Architecture**: `/docs/02-SYSTEM-ARCHITECTURE.md`
 - **Milestones**: `/docs/05-MILESTONES-ROADMAP.md`

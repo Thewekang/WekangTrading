@@ -4,11 +4,11 @@
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: 🎉 Phase 4 Complete - Ready for Phase 5  
+> **Status**: ✅ Production Deployed  
 > **Current Version**: 0.4.0  
-> **Timeline**: 7-9 weeks  
+> **Live URL**: https://wekangtrading.vercel.app  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
-> **Stack**: Next.js 15 + TypeScript + Turso + Prisma + NextAuth.js v5
+> **Stack**: Next.js 15 + TypeScript + Turso (LibSQL) + Drizzle ORM + NextAuth.js v5
 
 ---
 
@@ -16,9 +16,9 @@
 
 - **Individual Trade Tracking** with timestamps for timing analysis
 - **Dual Entry Workflows**: Real-time (mobile) + Bulk entry (desktop)
-- **Market Session Analysis**: Auto-detect ASIA/EUROPE/US/OVERLAP sessions
+- **Market Session Analysis**: Auto-detect ASIA/EUROPE/US + Overlap sessions (Malaysia GMT+8)
 - **Hourly Performance Analytics**: Identify most profitable trading hours with timezone support
-- **Target Tracking**: Set weekly/monthly/yearly goals with AI suggestions
+- **Target Management**: Custom names, categories (Prop Firm/Personal), flexible timelines
 - **Performance Trends**: MA7/MA30 analysis with trend indicators
 - **Advanced Filtering**: Multi-select, P/L range, presets, URL sync
 - **Data Export**: CSV + PDF reports with filter support
@@ -58,11 +58,13 @@ WekangTradingJournal/
 **Phase 5** (Week 9): ⏳ Polish & Deployment - NEXT
 
 ### Phase 4 Completed Features ✅
-- **Target Tracking**: Set and monitor weekly/monthly/yearly goals
+- **Target Management v0.4.0**: Custom names, categories (Prop Firm/Personal), multiple active targets
+- **Session Split**: OVERLAP → ASIA_EUROPE_OVERLAP + EUROPE_US_OVERLAP (Malaysia GMT+8)
 - **Performance Trends**: MA7/MA30 moving averages with trend indicators
 - **Advanced Filtering**: Multi-select sessions, P/L range, filter presets
 - **Data Export**: CSV + PDF reports with comprehensive filter support
 - **Toast Notifications**: Modern, non-blocking user feedback (Sonner)
+- **Drizzle ORM Migration**: Complete migration from Prisma (51 functions, 12 services)
 
 ### Phase 3 Completed Features ✅
 - Dashboard statistics with personal performance metrics

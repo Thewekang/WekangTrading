@@ -1,13 +1,12 @@
 # System Architecture Design
 
 ## Document Control
-- **Version**: 2.2
-- **Last Updated**: January 11, 2026
-- **Implementation Status**: 🔄 Phase 2 Complete (Trade Features) + Migrating to Drizzle ORM
-- **ORM**: Drizzle ORM (migration from Prisma in progress)
+- **Version**: 2.3
+- **Last Updated**: January 12, 2026
+- **Implementation Status**: ✅ Production (v0.4.0)
+- **ORM**: Drizzle ORM (migrated from Prisma, January 11, 2026)
 - **Database**: Turso (LibSQL - SQLite for edge)
-- **Original Version**: 2.0
-- **Status**: MIGRATION IN PROGRESS - Prisma → Drizzle ORM
+- **Production URL**: https://wekangtrading.vercel.app
 
 ---
 

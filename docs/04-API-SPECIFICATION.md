@@ -1,12 +1,9 @@
 # API Specification
 
 ## Document Control
-- **Version**: 2.1
-- **Last Updated**: January 9, 2026
-- **Implementation Status**: ✅ Phase 2 APIs Complete
-- **Original Version**: 2.0
-- **Status**: UPDATED - Individual Trade Tracking Model
-- **Last Updated**: January 7, 2026
+- **Version**: 2.2
+- **Last Updated**: January 12, 2026
+- **Implementation Status**: ✅ Production (v0.4.0)
 - **Base URL**: `/api`
 
 ---
@@ -952,25 +949,35 @@ Cookie: next-auth.session-token=<session_token>
 ---
 
 ### 7.2 POST `/api/targets`
-**Description**: Create or update user target.
+**Description**: Create a new user target (v0.4.0 enhanced).
 
 **Access**: Authenticated (USER, ADMIN)
 
 **Request Body**:
 ```typescript
 {
+  "name": string,                          // Custom target name (e.g., "MAVEN Phase 1")
+  "targetCategory": "PROP_FIRM" | "PERSONAL",  // Category affects status logic
   "targetType": "WEEKLY" | "MONTHLY" | "YEARLY",
-  "targetWinRate": number,        // 0-100
-  "targetSopRate"?: number        // 0-100, optional
+  "targetWinRate": number,                 // 0-100
+  "targetSopRate": number,                 // 0-100 (required in v0.4.0)
+  "targetProfitUsd"?: number,              // Optional profit goal
+  "startDate": string,                     // ISO date (can be past date)
+  "notes"?: string                         // Optional context
 }
 ```
 
 **Validation**:
 ```typescript
 {
+  name: z.string().min(3).max(100),
+  targetCategory: z.enum(['PROP_FIRM', 'PERSONAL']),
   targetType: z.enum(['WEEKLY', 'MONTHLY', 'YEARLY']),
   targetWinRate: z.number().min(0).max(100),
-  targetSopRate: z.number().min(0).max(100).optional()
+  targetSopRate: z.number().min(0).max(100),
+  targetProfitUsd: z.number().positive().optional(),
+  startDate: z.string().datetime(),
+  notes: z.string().max(500).optional()
 }
 ```
 
@@ -980,20 +987,60 @@ Cookie: next-auth.session-token=<session_token>
   "success": true,
   "data": {
     "id": "tgt_def456",
-    "targetType": "WEEKLY",
+    "name": "MAVEN Prop Firm Phase 1",
+    "targetCategory": "PROP_FIRM",
+    "targetType": "MONTHLY",
     "targetWinRate": 65.0,
     "targetSopRate": 80.0,
+    "targetProfitUsd": 5000.00,
+    "startDate": "2026-01-01T00:00:00Z",
+    "endDate": "2026-01-31T23:59:59Z",
+    "notes": "First phase evaluation",
     "active": true
   },
-  "message": "Target set successfully"
+  "message": "Target created successfully"
 }
 ```
 
-**Note**: If target already exists for that type, it updates the existing one.
+**Note**: Multiple active targets allowed. Users manage their own target lifecycle.
 
 ---
 
-### 7.3 DELETE `/api/targets/[id]`
+### 7.3 PATCH `/api/targets/[id]`
+**Description**: Update an existing user target (v0.4.0).
+
+**Access**: Authenticated (USER, ADMIN)
+
+**Request Body**:
+```typescript
+{
+  "name"?: string,
+  "targetCategory"?: "PROP_FIRM" | "PERSONAL",
+  "targetWinRate"?: number,
+  "targetSopRate"?: number,
+  "targetProfitUsd"?: number | null,
+  "startDate"?: string,
+  "notes"?: string | null,
+  "active"?: boolean
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "tgt_def456",
+    "name": "MAVEN Phase 1 (Extended)",
+    "active": false
+  },
+  "message": "Target updated successfully"
+}
+```
+
+---
+
+### 7.4 DELETE `/api/targets/[id]`
 **Description**: Delete user target.
 
 **Access**: Authenticated (USER, ADMIN)

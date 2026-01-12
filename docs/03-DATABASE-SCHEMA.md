@@ -1,13 +1,12 @@
 # Database Schema Design
 
 ## Document Control
-- **Version**: 2.2
-- **Last Updated**: January 11, 2026
-- **Implementation Status**: 🔄 Migrating to Drizzle ORM
-- **Original Version**: 2.0
-- **Status**: MIGRATION IN PROGRESS - Prisma → Drizzle ORM
-- **Database**: Turso (SQLite-compatible) + Drizzle ORM
-- **ORM**: Drizzle ORM (was Prisma)
+- **Version**: 2.3
+- **Last Updated**: January 12, 2026
+- **Implementation Status**: ✅ Production (v0.4.0)
+- **Database**: Turso (LibSQL - SQLite for edge)
+- **ORM**: Drizzle ORM (migrated from Prisma, January 11, 2026)
+- **Migration**: 100% Complete (51 functions, 12 services)
 
 ---
 
@@ -197,11 +196,12 @@
 
 **Market Session Auto-Detection Logic**:
 ```typescript
-// Based on trade_timestamp UTC
-ASIA:    00:00 - 09:00 UTC
-EUROPE:  07:00 - 16:00 UTC
-US:      13:00 - 22:00 UTC
-OVERLAP: Times when sessions overlap (Asia-Europe: 07:00-09:00, Europe-US: 13:00-16:00)
+// Based on trade_timestamp UTC (Malaysia GMT+8 perspective)
+ASIA:                   00:00 - 06:59 UTC (08:00 - 14:59 MYT)
+ASIA_EUROPE_OVERLAP:    07:00 - 08:59 UTC (15:00 - 16:59 MYT)
+EUROPE:                 09:00 - 12:59 UTC (17:00 - 20:59 MYT)
+EUROPE_US_OVERLAP:      13:00 - 15:59 UTC (21:00 - 23:59 MYT)
+US:                     16:00 - 23:59 UTC (00:00 - 07:59 MYT next day)
 ```
 
 **Business Rules**:
@@ -278,39 +278,63 @@ OVERLAP: Times when sessions overlap (Asia-Europe: 07:00-09:00, Europe-US: 13:00
 
 ### 2.4 Table: `user_targets`
 
-**Purpose**: Store customizable performance targets set by users.
+**Purpose**: Store customizable performance targets set by users (v0.4.0 enhanced).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | STRING | PRIMARY KEY, UUID | Unique target identifier |
 | `user_id` | STRING | FOREIGN KEY (users.id), NOT NULL | Reference to user |
+| `name` | STRING | NOT NULL | Custom target name (e.g., "MAVEN Prop Firm Phase 1") |
+| `target_category` | ENUM | NOT NULL, DEFAULT 'PERSONAL' | PROP_FIRM (absolute) or PERSONAL (pace-based) |
 | `target_type` | ENUM | NOT NULL | Type: WEEKLY, MONTHLY, YEARLY |
 | `target_win_rate` | DECIMAL | NOT NULL, CHECK 0-100 | Target winning rate (percentage) |
-| `target_sop_rate` | DECIMAL | NULLABLE, CHECK 0-100 | Target SOP compliance rate (optional) |
+| `target_sop_rate` | DECIMAL | NOT NULL, CHECK 0-100 | Target SOP compliance rate |
+| `target_profit_usd` | DECIMAL | NULLABLE | Optional profit target in USD |
+| `start_date` | DATETIME | NOT NULL | Target start date (can be past date) |
+| `end_date` | DATETIME | NOT NULL | Target end date (auto-calculated from type + start) |
+| `notes` | TEXT | NULLABLE | Optional notes for target context |
 | `active` | BOOLEAN | NOT NULL, DEFAULT TRUE | Is this target currently active |
 | `created_at` | DATETIME | NOT NULL, DEFAULT NOW | Target creation timestamp |
 | `updated_at` | DATETIME | NOT NULL, AUTO UPDATE | Last update timestamp |
 
 **Constraints**:
-- `UNIQUE (user_id, target_type, active)` WHERE `active = true` - One active target per type per user
+- No unique constraint on active targets (users can have multiple active targets)
+- `CHECK (end_date > start_date)`
+- `CHECK (target_win_rate >= 0 AND target_win_rate <= 100)`
+- `CHECK (target_sop_rate >= 0 AND target_sop_rate <= 100)`
 
 **Indexes**:
 - Primary Key: `id`
-- Composite Index: `user_id, target_type, active`
+- Index: `user_id` (for user target queries)
+- Composite Index: `user_id, target_type, active` (for filtering)
+- Composite Index: `user_id, active, start_date, end_date` (for date range queries)
 
 **Sample Data**:
 ```sql
 {
   id: "tgt_def456",
   user_id: "usr_abc123",
-  target_type: "WEEKLY",
+  name: "MAVEN Prop Firm Phase 1",
+  target_category: "PROP_FIRM",
+  target_type: "MONTHLY",
   target_win_rate: 65.0,
   target_sop_rate: 80.0,
+  target_profit_usd: 5000.00,
+  start_date: "2026-01-01T00:00:00Z",
+  end_date: "2026-01-31T23:59:59Z",
+  notes: "First phase - need to hit absolute targets",
   active: true,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z"
 }
 ```
+
+**v0.4.0 Enhancements**:
+- **Custom Names**: User-defined labels for better organization
+- **Categories**: PROP_FIRM (absolute deadline) vs PERSONAL (pace-based)
+- **Flexible Dates**: Past start dates allowed (e.g., started Dec 15, ends Jan 15)
+- **Multiple Active**: No auto-deactivation, users manage their own targets
+- **Profit Targets**: Optional USD profit goals
 
 ---
 
