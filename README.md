@@ -42,7 +42,15 @@ WekangTradingJournal/
 │   ├── 03-DATABASE-SCHEMA.md      # Database design
 │   ├── 04-API-SPECIFICATION.md    # API documentation
 │   ├── 05-MILESTONES-ROADMAP.md   # Implementation plan
-│   └── 06-PROGRESS-TRACKING.md    # Progress tracking
+│   ├── 06-PROGRESS-TRACKING.md    # Progress tracking
+│   ├── 07-ENHANCED-FEATURES.md    # Enhanced features (v2.0)
+│   ├── 08-ADMIN-FEATURES.md       # Admin panel guide
+│   ├── 09-TARGET-MANAGEMENT.md    # Target system v0.4.0
+│   ├── 10-TESTING-GUIDE.md        # Testing procedures
+│   ├── setup/                     # Setup & configuration guides
+│   ├── deployment/                # Deployment procedures
+│   ├── reference/                 # Technical references
+│   └── archive/                   # Historical records
 └── README.md                       # This file
 ```
 
@@ -55,7 +63,21 @@ WekangTradingJournal/
 **Phase 2** (Week 3-5): ✅ Individual Trade Features - COMPLETE  
 **Phase 3** (Week 6-7): ✅ Dashboard & Analytics - COMPLETE  
 **Phase 4** (Week 8): ✅ Advanced Features - COMPLETE  
-**Phase 5** (Week 9): ⏳ Polish & Deployment - NEXT
+**Phase 5** (Week 9-10): ✅ Enhanced Features & Security - COMPLETE  
+**Phase 6** (Documentation): ✅ Documentation Consolidation - COMPLETE
+
+### Phase 5 Completed Features ✅
+- **Invite-Only Registration**: Security with admin-generated invite codes
+- **Admin User Management**: Full CRUD operations for user accounts
+- **Admin Trade Viewer**: View and delete trades across all users
+- **SOP Types System**: Categorize trades by strategy (6 default types)
+- **Daily Loss Limit Alert**: Soft reminder after 2 losses per day
+- **User Password Change**: Secure password update with validation
+- **Account Reset**: User can reset all trading data (fresh start)
+- **Reset Count Tracking**: Admin monitoring of account resets
+- **24-Hour Trade Deletion**: Window to prevent data tampering
+- **User Performance Calendar**: Admin heatmap of user activity
+- **Best SOP Analysis**: Dashboard card showing best performing strategy
 
 ### Phase 4 Completed Features ✅
 - **Target Management v0.4.0**: Custom names, categories (Prop Firm/Personal), multiple active targets
@@ -108,16 +130,26 @@ WekangTradingJournal/
 
 ## 📖 Documentation
 
-All design documents are in the `/docs` folder:
-All design documents are in the `/docs` folder:
+### Core Documentation (Numbered 00-10)
 
 1. **[Design Summary](docs/00-DESIGN-SUMMARY.md)** - Start here for overview
 2. **[Technology Stack](docs/01-TECHNOLOGY-STACK.md)** - Tech decisions and rationale
-3. **[System Architecture](docs/02-SYSTEM-ARCHITECTURE.md)** - Architecture design (v2.0)
-4. **[Database Schema](docs/03-DATABASE-SCHEMA.md)** - Database design (v2.0)
-5. **[API Specification](docs/04-API-SPECIFICATION.md)** - API documentation (v2.0)
-6. **[Implementation Roadmap](docs/05-MILESTONES-ROADMAP.md)** - 7-9 week plan (v2.0)
+3. **[System Architecture](docs/02-SYSTEM-ARCHITECTURE.md)** - Architecture design
+4. **[Database Schema](docs/03-DATABASE-SCHEMA.md)** - Complete database design
+5. **[API Specification](docs/04-API-SPECIFICATION.md)** - API endpoints documentation
+6. **[Implementation Roadmap](docs/05-MILESTONES-ROADMAP.md)** - Development plan
 7. **[Progress Tracking](docs/06-PROGRESS-TRACKING.md)** - Progress monitoring
+8. **[Enhanced Features](docs/07-ENHANCED-FEATURES.md)** - 11 enhanced features (v2.0)
+9. **[Admin Features](docs/08-ADMIN-FEATURES.md)** - Complete admin panel guide
+10. **[Target Management](docs/09-TARGET-MANAGEMENT.md)** - Target system v0.4.0
+11. **[Testing Guide](docs/10-TESTING-GUIDE.md)** - Testing procedures & checklists
+
+### Additional Documentation
+
+- **[Setup Guides](docs/setup/)** - Local development & Turso setup
+- **[Deployment](docs/deployment/)** - Production deployment guides
+- **[Reference](docs/reference/)** - Technical references & quick guides
+- **[Archive](docs/archive/)** - Historical records & session summaries
 
 **AI Context**: `.github/copilot-instructions.md` - Critical for AI-assisted coding
 
@@ -157,8 +189,8 @@ npm run dev
 npm run dev         # Start development server
 npm run build       # Build for production
 npm run start       # Start production server
-npm run db:migrate  # Run database migrations
-npm run db:studio   # Open Prisma Studio
+npm run db:push     # Push Drizzle schema changes
+npm run db:studio   # Open Drizzle Studio
 npm run db:seed     # Seed database with test data
 ```
 
@@ -166,48 +198,37 @@ npm run db:seed     # Seed database with test data
 
 ## 📝 Recent Updates
 
+### January 12, 2026 - Documentation Consolidation Complete
+- ✅ Created comprehensive feature documentation (4 new docs)
+- ✅ Organized documentation into categorized folders
+- ✅ Consolidated 15+ fragmented files into single sources of truth
+- ✅ Phase 6 complete - Clean, maintainable documentation structure
+
+### January 11, 2026 - Phase 5 Complete
+- ✅ Invite-only registration system with admin codes
+- ✅ SOP types for strategy categorization
+- ✅ Daily loss limit alerts (2 losses max)
+- ✅ Complete admin user management
+- ✅ User self-service features (password, reset)
+- ✅ Security enhancements (24-hour deletion window)
+
+### January 9, 2026 - Phase 4 Complete
+- ✅ Target Management v0.4.0 with categories
+- ✅ Advanced filtering and data export (CSV/PDF)
+- ✅ Performance trends with MA7/MA30
+- ✅ Complete Drizzle ORM migration
+
+### January 9, 2026 - Phase 3 Complete
+- ✅ Dashboard with interactive charts
+- ✅ Session and hourly performance analytics
+- ✅ Timezone support (Malaysia GMT+8)
+
 ### January 9, 2026 - Phase 2 Complete
-- ✅ Completed all individual trade features
+- ✅ Individual trade tracking system
 - ✅ Real-time and bulk entry workflows
 - ✅ Trade list with comprehensive filters
-- ✅ Pagination with localStorage persistence
-- ✅ Updated documentation and changelog
-- 🎯 Ready for Phase 3: Dashboard & Analytics
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
-
----
-
-## 🛠️ Next Steps
-
-**Phase 3 Focus**:
-1. Dashboard with real statistics from daily_summaries
-2. Session performance charts (Recharts)
-3. Hourly performance heatmap
-4. Target tracking and progress visualization
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
-
----
-
-## 📄 License
-
-This project is private and proprietary.
-
----
-
-**Current Version**: 0.2.0  
-**Last Updated**: January 9, 2026  
-**Status**: Phase 2 Complete ✅ - Phase 3 In Progress 🚧
----
-
-## 📰 Recent Updates
-
-- **2026-01-09**: Phase 4 Complete - Advanced features (targets, trends, filtering, export)
-- **2026-01-09**: Phase 3 Complete - Dashboard with charts and analytics
-- **2026-01-09**: Phase 2 Complete - Individual trade tracking system
-- **2026-01-08**: Phase 1 Complete - Authentication and user management
-- **2026-01-08**: Phase 0 Complete - Project setup and foundation
 
 ---
 
@@ -217,7 +238,7 @@ This project is private and proprietary.
 - **Next.js 15**: React framework with App Router
 - **TypeScript**: Type-safe development
 - **Turso (libSQL)**: Serverless SQLite database
-- **Prisma ORM**: Type-safe database client
+- **Drizzle ORM**: Type-safe database client (migrated from Prisma)
 - **NextAuth.js v5**: Authentication with sessions
 - **Tailwind CSS**: Utility-first styling
 - **shadcn/ui**: Beautiful UI components
@@ -235,12 +256,15 @@ This project is private and proprietary.
 
 ## 🔐 Security Features
 
+- Invite-only registration with admin codes
 - Type-safe codebase (TypeScript)
-- Input validation (client + server)
-- Session-based authentication
+- Input validation (client + server with Zod)
+- Session-based authentication (NextAuth v5)
 - Role-based access control (USER/ADMIN)
 - Password hashing (bcrypt)
-- SQL injection prevention (Prisma)
+- SQL injection prevention (Drizzle ORM)
+- 24-hour trade deletion window
+- Secure password change workflow
 
 ---
 
@@ -248,47 +272,20 @@ This project is private and proprietary.
 
 This project follows strict SSOT principles:
 - No duplication of types, constants, or validation
-- All database models defined in Prisma schema
-- All types derived from Prisma
+- All database models defined in Drizzle schema
+- All types derived from Drizzle (`$inferSelect`, `$inferInsert`)
 - All validation rules in centralized Zod schemas
+- All constants in `lib/constants.ts`
+- All services in `lib/services/`
 
 ---
 
-## 🚦 Next Steps
+## 📄 License
 
-### AWAITING CLIENT APPROVAL
-
-Please review:
-1. [Design Summary](./docs/00-DESIGN-SUMMARY.md)
-2. All design documents (linked above)
-
-### Key Decisions Needed:
-- [ ] Approve Turso (SQLite-compatible for serverless)
-- [ ] Approve Next.js + TypeScript stack
-- [ ] Approve database schema
-- [ ] Approve API design
-- [ ] Accept 6-8 week timeline
+This project is private and proprietary.
 
 ---
 
-## 📞 Questions?
-
-Before implementation, please answer:
-1. Expected number of users?
-2. Expected trades per day per user?
-3. Data retention requirements?
-4. Any additional features needed?
-
----
-
-## 📚 Documentation
-
-Complete design documentation available in [`/docs`](./docs) folder.
-
-**Start with**: [00-DESIGN-SUMMARY.md](./docs/00-DESIGN-SUMMARY.md)
-
----
-
-**Status**: Design Phase Complete ✅  
-**Next**: Awaiting approval to begin implementation  
-**Last Updated**: January 7, 2026
+**Current Version**: 0.4.0+  
+**Last Updated**: January 12, 2026  
+**Status**: Production Ready ✅ - All Phases Complete 🎉
