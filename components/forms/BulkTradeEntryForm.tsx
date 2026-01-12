@@ -22,6 +22,7 @@ interface BulkTradeRow {
   result: 'WIN' | 'LOSS' | '';
   sopFollowed: boolean | null;
   sopTypeId: string;
+  symbol: string;
   amount: string;
   notes: string;
 }
@@ -32,9 +33,9 @@ export function BulkTradeEntryForm() {
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [rows, setRows] = useState<BulkTradeRow[]>([
-    { id: '1', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
-    { id: '2', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
-    { id: '3', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
+    { id: '1', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '2', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '3', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -67,7 +68,7 @@ export function BulkTradeEntryForm() {
       return;
     }
     const newId = (Math.max(...rows.map(r => parseInt(r.id))) + 1).toString();
-    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' }]);
+    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' }]);
   };
 
   // Remove row
@@ -136,6 +137,7 @@ export function BulkTradeEntryForm() {
         result: row.result,
         sopFollowed: row.sopFollowed,
         sopTypeId: row.sopTypeId || null,
+        symbol: row.symbol || undefined,
         profitLossUsd: profitLoss,
         notes: row.notes || undefined,
       };
@@ -218,6 +220,7 @@ export function BulkTradeEntryForm() {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount (USD) *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Actions</th>
@@ -271,6 +274,16 @@ export function BulkTradeEntryForm() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="px-3 py-3">
+                    <input
+                      type="text"
+                      value={row.symbol}
+                      onChange={(e) => handleUpdateRow(row.id, 'symbol', e.target.value.toUpperCase())}
+                      placeholder="e.g. EURUSD"
+                      maxLength={10}
+                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
                   </td>
                   <td className="px-3 py-3">
                     <input

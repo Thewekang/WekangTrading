@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
       tradeTimestamp: new Date(trade.tradeTimestamp),
       result: trade.result,
       sopFollowed: trade.sopFollowed,
+      sopTypeId: trade.sopTypeId,
+      symbol: trade.symbol,
       profitLossUsd: trade.profitLossUsd,
       notes: trade.notes,
     }));

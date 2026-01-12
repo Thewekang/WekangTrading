@@ -44,6 +44,11 @@ export const individualTradeSchema = z.object({
   profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),
+  symbol: z.string()
+    .min(2, 'Symbol must be at least 2 characters')
+    .max(10, 'Symbol must be less than 10 characters')
+    .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
+    .optional(),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
 
@@ -67,6 +72,11 @@ export const individualTradeApiSchema = z.object({
   profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),
+  symbol: z.string()
+    .min(2, 'Symbol must be at least 2 characters')
+    .max(10, 'Symbol must be less than 10 characters')
+    .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
+    .optional(),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
 

@@ -22,6 +22,7 @@ interface Trade {
   sopFollowed: boolean;
   sopTypeId: string | null;
   sopType: { id: string; name: string } | null;
+  symbol: string | null;
   profitLossUsd: number;
   marketSession: string;
   notes: string | null;
@@ -705,6 +706,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">P/L (USD)</th>
@@ -714,7 +716,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             <tbody className="divide-y divide-gray-200">
               {trades.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12">
+                  <td colSpan={8} className="px-4 py-12">
                     {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
                       <div className="text-center">
                         <div className="text-5xl mb-4">🔍</div>
@@ -762,6 +764,15 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {getSessionBadge(trade.marketSession)}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {trade.symbol ? (
+                        <span className="font-mono text-xs font-medium text-gray-700">
+                          {trade.symbol}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {trade.result === 'WIN' ? (

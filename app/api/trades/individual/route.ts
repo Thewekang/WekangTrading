@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       result: validatedData.result,
       sopFollowed: validatedData.sopFollowed,
       sopTypeId: validatedData.sopTypeId,
+      symbol: validatedData.symbol,
       profitLossUsd: validatedData.profitLossUsd,
       notes: validatedData.notes,
     });

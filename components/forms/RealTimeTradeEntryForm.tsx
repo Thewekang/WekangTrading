@@ -109,6 +109,7 @@ export function RealTimeTradeEntryForm() {
         sopFollowed: data.sopFollowed,
         sopTypeId: data.sopTypeId || null,
         profitLossUsd: profitLoss,
+        symbol: data.symbol || undefined,
         notes: data.notes || undefined,
       };
 
@@ -305,6 +306,26 @@ export function RealTimeTradeEntryForm() {
           )}
           {errors.sopTypeId && (
             <p className="mt-1 text-sm text-red-600">{errors.sopTypeId.message}</p>
+          )}
+        </div>
+
+        {/* Symbol (Optional) */}
+        <div>
+          <Label htmlFor="symbol">Symbol (Optional)</Label>
+          <Input
+            id="symbol"
+            type="text"
+            placeholder="e.g. EURUSD, GBPJPY"
+            {...register('symbol')}
+            className="mt-1 text-base uppercase"
+            maxLength={10}
+            onChange={(e) => {
+              e.target.value = e.target.value.toUpperCase();
+            }}
+          />
+          <p className="mt-1 text-xs text-gray-500">Trading pair or instrument (2-10 characters, uppercase)</p>
+          {errors.symbol && (
+            <p className="mt-1 text-sm text-red-600">{errors.symbol.message}</p>
           )}
         </div>
 
