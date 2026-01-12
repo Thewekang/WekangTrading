@@ -171,7 +171,7 @@ async function importTrades() {
   }
 
   // 4. Calculate market session for each trade
-  function calculateMarketSession(timestamp: Date): string {
+  function calculateMarketSession(timestamp: Date): 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP' {
     const hour = timestamp.getUTCHours();
     
     if (hour >= 0 && hour < 7) return 'ASIA';
