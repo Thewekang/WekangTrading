@@ -1,6 +1,6 @@
 {
   "name": "wekangtrading-journal",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Trading Performance Tracking System with Individual Trade Timing Analysis",
   "scripts": {
