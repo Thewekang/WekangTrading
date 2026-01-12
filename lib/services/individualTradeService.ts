@@ -16,6 +16,7 @@ interface CreateTradeInput {
   result: 'WIN' | 'LOSS';
   sopFollowed: boolean;
   sopTypeId?: string | null;
+  symbol?: string;
   profitLossUsd: number;
   notes?: string;
 }
@@ -25,6 +26,7 @@ interface UpdateTradeInput {
   result?: 'WIN' | 'LOSS';
   sopFollowed?: boolean;
   sopTypeId?: string | null;
+  symbol?: string;
   profitLossUsd?: number;
   notes?: string;
 }
@@ -75,6 +77,7 @@ export async function createTrade(input: CreateTradeInput) {
       result: input.result,
       sopFollowed: input.sopFollowed,
       sopTypeId: input.sopTypeId || null,
+      symbol: input.symbol || null,
       profitLossUsd: input.profitLossUsd,
       marketSession,
       notes: input.notes || null,
@@ -112,6 +115,7 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
     result: trade.result,
     sopFollowed: trade.sopFollowed,
     sopTypeId: trade.sopTypeId || null,
+    symbol: trade.symbol || null,
     profitLossUsd: trade.profitLossUsd,
     marketSession: calculateMarketSession(trade.tradeTimestamp),
     notes: trade.notes || null,
@@ -196,6 +200,7 @@ export async function getTrades(filters: GetTradesFilters) {
         tradeTimestamp: individualTrades.tradeTimestamp,
         result: individualTrades.result,
         sopFollowed: individualTrades.sopFollowed,
+        symbol: individualTrades.symbol,
         profitLossUsd: individualTrades.profitLossUsd,
         marketSession: individualTrades.marketSession,
         notes: individualTrades.notes,
@@ -317,6 +322,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
 
   if (input.sopTypeId !== undefined) {
     updateData.sopTypeId = input.sopTypeId || null;
+  }
+
+  if (input.symbol !== undefined) {
+    updateData.symbol = input.symbol || null;
   }
 
   // Update trade
