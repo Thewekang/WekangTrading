@@ -4,8 +4,8 @@
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: ✅ Production Deployed  
-> **Current Version**: 0.4.0  
+> **Status**: ✅ Production Deployed (v1.0.0)  
+> **Current Version**: 1.0.0  
 > **Live URL**: https://wekangtrading.vercel.app  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso (LibSQL) + Drizzle ORM + NextAuth.js v5
