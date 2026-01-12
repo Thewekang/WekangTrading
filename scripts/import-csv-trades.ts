@@ -1,12 +1,8 @@
 /**
  * CSV Trade Import Script
- * Usage: npx tsx scripts/import-csv-trades.ts
+ * Usage: npm run db:import-csv
+ * Environment variables loaded via tsx -r dotenv/config
  */
-
-// Load environment variables from .env.local
-import dotenv from 'dotenv';
-import path from 'path';
-dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
 import { db } from '@/lib/db';
 import { users, sopTypes, individualTrades } from '@/lib/db/schema';

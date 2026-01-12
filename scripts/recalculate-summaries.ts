@@ -1,23 +1,24 @@
 /**
  * Recalculate all daily summaries for all users
- * Run this after schema changes to update existing data
+ * Run this after schema changes or data imports to update existing data
+ * Environment variables loaded via tsx -r dotenv/config
  */
 
-import { PrismaClient } from '@prisma/client';
+import { db } from '../lib/db';
+import { users, individualTrades } from '../lib/db/schema';
 import { updateDailySummaryForDate } from '../lib/services/dailySummaryService';
-
-const prisma = new PrismaClient();
+import { eq } from 'drizzle-orm';
 
 async function main() {
   console.log('🔄 Recalculating all daily summaries...\n');
 
   // Get all unique user + date combinations from individual_trades
-  const trades = await prisma.individualTrade.findMany({
-    select: {
-      userId: true,
-      tradeTimestamp: true,
-    },
-  });
+  const trades = await db
+    .select({
+      userId: individualTrades.userId,
+      tradeTimestamp: individualTrades.tradeTimestamp,
+    })
+    .from(individualTrades);
 
   // Group by user and date
   const userDates = new Map<string, Set<string>>();
@@ -37,12 +38,15 @@ async function main() {
 
   // Recalculate summaries for each user-date combination
   for (const [userId, dates] of userDates) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
+    const userResult = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    console.log(`📊 User: ${user?.email}`);
+    const user = userResult[0];
+
+    console.log(`📊 User: ${user?.email || userId}`);
     console.log(`   Updating ${dates.size} daily summaries...`);
 
     for (const dateStr of dates) {
@@ -58,10 +62,11 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Migration failed:', e);
-    process.exit(1);
+  .then(() => {
+    console.log('\n✅ Script completed successfully');
+    process.exit(0);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
+  .catch((e) => {
+    console.error('❌ Recalculation failed:', e);
+    process.exit(1);
   });
