@@ -3,11 +3,14 @@
  * Usage: npx tsx scripts/import-csv-trades.ts
  */
 
+// Load environment variables from .env.local
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+
 import { db } from '@/lib/db';
 import { users, sopTypes, individualTrades } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // CSV data from trading propfirm.csv
 const csvData = `Date & time;Result;SOP;SOP Type;Amount;;

@@ -4,12 +4,19 @@ This guide explains how to import trades from the CSV file for the wtrader accou
 
 ## Prerequisites
 
-1. **wtrader account must exist** in the database
+1. **Environment variables** must be configured
+   - `.env.local` file must exist in project root
+   - Required variables:
+     - `TURSO_DATABASE_URL` (Turso database URL)
+     - `TURSO_AUTH_TOKEN` (Turso authentication token)
+   - Copy from `.env.example` if not exists
+
+2. **wtrader account must exist** in the database
    - Email: `wtrader@wekang.com`
    - If not exists, create via registration or admin panel first
 
-2. **Database connection** must be configured
-   - `.env.local` with `DATABASE_URL` and `DATABASE_AUTH_TOKEN`
+3. **Dependencies installed**
+   - Run `npm install` if needed
 
 ## Import Steps
 
