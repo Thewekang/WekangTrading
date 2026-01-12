@@ -76,11 +76,16 @@ export const bulkTradeEntrySchema = z.object({
   }),
   trades: z.array(individualTradeApiSchema).min(1, 'At least one trade is required').max(100, 'Maximum 100 trades per bulk entry'),
 }).refine((data) => {
-  // All trades must be on the same date as tradeDate
-  const dateStr = data.tradeDate.toISOString().split('T')[0];
+  // All trades must be on the same date as tradeDate (use local date comparison)
+  const tradeDateStr = data.tradeDate.toISOString().split('T')[0];
   return data.trades.every((trade) => {
-    const tradeDate = new Date(trade.tradeTimestamp).toISOString().split('T')[0];
-    return tradeDate === dateStr;
+    const timestamp = new Date(trade.tradeTimestamp);
+    // Extract date in local timezone to avoid timezone conversion issues
+    const year = timestamp.getFullYear();
+    const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+    const day = String(timestamp.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${day}`;
+    return localDateStr === tradeDateStr;
   });
 }, {
   message: 'All trades must be on the same date',

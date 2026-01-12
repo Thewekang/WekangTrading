@@ -24,11 +24,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = bulkTradeEntrySchema.parse(body);
 
-    // Validate all trades are on the same date
-    const tradeDate = new Date(validatedData.tradeDate).toISOString().split('T')[0];
+    // Validate all trades are on the same date (use local date comparison to avoid timezone issues)
+    const tradeDateStr = validatedData.tradeDate.toISOString().split('T')[0];
     const allSameDate = validatedData.trades.every(trade => {
       const timestamp = new Date(trade.tradeTimestamp);
-      return timestamp.toISOString().split('T')[0] === tradeDate;
+      // Extract date in local timezone to match user's input
+      const year = timestamp.getFullYear();
+      const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+      const day = String(timestamp.getDate()).padStart(2, '0');
+      const localDateStr = `${year}-${month}-${day}`;
+      return localDateStr === tradeDateStr;
     });
 
     if (!allSameDate) {
