@@ -5,7 +5,7 @@
  * Allow users to upload and import trades from CSV file
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { showToast } from '@/components/ui/Toast';
 
 export default function ImportTradesPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [file, setFile] = useState<File | null>(null);
   const [parsedTrades, setParsedTrades] = useState<ParsedTrade[]>([]);
@@ -115,6 +116,11 @@ export default function ImportTradesPage() {
     setParsedTrades([]);
     setValidationErrors([]);
     setImportSuccess(false);
+    setIsParsing(false);
+    // Clear the file input field
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -169,6 +175,7 @@ export default function ImportTradesPage() {
             </p>
             <div className="ml-11">
               <Input
+                ref={fileInputRef}
                 type="file"
                 accept=".csv"
                 onChange={handleFileSelect}
