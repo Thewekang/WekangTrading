@@ -13,6 +13,7 @@ export const users = sqliteTable('users', {
   image: text('image'),
   inviteCodeId: text('invite_code_id'),
   resetCount: integer('reset_count').notNull().default(0),
+  preferredTimezone: text('preferred_timezone').notNull().default('UTC'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({

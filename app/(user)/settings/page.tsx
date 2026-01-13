@@ -6,6 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showToast } from '@/components/ui/Toast';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { COMMON_TIMEZONES, getAllTimezones, getCurrentTimeInTimezone } from '@/lib/utils/timezones';
 
 interface AccountSummary {
   totalTrades: number;
@@ -17,16 +27,39 @@ interface UserInfo {
   name: string;
   email: string;
   role: string;
+  preferredTimezone: string;
 }
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [allTimezones, setAllTimezones] = useState<string[]>([]);
+
+  // Timezone preferences state
+  const [selectedTimezone, setSelectedTimezone] = useState('UTC');
+  const [currentTime, setCurrentTime] = useState('');
+  const [savingTimezone, setSavingTimezone] = useState(false);
 
   // Fetch user info on mount
   useEffect(() => {
     fetchUserInfo();
+    // Get all available timezones
+    setAllTimezones(getAllTimezones());
   }, []);
+
+  // Update current time when timezone changes
+  useEffect(() => {
+    if (selectedTimezone) {
+      const updateTime = () => {
+        setCurrentTime(getCurrentTimeInTimezone(selectedTimezone));
+      };
+      
+      updateTime(); // Initial update
+      const interval = setInterval(updateTime, 1000); // Update every second
+      
+      return () => clearInterval(interval);
+    }
+  }, [selectedTimezone]);
 
   const fetchUserInfo = async () => {
     try {
@@ -34,9 +67,38 @@ export default function SettingsPage() {
       if (response.ok) {
         const result = await response.json();
         setUserInfo(result.data);
+        setSelectedTimezone(result.data.preferredTimezone || 'UTC');
       }
     } catch (error) {
       console.error('Failed to fetch user info:', error);
+    }
+  };
+
+  const handleSaveTimezone = async () => {
+    setSavingTimezone(true);
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preferredTimezone: selectedTimezone,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Failed to update timezone');
+      }
+
+      showToast('Timezone preferences saved. Refreshing page...', 'success');
+      
+      // Reload page to apply timezone changes throughout the app
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update timezone', 'error');
+    } finally {
+      setSavingTimezone(false);
     }
   };
 
@@ -180,6 +242,55 @@ export default function SettingsPage() {
               className="bg-gray-50"
             />
           </div>
+        </div>
+      </Card>
+
+      {/* Timezone Preferences */}
+      <Card className="p-6 mb-6">
+        <h2 className="text-xl font-bold mb-4">Display Preferences</h2>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="timezone">Preferred Timezone</Label>
+            <Select
+              value={selectedTimezone}
+              onValueChange={setSelectedTimezone}
+            >
+              <SelectTrigger id="timezone" className="w-full">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                <SelectGroup>
+                  <SelectLabel>Common Timezones</SelectLabel>
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>All Timezones</SelectLabel>
+                  {allTimezones
+                    .filter(tz => !COMMON_TIMEZONES.some(common => common.value === tz))
+                    .map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {tz.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-600 mt-1">
+              All timestamps will be displayed in this timezone.
+              <br />
+              Current time in selected timezone: <strong>{currentTime}</strong>
+            </p>
+          </div>
+          <Button
+            onClick={handleSaveTimezone}
+            disabled={savingTimezone || selectedTimezone === userInfo?.preferredTimezone}
+          >
+            {savingTimezone ? 'Saving...' : 'Save Timezone Preferences'}
+          </Button>
         </div>
       </Card>
 
