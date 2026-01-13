@@ -14,6 +14,7 @@ import { ExportModal } from '@/components/ExportModal';
 import { LoadingSpinner, LoadingTable } from '@/components/ui/loading';
 import { NoTradesEmptyState, NoResultsEmptyState } from '@/components/ui/empty-state';
 import { showToast } from '@/components/ui/Toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface Trade {
   id: string;
@@ -36,6 +37,7 @@ interface TradesListProps {
 export function TradesList({ initialTrades, userId }: TradesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { formatDate } = useTimezone();
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,9 +126,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     localStorage.setItem('tradesPageSize', pageSize.toString());
   }, [pageSize]);
 
-  // Helper function to format date/time
+  // Helper function to format date/time using user's timezone
   const formatDateTime = (date: Date | string) => {
-    return new Date(date).toLocaleString('en-US', {
+    return formatDate(date, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
