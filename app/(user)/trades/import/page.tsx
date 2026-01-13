@@ -93,6 +93,12 @@ export default function ImportTradesPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle validation errors (don't log to console as errors)
+        if (response.status === 400) {
+          showToast(data.error || 'Validation error', 'error');
+          return;
+        }
+        // For other errors, throw to catch block
         throw new Error(data.error || 'Import failed');
       }
 
@@ -104,7 +110,8 @@ export default function ImportTradesPage() {
         router.push('/trades');
       }, 2000);
     } catch (error: any) {
-      console.error('Import error:', error);
+      // Only log unexpected errors (not validation errors)
+      console.error('Unexpected import error:', error);
       showToast(error.message || 'Failed to import trades', 'error');
     } finally {
       setIsImporting(false);
