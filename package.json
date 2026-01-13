@@ -38,6 +38,7 @@
     "lucide-react": "^0.562.0",
     "next": "^15.1.0",
     "next-auth": "^5.0.0-beta.30",
+    "papaparse": "^5.5.3",
     "prisma": "^5.22.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -50,6 +51,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
