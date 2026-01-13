@@ -92,10 +92,10 @@ export default function ImportTradesPage() {
 
       const data = await response.json();
 
-      // Handle validation errors (400) - expected errors, show toast only
+      // Handle validation errors (400) - these are expected user errors
+      // Note: Browser will still log 400 in DevTools (normal development behavior)
       if (response.status === 400) {
         showToast(data.error || 'Validation error', 'error');
-        setIsImporting(false);
         return;
       }
 
@@ -115,6 +115,8 @@ export default function ImportTradesPage() {
       // Only log unexpected errors (not validation errors)
       console.error('Unexpected import error:', error);
       showToast(error.message || 'Failed to import trades', 'error');
+    } finally {
+      // Always reset importing state
       setIsImporting(false);
     }
   };
