@@ -92,13 +92,15 @@ export default function ImportTradesPage() {
 
       const data = await response.json();
 
+      // Handle validation errors (400) - expected errors, show toast only
+      if (response.status === 400) {
+        showToast(data.error || 'Validation error', 'error');
+        setIsImporting(false);
+        return;
+      }
+
+      // Handle other HTTP errors
       if (!response.ok) {
-        // Handle validation errors (don't log to console as errors)
-        if (response.status === 400) {
-          showToast(data.error || 'Validation error', 'error');
-          return;
-        }
-        // For other errors, throw to catch block
         throw new Error(data.error || 'Import failed');
       }
 
@@ -113,7 +115,6 @@ export default function ImportTradesPage() {
       // Only log unexpected errors (not validation errors)
       console.error('Unexpected import error:', error);
       showToast(error.message || 'Failed to import trades', 'error');
-    } finally {
       setIsImporting(false);
     }
   };
