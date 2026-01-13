@@ -116,27 +116,25 @@ export async function POST(request: NextRequest) {
     const uniqueSopTypeNames = [...new Set(trades.map(t => t.sopTypeName).filter(Boolean))];
     const sopTypeMap = new Map<string, string>();
 
-    // Get existing SOP types
+    // Get existing SOP types (SOP types are global, not user-specific)
     if (uniqueSopTypeNames.length > 0) {
       const existingSopTypes = await db
         .select()
-        .from(sopTypes)
-        .where(eq(sopTypes.userId, session.user.id));
+        .from(sopTypes);
 
       // Build map of existing types
       for (const sopType of existingSopTypes) {
         sopTypeMap.set(sopType.name.toLowerCase(), sopType.id);
       }
 
-      // Create new SOP types if needed
+      // Create new SOP types if needed (only if they don't exist globally)
       for (const sopTypeName of uniqueSopTypeNames) {
         const normalizedName = sopTypeName.toLowerCase();
         if (!sopTypeMap.has(normalizedName)) {
-          // Create new SOP type
+          // Create new SOP type (global, no userId)
           const [newSopType] = await db
             .insert(sopTypes)
             .values({
-              userId: session.user.id,
               name: sopTypeName,
               createdAt: new Date(),
               updatedAt: new Date(),
