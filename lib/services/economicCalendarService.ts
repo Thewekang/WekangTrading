@@ -40,6 +40,9 @@ export async function fetchEconomicEventsFromAPI(
   const to = toDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
 
   const url = `https://${RAPIDAPI_HOST}/economic-events/tradingview?from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}&countries=${country}`;
+  
+  console.log('🌐 API Request URL:', url);
+  console.log('📅 Date range:', from.toISOString().split('T')[0], 'to', to.toISOString().split('T')[0]);
 
   const response = await fetch(url, {
     method: 'GET',
@@ -51,10 +54,16 @@ export async function fetchEconomicEventsFromAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('❌ API Error:', response.status, errorText);
     throw new Error(`RapidAPI request failed: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log('✅ API Response received');
+  console.log('Response type:', typeof data);
+  console.log('Is Array:', Array.isArray(data));
+  console.log('Data keys:', Object.keys(data));
+  
   return Array.isArray(data) ? data : [];
 }
 
@@ -77,12 +86,25 @@ export async function syncEconomicEventsFromAPI(): Promise<{
 }> {
   try {
     const events = await fetchEconomicEventsFromAPI();
+    
+    console.log('🔍 DEBUG: Raw API Response');
+    console.log('Total events received:', events.length);
+    console.log('First 3 events:', JSON.stringify(events.slice(0, 3), null, 2));
 
     // Filter only HIGH and MEDIUM importance events
     const filteredEvents = events.filter((event) => {
       const importance = mapImportance(event.importance);
+      console.log(`Event "${event.title}" - Importance value: ${event.importance} -> Mapped: ${importance}`);
       return importance === 'HIGH' || importance === 'MEDIUM';
     });
+    
+    console.log('🔍 DEBUG: After filtering');
+    console.log('Filtered events count:', filteredEvents.length);
+    console.log('Filtered events:', filteredEvents.map(e => ({
+      title: e.title,
+      date: e.date,
+      importance: mapImportance(e.importance)
+    })));
 
     const fetchedAt = new Date();
 
