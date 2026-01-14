@@ -213,9 +213,10 @@ export default function EconomicCalendarAdminPage() {
 
           <div className="rounded-lg bg-muted p-4 text-sm space-y-2">
             <p className="font-semibold">⚙️ Auto-Sync Schedule:</p>
-            <p>
-              <Badge variant="outline">Weekly</Badge> Every Monday at 00:00 UTC (via Vercel Cron)
-            </p>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">Weekly</Badge>
+              <span>Every Monday at 00:00 UTC (via Vercel Cron)</span>
+            </div>
             <p className="text-muted-foreground text-xs">
               Automatically fetches next 14 days of US HIGH/MEDIUM importance events
             </p>
