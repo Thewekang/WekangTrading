@@ -134,7 +134,7 @@ export async function syncEconomicEventsFromAPI(): Promise<{
       const eventTimeStr = event.time || '';
       const fullDateStr = eventTimeStr ? `${eventDateStr}T${eventTimeStr}` : eventDateStr;
       
-      return {
+      const mappedEvent = {
         id: event.id || event.event_id || `${eventDateStr}-${event.title || event.event_name}`,
         eventDate: new Date(fullDateStr),
         country: event.country_name || event.country || 'US',
@@ -146,10 +146,12 @@ export async function syncEconomicEventsFromAPI(): Promise<{
         actual: event.actual?.toString() || null,
         previous: event.previous?.toString() || null,
         period: event.period || null,
-        source: 'API',
+        source: 'API' as const,
         fetchedAt,
-        createdAt: new Date(),
       };
+      
+      console.log('🔍 DEBUG: Mapped event for insertion:', JSON.stringify(mappedEvent, null, 2));
+      return mappedEvent;
     });
 
     // Clear existing future events from API source before inserting new ones
