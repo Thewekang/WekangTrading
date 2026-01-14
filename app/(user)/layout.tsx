@@ -22,7 +22,7 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
     .where(eq(users.id, session.user.id))
     .get();
   
-  const userTimezone = user?.preferredTimezone || 'UTC';
+  const userTimezone = user?.preferredTimezone || 'Asia/Kuala_Lumpur';
 
   return (
     <TimezoneProvider userTimezone={userTimezone}>

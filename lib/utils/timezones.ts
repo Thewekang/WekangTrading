@@ -7,14 +7,14 @@
  * IANA format with user-friendly labels
  */
 export const COMMON_TIMEZONES = [
+  { value: 'Asia/Kuala_Lumpur', label: 'Malaysia (MYT) - Default' },
+  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
   { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
   { value: 'America/New_York', label: 'Eastern Time (EST/EDT)' },
   { value: 'America/Chicago', label: 'Central Time (CST/CDT)' },
   { value: 'America/Los_Angeles', label: 'Pacific Time (PST/PDT)' },
   { value: 'Europe/London', label: 'London (GMT/BST)' },
   { value: 'Europe/Paris', label: 'Central European Time (CET/CEST)' },
-  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-  { value: 'Asia/Kuala_Lumpur', label: 'Malaysia (MYT)' },
   { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
   { value: 'Asia/Dubai', label: 'Dubai (GST)' },
   { value: 'Australia/Sydney', label: 'Sydney (AEDT/AEST)' },

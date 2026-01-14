@@ -36,7 +36,7 @@ export default function SettingsPage() {
   const [allTimezones, setAllTimezones] = useState<string[]>([]);
 
   // Timezone preferences state
-  const [selectedTimezone, setSelectedTimezone] = useState('UTC');
+  const [selectedTimezone, setSelectedTimezone] = useState('Asia/Kuala_Lumpur');
   const [currentTime, setCurrentTime] = useState('');
   const [savingTimezone, setSavingTimezone] = useState(false);
 
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       if (response.ok) {
         const result = await response.json();
         setUserInfo(result.data);
-        setSelectedTimezone(result.data.preferredTimezone || 'UTC');
+        setSelectedTimezone(result.data.preferredTimezone || 'Asia/Kuala_Lumpur');
       }
     } catch (error) {
       console.error('Failed to fetch user info:', error);
