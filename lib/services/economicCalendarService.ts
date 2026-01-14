@@ -39,7 +39,7 @@ export async function fetchEconomicEventsFromAPI(
   const from = fromDate || new Date();
   const to = toDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
 
-  const url = `https://${RAPIDAPI_HOST}/economic-events?country=${country}&from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}`;
+  const url = `https://${RAPIDAPI_HOST}/economic-events/tradingview?from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}&countries=${country}`;
 
   const response = await fetch(url, {
     method: 'GET',
