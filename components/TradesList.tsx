@@ -14,6 +14,7 @@ import { ExportModal } from '@/components/ExportModal';
 import { LoadingSpinner, LoadingTable } from '@/components/ui/loading';
 import { NoTradesEmptyState, NoResultsEmptyState } from '@/components/ui/empty-state';
 import { showToast } from '@/components/ui/Toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface Trade {
   id: string;
@@ -36,6 +37,7 @@ interface TradesListProps {
 export function TradesList({ initialTrades, userId }: TradesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { formatDate, timezone } = useTimezone();
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,9 +126,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     localStorage.setItem('tradesPageSize', pageSize.toString());
   }, [pageSize]);
 
-  // Helper function to format date/time
+  // Helper function to format date/time using user's timezone
   const formatDateTime = (date: Date | string) => {
-    return new Date(date).toLocaleString('en-US', {
+    return formatDate(date, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -690,6 +692,20 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               The 🗑️ delete button will be disabled for older trades.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Timezone Reminder */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🌍</span>
+          <p className="text-sm text-amber-900">
+            <strong>Timezone:</strong> All timestamps are displayed in <strong>{timezone}</strong> timezone.
+            {timezone !== 'UTC' && <span className="text-amber-700 ml-1">(Data is stored in UTC)</span>}
+            <a href="/settings" className="ml-2 text-amber-700 hover:text-amber-900 underline font-medium">
+              Change timezone
+            </a>
+          </p>
         </div>
       </div>
 

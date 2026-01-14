@@ -115,6 +115,26 @@ export const userTargetSchema = z.object({
 });
 
 // ============================================
+// USER PREFERENCES VALIDATION SCHEMAS
+// ============================================
+
+export const userPreferencesSchema = z.object({
+  preferredTimezone: z.string()
+    .min(1, 'Timezone is required')
+    .refine(
+      (tz) => {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      'Invalid timezone identifier'
+    ),
+});
+
+// ============================================
 // TYPES FROM SCHEMAS
 // ============================================
 
@@ -124,3 +144,4 @@ export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
 export type IndividualTradeInput = z.infer<typeof individualTradeSchema>;
 export type BulkTradeEntryInput = z.infer<typeof bulkTradeEntrySchema>;
 export type UserTargetInput = z.infer<typeof userTargetSchema>;
+export type UserPreferencesInput = z.infer<typeof userPreferencesSchema>;

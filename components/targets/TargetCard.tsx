@@ -8,6 +8,7 @@ import type { TargetWithProgress } from '@/lib/services/targetService';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui/Toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface TargetCardProps {
   target: TargetWithProgress;
@@ -15,10 +16,21 @@ interface TargetCardProps {
 
 export default function TargetCard({ target }: TargetCardProps) {
   const router = useRouter();
+  const { formatDate } = useTimezone();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const { progress } = target;
+
+  // Check if target is in the future
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = new Date(target.startDate);
+  startDate.setHours(0, 0, 0, 0);
+  const isFutureTarget = startDate > today;
+  const daysUntilStart = isFutureTarget 
+    ? Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   // Status badge styling
   const statusConfig = {
@@ -85,6 +97,15 @@ export default function TargetCard({ target }: TargetCardProps) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+      {/* Future Target Indicator */}
+      {isFutureTarget && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+          <span className="text-blue-700 font-medium">
+            📅 Starts in {daysUntilStart} {daysUntilStart === 1 ? 'day' : 'days'}
+          </span>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -102,7 +123,7 @@ export default function TargetCard({ target }: TargetCardProps) {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1" suppressHydrationWarning>
-            {new Date(target.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(target.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {formatDate(target.startDate, { month: 'short', day: 'numeric', year: 'numeric' })} - {formatDate(target.endDate, { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.bg} ${status.text} whitespace-nowrap`}>

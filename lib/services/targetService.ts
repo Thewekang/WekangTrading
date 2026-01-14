@@ -185,8 +185,7 @@ export async function getActiveTargetsWithProgress(
         and(
           eq(userTargets.userId, userId),
           eq(userTargets.active, true),
-          lte(userTargets.startDate, todayMalaysiaEnd),   // Target starts on or before today
-          gte(userTargets.endDate, todayMalaysiaStart)    // Target ends on or after today
+          gte(userTargets.endDate, todayMalaysiaStart)    // Target hasn't ended yet (includes future targets)
         )
       )
       .orderBy(desc(userTargets.createdAt));
@@ -286,10 +285,21 @@ async function calculateTargetProgress(
     const hasEnoughData = totalTrades >= minTrades;
 
     if (!hasEnoughData) {
-      // Insufficient data - consider at risk
-      isWinRateOnTrack = false;
-      isSopRateOnTrack = false;
-      isProfitOnTrack = profitProgress !== null ? false : null;
+      // Insufficient data - consider on track if just started (within first 20% of time)
+      const timeElapsedPercent = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
+      const justStarted = timeElapsedPercent <= 20; // Within first 20% of duration
+      
+      if (justStarted) {
+        // Just started, not enough data yet - on track
+        isWinRateOnTrack = true;
+        isSopRateOnTrack = true;
+        isProfitOnTrack = profitProgress !== null ? true : null;
+      } else {
+        // Past initial period but still insufficient data - at risk
+        isWinRateOnTrack = false;
+        isSopRateOnTrack = false;
+        isProfitOnTrack = profitProgress !== null ? false : null;
+      }
     } else {
       // On track if within 5% of target (95% threshold)
       isWinRateOnTrack = currentWinRate >= target.targetWinRate * 0.95;
