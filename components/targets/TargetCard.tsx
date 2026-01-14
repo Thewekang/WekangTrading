@@ -22,6 +22,16 @@ export default function TargetCard({ target }: TargetCardProps) {
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const { progress } = target;
 
+  // Check if target is in the future
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = new Date(target.startDate);
+  startDate.setHours(0, 0, 0, 0);
+  const isFutureTarget = startDate > today;
+  const daysUntilStart = isFutureTarget 
+    ? Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
   // Status badge styling
   const statusConfig = {
     'on-track': { bg: 'bg-green-100', text: 'text-green-800', label: '✓ On Track' },
@@ -87,6 +97,15 @@ export default function TargetCard({ target }: TargetCardProps) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+      {/* Future Target Indicator */}
+      {isFutureTarget && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+          <span className="text-blue-700 font-medium">
+            📅 Starts in {daysUntilStart} {daysUntilStart === 1 ? 'day' : 'days'}
+          </span>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">

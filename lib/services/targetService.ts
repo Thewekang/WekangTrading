@@ -185,8 +185,7 @@ export async function getActiveTargetsWithProgress(
         and(
           eq(userTargets.userId, userId),
           eq(userTargets.active, true),
-          lte(userTargets.startDate, todayMalaysiaEnd),   // Target starts on or before today
-          gte(userTargets.endDate, todayMalaysiaStart)    // Target ends on or after today
+          gte(userTargets.endDate, todayMalaysiaStart)    // Target hasn't ended yet (includes future targets)
         )
       )
       .orderBy(desc(userTargets.createdAt));
