@@ -5,10 +5,14 @@ import { syncEconomicEventsFromAPI, importEconomicEventsFromJSON } from '@/lib/s
 // POST /api/admin/economic-calendar/sync
 // Sync events from RapidAPI
 export async function POST(request: Request) {
+  console.log('🟢 API Route Hit: /api/admin/economic-calendar/sync');
+  
   try {
     const session = await auth();
+    console.log('🔐 Session check:', session ? `User: ${session.user.email}, Role: ${session.user.role}` : 'No session');
 
     if (!session || session.user.role !== 'ADMIN') {
+      console.log('❌ Forbidden: Not admin');
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } },
         { status: 403 }
@@ -17,10 +21,13 @@ export async function POST(request: Request) {
 
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
+    console.log('📍 Action parameter:', action);
 
     // Handle API sync
     if (action === 'api' || !action) {
+      console.log('🚀 Starting API sync...');
       const result = await syncEconomicEventsFromAPI();
+      console.log('📊 Sync result:', result);
 
       if (result.success) {
         return NextResponse.json({

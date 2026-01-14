@@ -40,26 +40,38 @@ export default function EconomicCalendarAdminPage() {
   };
 
   const handleSyncFromAPI = async () => {
+    console.log('🔵 Sync Now button clicked!');
     setIsSyncing(true);
     setSyncResult(null);
 
     try {
+      console.log('🌐 Making API request to /api/admin/economic-calendar/sync?action=api');
       const response = await fetch('/api/admin/economic-calendar/sync?action=api', {
         method: 'POST',
       });
 
+      console.log('📦 Response status:', response.status);
+      console.log('📦 Response ok:', response.ok);
+      
       const data = await response.json();
+      console.log('📦 Response data:', data);
+      
       setSyncResult(data);
 
       if (data.success) {
+        console.log('✅ Sync successful! Fetching last sync info...');
         await fetchLastSync();
+      } else {
+        console.error('❌ Sync failed:', data.error);
       }
     } catch (error) {
+      console.error('💥 Caught error in handleSyncFromAPI:', error);
       setSyncResult({
         success: false,
         error: { code: 'NETWORK_ERROR', message: 'Failed to connect to server' },
       });
     } finally {
+      console.log('🏁 Setting isSyncing to false');
       setIsSyncing(false);
     }
   };
