@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { getUpcomingEvents, getTodayEvents, getLastSyncInfo } from '@/lib/services/economicCalendarService';
 
 // GET /api/calendar
 // Get upcoming economic events
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return NextResponse.json(
