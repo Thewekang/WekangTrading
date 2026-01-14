@@ -33,11 +33,20 @@
 RAPIDAPI_KEY="5c1660f0b1msh7d55fde70e96925p1c631djsnc71c9945e37b"
 ```
 
-**API Limits**:
-- FREE tier: 10 requests/month
-- Weekly auto-sync: 4 calls/month (leaves 6 buffer)
-- Manual admin sync: Uses buffer quota
-- JSON import: Zero API calls
+**API Details**:
+- **Service**: Multilingual Economic Calendar API by TrueData
+- **Host**: `multilingual-economic-calendar-api-by-truedata.p.rapidapi.com`
+- **Endpoint**: `/economic-events/filter`
+- **FREE Tier**: 50 requests/month (excellent!)
+- **Weekly Auto-sync**: 4 calls/month (leaves 46 buffer)
+- **Manual Admin Sync**: Uses buffer quota
+- **JSON Import**: Zero API calls
+
+**Query Parameters**:
+- `date_from` & `date_to`: YYYY-MM-DD format
+- `country_id=5`: USA (country ID 5)
+- `importance=high,medium`: Filter by importance
+- `lang=en`: English language
 
 ---
 

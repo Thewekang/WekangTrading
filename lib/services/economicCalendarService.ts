@@ -2,18 +2,24 @@ import { db } from '@/lib/db';
 import { economicEvents, type NewEconomicEvent } from '@/lib/db/schema';
 import { eq, gte, lte, and, desc } from 'drizzle-orm';
 
-// RapidAPI configuration
+// RapidAPI configuration - Multilingual Economic Calendar API by TrueData
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
-const RAPIDAPI_HOST = 'ultimate-economic-calendar.p.rapidapi.com';
+const RAPIDAPI_HOST = 'multilingual-economic-calendar-api-by-truedata.p.rapidapi.com';
 
 interface RapidAPIEvent {
-  id: string;
+  id?: string;
+  event_id?: string;
   title: string;
+  event_name?: string;
   date: string;
+  event_date?: string;
+  time?: string;
   country: string;
+  country_name?: string;
   currency: string;
   indicator?: string;
-  importance: number; // -1 = HIGH, 0 = MEDIUM, 1+ = LOW
+  category?: string;
+  importance: string; // 'high', 'medium', 'low'
   forecast?: string | number;
   actual?: string | number;
   previous?: string | number;
@@ -21,16 +27,16 @@ interface RapidAPIEvent {
 }
 
 /**
- * Fetch economic events from RapidAPI Ultimate Economic Calendar
+ * Fetch economic events from RapidAPI Multilingual Economic Calendar
  * @param fromDate - Start date (default: today)
  * @param toDate - End date (default: 14 days from now)
- * @param country - Country filter (default: 'US')
+ * @param countryId - Country ID (default: '5' for USA)
  * @returns Array of economic events
  */
 export async function fetchEconomicEventsFromAPI(
   fromDate?: Date,
   toDate?: Date,
-  country: string = 'US'
+  countryId: string = '5' // USA country ID
 ): Promise<RapidAPIEvent[]> {
   if (!RAPIDAPI_KEY) {
     throw new Error('RAPIDAPI_KEY environment variable is not set');
@@ -39,7 +45,7 @@ export async function fetchEconomicEventsFromAPI(
   const from = fromDate || new Date();
   const to = toDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
 
-  const url = `https://${RAPIDAPI_HOST}/economic-events/tradingview?from=${from.toISOString().split('T')[0]}&to=${to.toISOString().split('T')[0]}&countries=${country}`;
+  const url = `https://${RAPIDAPI_HOST}/economic-events/filter?date_from=${from.toISOString().split('T')[0]}&date_to=${to.toISOString().split('T')[0]}&country_id=${countryId}&importance=high,medium&lang=en`;
   
   console.log('🌐 API Request URL:', url);
   console.log('📅 Date range:', from.toISOString().split('T')[0], 'to', to.toISOString().split('T')[0]);
@@ -62,17 +68,30 @@ export async function fetchEconomicEventsFromAPI(
   console.log('✅ API Response received');
   console.log('Response type:', typeof data);
   console.log('Is Array:', Array.isArray(data));
-  console.log('Data keys:', Object.keys(data));
+  
+  if (typeof data === 'object' && !Array.isArray(data)) {
+    console.log('Data keys:', Object.keys(data));
+    // If response is wrapped in an object, try to find the array
+    if (data.data && Array.isArray(data.data)) {
+      console.log('Found data.data array with', data.data.length, 'events');
+      return data.data;
+    }
+    if (data.events && Array.isArray(data.events)) {
+      console.log('Found data.events array with', data.events.length, 'events');
+      return data.events;
+    }
+  }
   
   return Array.isArray(data) ? data : [];
 }
 
 /**
- * Convert RapidAPI importance to our importance levels
+ * Convert API importance to our importance levels
  */
-function mapImportance(importance: number): 'HIGH' | 'MEDIUM' | 'LOW' {
-  if (importance === -1) return 'HIGH';
-  if (importance === 0) return 'MEDIUM';
+function mapImportance(importance: string): 'HIGH' | 'MEDIUM' | 'LOW' {
+  const imp = importance.toLowerCase();
+  if (imp === 'high') return 'HIGH';
+  if (imp === 'medium') return 'MEDIUM';
   return 'LOW';
 }
 
@@ -91,40 +110,47 @@ export async function syncEconomicEventsFromAPI(): Promise<{
     console.log('Total events received:', events.length);
     console.log('First 3 events:', JSON.stringify(events.slice(0, 3), null, 2));
 
-    // Filter only HIGH and MEDIUM importance events
+    // API already filters by high,medium so we just need to map the data
     const filteredEvents = events.filter((event) => {
       const importance = mapImportance(event.importance);
-      console.log(`Event "${event.title}" - Importance value: ${event.importance} -> Mapped: ${importance}`);
+      console.log(`Event "${event.title || event.event_name}" - Importance: ${event.importance} -> Mapped: ${importance}`);
       return importance === 'HIGH' || importance === 'MEDIUM';
     });
     
     console.log('🔍 DEBUG: After filtering');
     console.log('Filtered events count:', filteredEvents.length);
     console.log('Filtered events:', filteredEvents.map(e => ({
-      title: e.title,
-      date: e.date,
+      title: e.title || e.event_name,
+      date: e.date || e.event_date,
       importance: mapImportance(e.importance)
     })));
 
     const fetchedAt = new Date();
 
     // Prepare events for insertion
-    const eventsToInsert: NewEconomicEvent[] = filteredEvents.map((event) => ({
-      id: event.id,
-      eventDate: new Date(event.date),
-      country: event.country,
-      currency: event.currency,
-      eventName: event.title,
-      indicator: event.indicator || null,
-      importance: mapImportance(event.importance),
-      forecast: event.forecast?.toString() || null,
-      actual: event.actual?.toString() || null,
-      previous: event.previous?.toString() || null,
-      period: event.period || null,
-      source: 'API',
-      fetchedAt,
-      createdAt: new Date(),
-    }));
+    const eventsToInsert: NewEconomicEvent[] = filteredEvents.map((event) => {
+      // Combine date and time if available
+      const eventDateStr = event.date || event.event_date || '';
+      const eventTimeStr = event.time || '';
+      const fullDateStr = eventTimeStr ? `${eventDateStr}T${eventTimeStr}` : eventDateStr;
+      
+      return {
+        id: event.id || event.event_id || `${eventDateStr}-${event.title || event.event_name}`,
+        eventDate: new Date(fullDateStr),
+        country: event.country_name || event.country || 'US',
+        currency: event.currency || 'USD',
+        eventName: event.title || event.event_name || '',
+        indicator: event.indicator || event.category || null,
+        importance: mapImportance(event.importance),
+        forecast: event.forecast?.toString() || null,
+        actual: event.actual?.toString() || null,
+        previous: event.previous?.toString() || null,
+        period: event.period || null,
+        source: 'API',
+        fetchedAt,
+        createdAt: new Date(),
+      };
+    });
 
     // Clear existing future events from API source before inserting new ones
     await db

@@ -18,15 +18,17 @@
 
 ### **Architecture Decisions**
 
-**Data Source**: Ultimate Economic Calendar API (RapidAPI)
-- **FREE Tier**: 10 requests/month
+**Data Source**: Multilingual Economic Calendar API by TrueData (RapidAPI)
+- **FREE Tier**: 50 requests/month (much better than previous 10!)
 - **API Key**: `5c1660f0b1msh7d55fde70e96925p1c631djsnc71c9945e37b`
-- **Host**: `ultimate-economic-calendar.p.rapidapi.com`
+- **Host**: `multilingual-economic-calendar-api-by-truedata.p.rapidapi.com`
+- **Endpoint**: `/economic-events/filter`
+- **Query Params**: `date_from`, `date_to`, `country_id=5` (USA), `importance=high,medium`, `lang=en`
 
 **Sync Strategy**: Hybrid approach with 3 tiers
 1. **Primary**: Automatic weekly sync (Vercel Cron, Mondays 00:00 UTC)
    - Uses 4 API calls/month
-   - Leaves 6 calls buffer for manual syncs
+   - Leaves 46 calls buffer for manual syncs (plenty!)
 2. **Secondary**: Manual admin-triggered sync
    - Uses buffer quota when needed
 3. **Tertiary**: Manual JSON upload
