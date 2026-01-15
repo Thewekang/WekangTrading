@@ -490,3 +490,41 @@ export async function getTargetSuggestions(
     reasoning: `Based on your last 30 days (${safeWinRate.toFixed(1)}% win rate, ${safeSopRate.toFixed(1)}% SOP), targeting 5-10% improvement`,
   };
 }
+
+/**
+ * Mark a target as completed manually
+ * Deactivates the target and sets completedAt timestamp
+ */
+export async function completeTarget(
+  userId: string,
+  targetId: string
+): Promise<boolean> {
+  // Verify target belongs to user and is active
+  const [target] = await db
+    .select()
+    .from(userTargets)
+    .where(
+      and(
+        eq(userTargets.id, targetId),
+        eq(userTargets.userId, userId),
+        eq(userTargets.active, true)
+      )
+    )
+    .limit(1);
+
+  if (!target) {
+    return false;
+  }
+
+  // Mark as completed
+  await db
+    .update(userTargets)
+    .set({ 
+      active: false,
+      completedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(userTargets.id, targetId));
+
+  return true;
+}

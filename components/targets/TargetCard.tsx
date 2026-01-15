@@ -20,6 +20,8 @@ export default function TargetCard({ target }: TargetCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const { progress } = target;
 
   // Check if target is in the future
@@ -92,6 +94,31 @@ export default function TargetCard({ target }: TargetCardProps) {
     } catch (error) {
       console.error('Deactivate error:', error);
       showToast('An error occurred while deactivating target', 'error');
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    setShowCompleteConfirm(false);
+    setIsCompleting(true);
+
+    try {
+      const response = await fetch(`/api/targets/${target.id}/complete`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        showToast('Target marked as completed! 🎉', 'success');
+        router.refresh();
+      } else {
+        const data = await response.json();
+        showToast(data.error?.message || 'Failed to complete target', 'error');
+      }
+    } catch (error) {
+      console.error('Complete error:', error);
+      showToast('An error occurred while completing target', 'error');
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -209,6 +236,16 @@ export default function TargetCard({ target }: TargetCardProps) {
 
       {/* Actions */}
       <div className="flex gap-2 mt-4">
+        {/* Mark Complete Button - Only show for active, non-completed targets */}
+        {progress.status !== 'completed' && progress.status !== 'failed' && (
+          <button
+            onClick={() => setShowCompleteConfirm(true)}
+            disabled={isCompleting}
+            className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors disabled:opacity-50"
+          >
+            {isCompleting ? 'Completing...' : '✓ Mark Complete'}
+          </button>
+        )}
         <button
           onClick={() => setShowDeactivateConfirm(true)}
           className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
@@ -225,6 +262,43 @@ export default function TargetCard({ target }: TargetCardProps) {
       </div>
 
       {/* Confirmation Dialogs */}
+      {showCompleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Mark Target as Completed</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This will mark your target as completed and move it to history. This action cannot be undone.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Win Rate:</span>
+                  <span className="font-medium">{progress.currentWinRate}% / {target.targetWinRate}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">SOP Compliance:</span>
+                  <span className="font-medium">{progress.currentSopRate}% / {target.targetSopRate}%</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCompleteConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMarkComplete}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+              >
+                Mark Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDeactivateConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">

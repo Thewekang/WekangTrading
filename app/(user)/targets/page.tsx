@@ -67,11 +67,14 @@ export default async function TargetsPage() {
       {/* Inactive/Completed Targets */}
       {inactiveTargets.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Past Targets</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">📜 Target History</h2>
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
@@ -79,36 +82,53 @@ export default async function TargetsPage() {
                     Period
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Win Rate
+                    Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SOP Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Profit Target
+                    Completed
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {inactiveTargets.map((target) => (
-                  <tr key={target.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {target.targetType}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(target.startDate).toLocaleDateString()} - {new Date(target.endDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {target.targetWinRate}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {target.targetSopRate}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {target.targetProfitUsd ? `$${target.targetProfitUsd.toFixed(2)}` : '-'}
-                    </td>
-                  </tr>
-                ))}
+                {inactiveTargets.map((target) => {
+                  const isManuallyCompleted = target.completedAt !== null;
+                  return (
+                    <tr key={target.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {target.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                          target.targetCategory === 'PROP_FIRM' 
+                            ? 'bg-purple-100 text-purple-700' 
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {target.targetCategory === 'PROP_FIRM' ? '🏆 Prop Firm' : '📊 Personal'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {new Date(target.startDate).toLocaleDateString()} - {new Date(target.endDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {isManuallyCompleted ? (
+                          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                            ✓ Completed
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                            Deactivated
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {isManuallyCompleted 
+                          ? new Date(target.completedAt!).toLocaleDateString()
+                          : '-'
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -122,8 +142,9 @@ export default async function TargetsPage() {
           <p><strong>Weekly Targets:</strong> Set goals for the next 7 days</p>
           <p><strong>Monthly Targets:</strong> Set goals for the next 30 days</p>
           <p><strong>Yearly Targets:</strong> Set long-term goals for the next 365 days</p>
+          <p className="mt-4"><strong>Mark Complete:</strong> Manually complete a target when you've achieved your goals</p>
           <p className="mt-4 text-xs text-gray-600">
-            💡 Tip: Only one active target per type is allowed. Creating a new target will automatically deactivate the previous one.
+            💡 Tip: Completed targets are stored in history for your records.
           </p>
         </div>
       </div>
