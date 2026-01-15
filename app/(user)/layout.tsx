@@ -42,6 +42,9 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
                   <Link href="/trades" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                     Trades
                   </Link>
+                  <Link href="/dashboard/achievements" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                    🏆 Achievements
+                  </Link>
                   <Link href="/calendar" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                     📅 Calendar
                   </Link>
