@@ -59,14 +59,21 @@ export default function CalendarPage() {
 
   const groupEventsByDate = (events: EconomicEvent[]): GroupedEvents => {
     return events.reduce((acc, event) => {
-      const date = formatDate(new Date(event.eventDate), {
+      // Format date only (no time) for grouping key
+      const eventDate = new Date(event.eventDate);
+      const dateKey = formatDate(eventDate, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        hour: undefined,
+        minute: undefined,
+        second: undefined,
+        hour12: undefined,
       });
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(event);
+      
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(event);
       return acc;
     }, {} as GroupedEvents);
   };

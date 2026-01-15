@@ -44,10 +44,15 @@ export default function WeeklyEconomicNews() {
 
   const groupEventsByDate = (events: EconomicEvent[]): GroupedEvents => {
     return events.reduce((acc, event) => {
+      // Format date only (no time) for grouping key
       const date = formatDate(new Date(event.eventDate), {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
+        hour: undefined,
+        minute: undefined,
+        second: undefined,
+        hour12: undefined,
       });
       if (!acc[date]) acc[date] = [];
       acc[date].push(event);
