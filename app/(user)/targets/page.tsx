@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { getActiveTargetsWithProgress, getTargets } from '@/lib/services/targetService';
 import TargetCard from '@/components/targets/TargetCard';
 import CreateTargetButton from '@/components/targets/CreateTargetButton';
+import TargetHistoryTable from '@/components/targets/TargetHistoryTable';
 
 export default async function TargetsPage() {
   const session = await auth();
@@ -65,55 +66,7 @@ export default async function TargetsPage() {
       )}
 
       {/* Inactive/Completed Targets */}
-      {inactiveTargets.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Past Targets</h2>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Period
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Win Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SOP Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Profit Target
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {inactiveTargets.map((target) => (
-                  <tr key={target.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {target.targetType}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(target.startDate).toLocaleDateString()} - {new Date(target.endDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {target.targetWinRate}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {target.targetSopRate}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {target.targetProfitUsd ? `$${target.targetProfitUsd.toFixed(2)}` : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <TargetHistoryTable targets={inactiveTargets} />
 
       {/* Info Section */}
       <div className="mt-12 bg-gray-50 border border-gray-200 rounded-lg p-6">
@@ -122,8 +75,9 @@ export default async function TargetsPage() {
           <p><strong>Weekly Targets:</strong> Set goals for the next 7 days</p>
           <p><strong>Monthly Targets:</strong> Set goals for the next 30 days</p>
           <p><strong>Yearly Targets:</strong> Set long-term goals for the next 365 days</p>
+          <p className="mt-4"><strong>Mark Complete:</strong> Manually complete a target when you've achieved your goals</p>
           <p className="mt-4 text-xs text-gray-600">
-            💡 Tip: Only one active target per type is allowed. Creating a new target will automatically deactivate the previous one.
+            💡 Tip: Completed targets are stored in history for your records.
           </p>
         </div>
       </div>

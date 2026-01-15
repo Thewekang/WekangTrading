@@ -6,3 +6,4 @@ export * from './trades';
 export * from './summaries';
 export * from './targets';
 export * from './auth';
+export * from './economicEvents';

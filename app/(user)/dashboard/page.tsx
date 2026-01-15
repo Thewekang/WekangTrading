@@ -10,6 +10,8 @@ import TargetProgressCard from '@/components/dashboard/TargetProgressCard';
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
+import TodayEconomicNews from '@/components/calendar/TodayEconomicNews';
+import WeeklyEconomicNews from '@/components/calendar/WeeklyEconomicNews';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -67,6 +69,12 @@ export default async function DashboardPage() {
 
         {/* Daily Loss Alert */}
         <DailyLossAlert className="mb-6" />
+
+        {/* Economic News Widgets */}
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
+          <TodayEconomicNews />
+          <WeeklyEconomicNews />
+        </div>
 
         {/* Stats Cards and Best SOP */}
         <div className="grid gap-6 lg:grid-cols-3 mb-6">
