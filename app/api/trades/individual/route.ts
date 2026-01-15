@@ -9,6 +9,7 @@ import { auth } from '@/lib/auth';
 import { createTrade, getTrades } from '@/lib/services/individualTradeService';
 import { individualTradeApiSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { checkAndAwardBadges } from '@/lib/services/badgeService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -115,6 +116,18 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('Trade created successfully:', trade);
+    
+    // Check and award badges after trade creation
+    try {
+      const newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+      if (newBadges.length > 0) {
+        console.log(`Awarded ${newBadges.length} new badge(s):`, newBadges.map(b => b.name));
+      }
+    } catch (badgeError) {
+      // Don't fail trade creation if badge check fails
+      console.error('Badge check error (non-fatal):', badgeError);
+    }
+    
     console.log('=== API POST /api/trades/individual END (SUCCESS) ===');
     
     return NextResponse.json(

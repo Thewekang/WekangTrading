@@ -5,6 +5,7 @@
 import { db } from '@/lib/db';
 import { badges, userBadges, userStats, motivationalMessages, type Badge, type UserBadge, type UserStats } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { notifyBadgeUnlock } from './notificationService';
 
 /**
  * Badge requirement types
@@ -222,19 +223,8 @@ export async function initializeUserStats(userId: string): Promise<void> {
  * Send achievement notification to user
  */
 async function sendAchievementNotification(userId: string, badge: Badge): Promise<void> {
-  await db.insert(motivationalMessages).values({
-    userId,
-    messageType: 'ACHIEVEMENT',
-    title: '🏆 New Achievement Unlocked!',
-    message: `You earned the "${badge.name}" badge: ${badge.description}`,
-    metadata: JSON.stringify({
-      badgeId: badge.id,
-      badgeName: badge.name,
-      badgeIcon: badge.icon,
-      points: badge.points,
-    }),
-    isRead: false,
-  });
+  // Use notification service for consistent notification handling
+  await notifyBadgeUnlock(userId, badge);
 }
 
 /**

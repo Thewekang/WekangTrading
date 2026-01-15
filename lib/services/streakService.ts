@@ -5,6 +5,7 @@
 import { db } from '@/lib/db';
 import { streaks, dailySummaries, userStats, motivationalMessages, type Streak } from '@/lib/db/schema';
 import { eq, and, desc, gte, lt } from 'drizzle-orm';
+import { notifyStreakMilestone } from './notificationService';
 
 export type StreakType = 'WIN_STREAK' | 'LOG_STREAK' | 'SOP_STREAK';
 
@@ -310,25 +311,8 @@ function isNextCalendarDay(lastDate: Date, currentDate: Date): boolean {
  * Send streak milestone notification
  */
 async function sendStreakMilestoneMessage(userId: string, streakType: StreakType, streakCount: number): Promise<void> {
-  const streakName = streakType === 'WIN_STREAK' ? 'winning days' : 
-                     streakType === 'LOG_STREAK' ? 'logging days' : 
-                     'SOP-compliant trades';
-  
-  const icon = streakType === 'WIN_STREAK' ? '🔥' : 
-               streakType === 'LOG_STREAK' ? '📝' : 
-               '✅';
-  
-  await db.insert(motivationalMessages).values({
-    userId,
-    messageType: 'STREAK',
-    title: `${icon} Streak Milestone!`,
-    message: `${streakCount} consecutive ${streakName}! Keep the momentum going!`,
-    metadata: JSON.stringify({
-      streakType,
-      streakCount,
-    }),
-    isRead: false,
-  });
+  // Use notification service for consistent notification handling
+  await notifyStreakMilestone(userId, streakType, streakCount);
 }
 
 /**
