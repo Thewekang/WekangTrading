@@ -134,12 +134,16 @@ export async function syncEconomicEventsFromAPI(): Promise<{
       const eventTimeStr = event.time || '';
       const fullDateStr = eventTimeStr ? `${eventDateStr}T${eventTimeStr}` : eventDateStr;
       
+      // Ensure country and currency are max 3 characters
+      const countryCode = (event.country_name || event.country || 'US').substring(0, 3).toUpperCase();
+      const currencyCode = (event.currency || 'USD').substring(0, 3).toUpperCase();
+      
       const mappedEvent = {
         id: event.id || event.event_id || `${eventDateStr}-${event.title || event.event_name}`,
         eventDate: new Date(fullDateStr),
-        country: event.country_name || event.country || 'US',
-        currency: event.currency || 'USD',
-        eventName: event.title || event.event_name || '',
+        country: countryCode,
+        currency: currencyCode,
+        eventName: event.title || event.event_name || 'Unknown Event',
         indicator: event.indicator || event.category || null,
         importance: mapImportance(event.importance),
         forecast: event.forecast?.toString() || null,
