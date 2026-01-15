@@ -45,7 +45,8 @@ export async function fetchEconomicEventsFromAPI(
   const from = fromDate || new Date();
   const to = toDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
 
-  const url = `https://${RAPIDAPI_HOST}/economic-events/filter?date_from=${from.toISOString().split('T')[0]}&date_to=${to.toISOString().split('T')[0]}&country_id=${countryId}&importance=high,medium&lang=en`;
+  // Only fetch HIGH importance events
+  const url = `https://${RAPIDAPI_HOST}/economic-events/filter?date_from=${from.toISOString().split('T')[0]}&date_to=${to.toISOString().split('T')[0]}&country_id=${countryId}&importance=high&lang=en`;
   
   console.log('🌐 API Request URL:', url);
   console.log('📅 Date range:', from.toISOString().split('T')[0], 'to', to.toISOString().split('T')[0]);
@@ -108,13 +109,13 @@ export async function syncEconomicEventsFromAPI(): Promise<{
     
     console.log('📥 Received', events.length, 'events from API');
 
-    // API already filters by high,medium so we just need to map the data
+    // Filter to only HIGH importance events
     const filteredEvents = events.filter((event) => {
       const importance = mapImportance(event.importance);
-      return importance === 'HIGH' || importance === 'MEDIUM';
+      return importance === 'HIGH';
     });
     
-    console.log('✅ Filtered events count:', filteredEvents.length);
+    console.log('✅ Filtered HIGH importance events:', filteredEvents.length);
 
     const fetchedAt = new Date();
 
