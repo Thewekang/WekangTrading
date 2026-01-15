@@ -146,11 +146,17 @@ export default function EconomicCalendarAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Economic Calendar Management</h1>
-        <p className="text-muted-foreground mt-2">
-          Sync economic events from API or manually import from JSON
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Economic Calendar Management</h1>
+          <p className="text-muted-foreground mt-2">
+            Sync economic events from API or manually import from JSON
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => window.location.href = '/calendar'}>
+          <Calendar className="mr-2 h-4 w-4" />
+          View Calendar
+        </Button>
       </div>
 
       {/* Last Sync Info */}
