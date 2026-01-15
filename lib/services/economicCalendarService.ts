@@ -47,9 +47,6 @@ export async function fetchEconomicEventsFromAPI(
 
   // Only fetch HIGH importance events
   const url = `https://${RAPIDAPI_HOST}/economic-events/filter?date_from=${from.toISOString().split('T')[0]}&date_to=${to.toISOString().split('T')[0]}&country_id=${countryId}&importance=high&lang=en`;
-  
-  console.log('🌐 API Request URL:', url);
-  console.log('📅 Date range:', from.toISOString().split('T')[0], 'to', to.toISOString().split('T')[0]);
 
   const response = await fetch(url, {
     method: 'GET',
@@ -66,19 +63,13 @@ export async function fetchEconomicEventsFromAPI(
   }
 
   const data = await response.json();
-  console.log('✅ API Response received');
-  console.log('Response type:', typeof data);
-  console.log('Is Array:', Array.isArray(data));
   
   if (typeof data === 'object' && !Array.isArray(data)) {
-    console.log('Data keys:', Object.keys(data));
     // If response is wrapped in an object, try to find the array
     if (data.data && Array.isArray(data.data)) {
-      console.log('Found data.data array with', data.data.length, 'events');
       return data.data;
     }
     if (data.events && Array.isArray(data.events)) {
-      console.log('Found data.events array with', data.events.length, 'events');
       return data.events;
     }
   }
@@ -106,16 +97,12 @@ export async function syncEconomicEventsFromAPI(): Promise<{
 }> {
   try {
     const events = await fetchEconomicEventsFromAPI();
-    
-    console.log('📥 Received', events.length, 'events from API');
 
     // Filter to only HIGH importance events
     const filteredEvents = events.filter((event) => {
       const importance = mapImportance(event.importance);
       return importance === 'HIGH';
     });
-    
-    console.log('✅ Filtered HIGH importance events:', filteredEvents.length);
 
     const fetchedAt = new Date();
 
