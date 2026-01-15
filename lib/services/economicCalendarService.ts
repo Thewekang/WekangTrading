@@ -108,7 +108,12 @@ export async function syncEconomicEventsFromAPI(): Promise<{
     
     console.log('🔍 DEBUG: Raw API Response');
     console.log('Total events received:', events.length);
-    console.log('First 3 events:', JSON.stringify(events.slice(0, 3), null, 2));
+    console.log('First event FULL:', JSON.stringify(events[0], null, 2));
+    console.log('First event keys:', events[0] ? Object.keys(events[0]) : 'no events');
+    console.log('Sample of 3 events:', events.slice(0, 3).map(e => ({
+      keys: Object.keys(e),
+      sample: e
+    })));
 
     // API already filters by high,medium so we just need to map the data
     const filteredEvents = events.filter((event) => {
