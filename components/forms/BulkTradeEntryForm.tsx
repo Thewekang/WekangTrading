@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
   id: string;
@@ -40,6 +42,8 @@ export function BulkTradeEntryForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // Fetch SOP types
   useEffect(() => {
@@ -165,6 +169,12 @@ export function BulkTradeEntryForm() {
       if (!response.ok || !result.success) {
         setErrorMessage(result.error?.message || 'Failed to create trades');
         return;
+      }
+      
+      // Check if badges were earned
+      if (result.badges && result.badges.length > 0) {
+        setEarnedBadges(result.badges);
+        setShowCelebration(true);
       }
 
       setSuccessMessage(`✅ ${filledRows.length} trades recorded successfully!`);
@@ -370,6 +380,16 @@ export function BulkTradeEntryForm() {
           <li>• Use Tab key to navigate between fields quickly</li>
         </ul>
       </div>
+      
+      {/* Badge Celebration Animation */}
+      <BadgeCelebration 
+        badges={earnedBadges}
+        isOpen={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          setEarnedBadges([]);
+        }}
+      />
     </div>
   );
 }

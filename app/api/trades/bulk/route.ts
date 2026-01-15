@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import { createTradesBulk } from '@/lib/services/individualTradeService';
 import { bulkTradeEntrySchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { checkAndAwardBadges } from '@/lib/services/badgeService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,9 +68,26 @@ export async function POST(request: NextRequest) {
 
     // Bulk create trades
     const result = await createTradesBulk(trades);
+    
+    // Check and award badges after bulk trade creation
+    let newBadges: any[] = [];
+    try {
+      newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+      if (newBadges.length > 0) {
+        console.log(`Awarded ${newBadges.length} new badge(s):`, newBadges.map(b => b.name));
+      }
+    } catch (badgeError) {
+      // Don't fail trade creation if badge check fails
+      console.error('Badge check error (non-fatal):', badgeError);
+    }
 
     return NextResponse.json(
-      { success: true, data: result, message: `${result.count} trades created successfully` },
+      { 
+        success: true, 
+        data: result, 
+        badges: newBadges, // Include earned badges in response
+        message: `${result.count} trades created successfully` 
+      },
       { status: 201 }
     );
   } catch (error) {

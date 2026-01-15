@@ -118,8 +118,9 @@ export async function POST(request: NextRequest) {
     console.log('Trade created successfully:', trade);
     
     // Check and award badges after trade creation
+    let newBadges: any[] = [];
     try {
-      const newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+      newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
       if (newBadges.length > 0) {
         console.log(`Awarded ${newBadges.length} new badge(s):`, newBadges.map(b => b.name));
       }
@@ -131,7 +132,12 @@ export async function POST(request: NextRequest) {
     console.log('=== API POST /api/trades/individual END (SUCCESS) ===');
     
     return NextResponse.json(
-      { success: true, data: trade, message: 'Trade created successfully' },
+      { 
+        success: true, 
+        data: trade, 
+        badges: newBadges, // Include earned badges in response
+        message: 'Trade created successfully' 
+      },
       { status: 201 }
     );
   } catch (error) {

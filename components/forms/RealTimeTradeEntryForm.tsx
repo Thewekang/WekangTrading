@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
+import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
   id: string;
@@ -38,6 +40,8 @@ export function RealTimeTradeEntryForm() {
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const {
     register,
@@ -124,6 +128,12 @@ export function RealTimeTradeEntryForm() {
       if (!response.ok || !result.success) {
         setErrorMessage(result.error?.message || 'Failed to create trade');
         return;
+      }
+      
+      // Check if badges were earned
+      if (result.badges && result.badges.length > 0) {
+        setEarnedBadges(result.badges);
+        setShowCelebration(true);
       }
       
       // Success
@@ -382,6 +392,16 @@ export function RealTimeTradeEntryForm() {
           </Button>
         </div>
       </form>
+      
+      {/* Badge Celebration Animation */}
+      <BadgeCelebration 
+        badges={earnedBadges}
+        isOpen={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          setEarnedBadges([]);
+        }}
+      />
     </div>
   );
 }
