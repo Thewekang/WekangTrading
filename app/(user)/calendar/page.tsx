@@ -1,10 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface EconomicEvent {
   id: string;
@@ -18,327 +24,191 @@ interface EconomicEvent {
   actual: string | null;
   previous: string | null;
   period: string | null;
-  source: string;
 }
 
-interface AlertStatus {
-  type: 'safe' | 'warning' | 'danger';
-  message: string;
-  event?: EconomicEvent;
-  minutesUntil?: number;
+interface GroupedEvents {
+  [date: string]: EconomicEvent[];
 }
 
 export default function CalendarPage() {
-  const [upcomingEvents, setUpcomingEvents] = useState<EconomicEvent[]>([]);
-  const [todayEvents, setTodayEvents] = useState<EconomicEvent[]>([]);
-  const [alertStatus, setAlertStatus] = useState<AlertStatus>({ type: 'safe', message: '' });
+  const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     fetchEvents();
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (todayEvents.length > 0) {
-      calculateAlertStatus();
-    }
-  }, [todayEvents, currentTime]);
-
   const fetchEvents = async () => {
     try {
-      const [upcomingRes, todayRes] = await Promise.all([
-        fetch('/api/calendar?type=upcoming&days=7'),
-        fetch('/api/calendar?type=today'),
-      ]);
-
-      const upcomingData = await upcomingRes.json();
-      const todayData = await todayRes.json();
-
-      if (upcomingData.success) {
-        setUpcomingEvents(upcomingData.data.events);
-      }
-
-      if (todayData.success) {
-        setTodayEvents(todayData.data.events);
+      const response = await fetch('/api/calendar?type=upcoming');
+      const data = await response.json();
+      if (data.success) {
+        setEvents(data.events);
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error('Failed to fetch events:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateAlertStatus = () => {
-    const now = currentTime.getTime();
-
-    // Check each today's event
-    for (const event of todayEvents) {
-      const eventTime = new Date(event.eventDate).getTime();
-      const diffMs = eventTime - now;
-      const diffMinutes = Math.floor(diffMs / 60000);
-
-      // DANGER ZONE: 5 minutes before to 5 minutes after
-      if (diffMinutes >= -5 && diffMinutes <= 5) {
-        if (diffMinutes < 0) {
-          setAlertStatus({
-            type: 'danger',
-            message: `🔴 ${event.eventName} released ${Math.abs(diffMinutes)} minute(s) ago! Wait before trading.`,
-            event,
-            minutesUntil: Math.abs(5 + diffMinutes),
-          });
-        } else {
-          setAlertStatus({
-            type: 'danger',
-            message: `⚠️ CLOSE POSITIONS NOW! ${event.eventName} in ${diffMinutes} minute(s)!`,
-            event,
-            minutesUntil: diffMinutes,
-          });
-        }
-        return;
-      }
-
-      // WARNING ZONE: 5-10 minutes before
-      if (diffMinutes > 5 && diffMinutes <= 10) {
-        setAlertStatus({
-          type: 'warning',
-          message: `⚡ Prepare to close! ${event.eventName} in ${diffMinutes} minutes`,
-          event,
-          minutesUntil: diffMinutes,
-        });
-        return;
-      }
-    }
-
-    // Check if there are upcoming events today
-    const upcomingToday = todayEvents.filter((event) => {
-      const eventTime = new Date(event.eventDate).getTime();
-      return eventTime > now;
-    });
-
-    if (upcomingToday.length > 0) {
-      const nextEvent = upcomingToday[0];
-      const eventTime = new Date(nextEvent.eventDate).getTime();
-      const diffMinutes = Math.floor((eventTime - now) / 60000);
-
-      setAlertStatus({
-        type: 'safe',
-        message: `✅ Safe to trade. Next event: ${nextEvent.eventName} in ${Math.floor(diffMinutes / 60)}h ${diffMinutes % 60}m`,
-        event: nextEvent,
+  const groupEventsByDate = (events: EconomicEvent[]): GroupedEvents => {
+    return events.reduce((acc, event) => {
+      const date = new Date(event.eventDate).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
       });
-    } else {
-      setAlertStatus({
-        type: 'safe',
-        message: '✅ No more news today. Safe to trade!',
-      });
-    }
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(event);
+      return acc;
+    }, {} as GroupedEvents);
   };
 
-  const getImportanceBadge = (importance: string) => {
-    const variants = {
-      HIGH: 'destructive',
-      MEDIUM: 'default',
-      LOW: 'secondary',
-    } as const;
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
+  const getCountryFlag = (countryCode: string) => {
+    const flags: Record<string, string> = {
+      USA: '🇺🇸',
+      EUR: '🇪🇺',
+      GBP: '🇬🇧',
+      JPY: '🇯🇵',
+      CHF: '🇨🇭',
+      CAD: '🇨🇦',
+      AUD: '🇦🇺',
+      NZD: '🇳🇿',
+    };
+    return flags[countryCode] || '🏳️';
+  };
+
+  const getImpactBar = (importance: string) => {
+    if (importance === 'HIGH') {
+      return (
+        <div className="flex gap-0.5">
+          <div className="w-1.5 h-6 bg-red-500"></div>
+          <div className="w-1.5 h-6 bg-red-500"></div>
+          <div className="w-1.5 h-6 bg-red-500"></div>
+        </div>
+      );
+    }
+    if (importance === 'MEDIUM') {
+      return (
+        <div className="flex gap-0.5">
+          <div className="w-1.5 h-6 bg-yellow-500"></div>
+          <div className="w-1.5 h-6 bg-yellow-500"></div>
+          <div className="w-1.5 h-6 bg-gray-300"></div>
+        </div>
+      );
+    }
     return (
-      <Badge variant={variants[importance as keyof typeof variants] || 'secondary'}>
-        {importance}
-      </Badge>
+      <div className="flex gap-0.5">
+        <div className="w-1.5 h-6 bg-yellow-500"></div>
+        <div className="w-1.5 h-6 bg-gray-300"></div>
+        <div className="w-1.5 h-6 bg-gray-300"></div>
+      </div>
     );
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const getCountdown = (eventDate: string) => {
-    const now = currentTime.getTime();
-    const eventTime = new Date(eventDate).getTime();
-    const diffMs = eventTime - now;
-
-    if (diffMs < 0) {
-      return 'Released';
-    }
-
-    const hours = Math.floor(diffMs / 3600000);
-    const minutes = Math.floor((diffMs % 3600000) / 60000);
-    const seconds = Math.floor((diffMs % 60000) / 1000);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    }
-    return `${seconds}s`;
-  };
+  const groupedEvents = groupEventsByDate(events);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading calendar...</div>;
+    return (
+      <div className="container mx-auto p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Economic Calendar</h1>
         <p className="text-muted-foreground mt-2">
-          Track major economic events and manage trading risk
+          HIGH impact economic events - Close positions before these events
         </p>
       </div>
 
-      {/* Alert Status */}
-      <Alert
-        variant={alertStatus.type === 'danger' ? 'destructive' : 'default'}
-        className={
-          alertStatus.type === 'warning' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950' : ''
-        }
-      >
-        {alertStatus.type === 'danger' && <AlertTriangle className="h-5 w-5" />}
-        {alertStatus.type === 'warning' && <Clock className="h-5 w-5 text-yellow-600" />}
-        {alertStatus.type === 'safe' && <CheckCircle2 className="h-5 w-5 text-green-600" />}
-        <AlertTitle className="font-bold text-lg">{alertStatus.message}</AlertTitle>
-        {alertStatus.event && alertStatus.minutesUntil !== undefined && (
-          <AlertDescription>
-            <div className="mt-2 space-y-1">
-              <p>Event: {alertStatus.event.eventName}</p>
-              {alertStatus.event.forecast && <p>Forecast: {alertStatus.event.forecast}</p>}
-              {alertStatus.event.previous && <p>Previous: {alertStatus.event.previous}</p>}
-              {alertStatus.type === 'danger' && alertStatus.minutesUntil > 0 && (
-                <p className="font-semibold">
-                  ⏰ Countdown: {alertStatus.minutesUntil} minute(s)
-                </p>
-              )}
-            </div>
-          </AlertDescription>
-        )}
-      </Alert>
-
-      {/* Today's Events */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Today&apos;s Events
-          </CardTitle>
-          <CardDescription>
-            {todayEvents.length > 0
-              ? `${todayEvents.length} event(s) scheduled today`
-              : 'No events scheduled today'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {todayEvents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Info className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>No economic news today. Trade safely!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {todayEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-semibold">
-                        {formatTime(event.eventDate)}
-                      </span>
-                      {getImportanceBadge(event.importance)}
-                      <Badge variant="outline" className="text-xs">
-                        {event.currency}
-                      </Badge>
-                    </div>
-                    <p className="font-semibold">{event.eventName}</p>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      {event.forecast && (
-                        <span>
-                          <strong>Forecast:</strong> {event.forecast}
-                        </span>
-                      )}
-                      {event.previous && (
-                        <span>
-                          <strong>Previous:</strong> {event.previous}
-                        </span>
-                      )}
-                      {event.actual && (
-                        <span className="text-green-600 dark:text-green-400">
-                          <strong>Actual:</strong> {event.actual}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono text-lg font-bold">
-                      {getCountdown(event.eventDate)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Upcoming Week */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            This Week
-          </CardTitle>
-          <CardDescription>Next 7 days of economic events</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {upcomingEvents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Info className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>No upcoming events found. Admin should sync the calendar.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {upcomingEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-semibold">{formatDate(event.eventDate)}</span>
-                      <span className="font-mono text-muted-foreground">
-                        {formatTime(event.eventDate)}
-                      </span>
-                      {getImportanceBadge(event.importance)}
-                      <Badge variant="outline" className="text-xs">
-                        {event.currency}
-                      </Badge>
-                    </div>
-                    <p className="font-medium">{event.eventName}</p>
-                    {(event.forecast || event.previous) && (
-                      <div className="flex gap-3 text-xs text-muted-foreground">
-                        {event.forecast && <span>Fcst: {event.forecast}</span>}
-                        {event.previous && <span>Prev: {event.previous}</span>}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {events.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">No upcoming high-impact events</p>
+            <p className="text-sm text-green-600 font-semibold mt-2">✅ Safe to trade</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          {Object.entries(groupedEvents).map(([date, dateEvents]) => (
+            <Card key={date}>
+              <CardHeader>
+                <CardTitle className="text-xl">{date.toUpperCase()}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Time</TableHead>
+                      <TableHead className="w-[60px]"></TableHead>
+                      <TableHead>Event</TableHead>
+                      <TableHead className="w-[80px] text-center">Impact</TableHead>
+                      <TableHead className="w-[100px] text-center">Actual</TableHead>
+                      <TableHead className="w-[100px] text-center">Forecast</TableHead>
+                      <TableHead className="w-[100px] text-center">Previous</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dateEvents.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell className="font-medium">
+                          {formatTime(event.eventDate)}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-2xl">{getCountryFlag(event.country)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{event.eventName}</p>
+                            {event.period && (
+                              <p className="text-xs text-muted-foreground">{event.period}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center">
+                            {getImpactBar(event.importance)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">
+                          {event.actual || '-'}
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">
+                          {event.forecast || '-'}
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">
+                          {event.previous || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

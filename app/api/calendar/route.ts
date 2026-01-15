@@ -25,11 +25,21 @@ export async function GET(request: Request) {
 
       return NextResponse.json({
         success: true,
-        data: {
-          events,
-          lastSync,
-          count: events.length,
-        },
+        events,
+        lastSync,
+        count: events.length,
+      });
+    }
+
+    if (type === 'week') {
+      const events = await getUpcomingEvents(7);
+      const lastSync = await getLastSyncInfo();
+
+      return NextResponse.json({
+        success: true,
+        events,
+        lastSync,
+        count: events.length,
       });
     }
 
@@ -39,11 +49,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        events,
-        lastSync,
-        count: events.length,
-      },
+      events,
+      lastSync,
+      count: events.length,
     });
   } catch (error) {
     console.error('Error fetching economic calendar:', error);
