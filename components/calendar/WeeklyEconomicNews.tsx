@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface EconomicEvent {
   id: string;
@@ -19,6 +20,7 @@ interface GroupedEvents {
 }
 
 export default function WeeklyEconomicNews() {
+  const { formatDate } = useTimezone();
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export default function WeeklyEconomicNews() {
 
   const groupEventsByDate = (events: EconomicEvent[]): GroupedEvents => {
     return events.reduce((acc, event) => {
-      const date = new Date(event.eventDate).toLocaleDateString('en-US', {
+      const date = formatDate(new Date(event.eventDate), {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -54,7 +56,7 @@ export default function WeeklyEconomicNews() {
   };
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
+    return formatDate(new Date(dateStr), {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,

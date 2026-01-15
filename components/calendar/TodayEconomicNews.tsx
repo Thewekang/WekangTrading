@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface EconomicEvent {
   id: string;
@@ -15,6 +16,7 @@ interface EconomicEvent {
 }
 
 export default function TodayEconomicNews() {
+  const { formatDate } = useTimezone();
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());

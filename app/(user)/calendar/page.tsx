@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import {
   Table,
   TableBody,
@@ -31,6 +32,7 @@ interface GroupedEvents {
 }
 
 export default function CalendarPage() {
+  const { formatDate } = useTimezone();
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -57,7 +59,7 @@ export default function CalendarPage() {
 
   const groupEventsByDate = (events: EconomicEvent[]): GroupedEvents => {
     return events.reduce((acc, event) => {
-      const date = new Date(event.eventDate).toLocaleDateString('en-US', {
+      const date = formatDate(new Date(event.eventDate), {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -70,8 +72,7 @@ export default function CalendarPage() {
   };
 
   const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', {
+    return formatDate(new Date(dateStr), {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
