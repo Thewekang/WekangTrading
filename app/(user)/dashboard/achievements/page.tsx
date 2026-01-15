@@ -63,24 +63,12 @@ export default function AchievementsPage() {
         fetch('/api/badges/progress'),
       ]);
 
-      console.log('[Achievements] API Response Status:', {
-        earned: earnedRes.ok,
-        progress: progressRes.ok,
-      });
-
       if (!earnedRes.ok || !progressRes.ok) {
-        console.error('[Achievements] API Error:', {
-          earnedStatus: earnedRes.status,
-          progressStatus: progressRes.status,
-        });
         throw new Error('Failed to fetch badges');
       }
 
       const earnedData = await earnedRes.json();
       const progressData = await progressRes.json();
-      
-      console.log('[Achievements] Earned Data:', earnedData);
-      console.log('[Achievements] Progress Data:', progressData);
 
       // Build earned badges with 100% progress
       const earnedBadges: BadgeWithProgress[] = earnedData.data.badges.map((item: any) => ({
@@ -104,9 +92,6 @@ export default function AchievementsPage() {
       
       // Combine all badges
       const allBadges = [...earnedBadges, ...unearnedBadges];
-      
-      console.log('[Achievements] All Badges Count:', allBadges.length);
-      console.log('[Achievements] Earned Badges:', earnedBadges.length);
 
       // Sort: earned first (by date desc), then by progress desc
       allBadges.sort((a, b) => {
@@ -146,12 +131,6 @@ export default function AchievementsPage() {
         completionRate: (earnedBadgesCount.length / allBadges.length) * 100,
         badgesByTier,
         badgesByCategory,
-      });
-      
-      console.log('[Achievements] Stats:', {
-        totalBadges: allBadges.length,
-        earnedBadges: earnedBadgesCount.length,
-        totalPoints,
       });
     } catch (error) {
       console.error('Failed to fetch badges:', error);
