@@ -63,12 +63,24 @@ export default function AchievementsPage() {
         fetch('/api/badges/progress'),
       ]);
 
+      console.log('[Achievements] API Response Status:', {
+        earned: earnedRes.ok,
+        progress: progressRes.ok,
+      });
+
       if (!earnedRes.ok || !progressRes.ok) {
+        console.error('[Achievements] API Error:', {
+          earnedStatus: earnedRes.status,
+          progressStatus: progressRes.status,
+        });
         throw new Error('Failed to fetch badges');
       }
 
       const earnedData = await earnedRes.json();
       const progressData = await progressRes.json();
+      
+      console.log('[Achievements] Earned Data:', earnedData);
+      console.log('[Achievements] Progress Data:', progressData);
 
       // Combine earned and progress data
       const earnedMap = new Map<string, { earned: true; earnedAt: Date }>(
@@ -77,6 +89,8 @@ export default function AchievementsPage() {
           { earned: true, earnedAt: new Date(item.userBadge.earnedAt) },
         ])
       );
+      
+      console.log('[Achievements] Earned Map:', earnedMap);
 
       const allBadges: BadgeWithProgress[] = progressData.data.map((item: any) => ({
         badge: item.badge,
@@ -86,6 +100,9 @@ export default function AchievementsPage() {
         currentValue: item.currentValue,
         targetValue: item.targetValue,
       }));
+      
+      console.log('[Achievements] All Badges Count:', allBadges.length);
+      console.log('[Achievements] Earned Badges:', allBadges.filter(b => b.earned));
 
       // Sort: earned first (by date desc), then by progress desc
       allBadges.sort((a, b) => {
@@ -125,6 +142,12 @@ export default function AchievementsPage() {
         completionRate: (earnedBadges.length / allBadges.length) * 100,
         badgesByTier,
         badgesByCategory,
+      });
+      
+      console.log('[Achievements] Stats:', {
+        totalBadges: allBadges.length,
+        earnedBadges: earnedBadges.length,
+        totalPoints,
       });
     } catch (error) {
       console.error('Failed to fetch badges:', error);
