@@ -82,27 +82,31 @@ export default function AchievementsPage() {
       console.log('[Achievements] Earned Data:', earnedData);
       console.log('[Achievements] Progress Data:', progressData);
 
-      // Combine earned and progress data
-      const earnedMap = new Map<string, { earned: true; earnedAt: Date }>(
-        earnedData.data.badges.map((item: any) => [
-          item.badge.id,
-          { earned: true, earnedAt: new Date(item.userBadge.earnedAt) },
-        ])
-      );
-      
-      console.log('[Achievements] Earned Map:', earnedMap);
-
-      const allBadges: BadgeWithProgress[] = progressData.data.map((item: any) => ({
+      // Build earned badges with 100% progress
+      const earnedBadges: BadgeWithProgress[] = earnedData.data.badges.map((item: any) => ({
         badge: item.badge,
-        earned: earnedMap.has(item.badge.id),
-        earnedAt: earnedMap.get(item.badge.id)?.earnedAt,
+        earned: true,
+        earnedAt: new Date(item.userBadge.earnedAt),
+        progress: 100,
+        currentValue: item.badge.requirement ? JSON.parse(item.badge.requirement).value : 0,
+        targetValue: item.badge.requirement ? JSON.parse(item.badge.requirement).value : 0,
+      }));
+      
+      // Build unearned badges with progress
+      const unearnedBadges: BadgeWithProgress[] = progressData.data.map((item: any) => ({
+        badge: item.badge,
+        earned: false,
+        earnedAt: undefined,
         progress: item.progress,
         currentValue: item.currentValue,
         targetValue: item.targetValue,
       }));
       
+      // Combine all badges
+      const allBadges = [...earnedBadges, ...unearnedBadges];
+      
       console.log('[Achievements] All Badges Count:', allBadges.length);
-      console.log('[Achievements] Earned Badges:', allBadges.filter(b => b.earned));
+      console.log('[Achievements] Earned Badges:', earnedBadges.length);
 
       // Sort: earned first (by date desc), then by progress desc
       allBadges.sort((a, b) => {
@@ -117,36 +121,36 @@ export default function AchievementsPage() {
       setBadges(allBadges);
 
       // Calculate stats
-      const earnedBadges = allBadges.filter((b) => b.earned);
-      const totalPoints = earnedBadges.reduce((sum, b) => sum + b.badge.points, 0);
+      const earnedBadgesCount = allBadges.filter((b) => b.earned);
+      const totalPoints = earnedBadgesCount.reduce((sum, b) => sum + b.badge.points, 0);
       
       const badgesByTier = {
-        BRONZE: earnedBadges.filter((b) => b.badge.tier === 'BRONZE').length,
-        SILVER: earnedBadges.filter((b) => b.badge.tier === 'SILVER').length,
-        GOLD: earnedBadges.filter((b) => b.badge.tier === 'GOLD').length,
-        PLATINUM: earnedBadges.filter((b) => b.badge.tier === 'PLATINUM').length,
+        BRONZE: earnedBadgesCount.filter((b) => b.badge.tier === 'BRONZE').length,
+        SILVER: earnedBadgesCount.filter((b) => b.badge.tier === 'SILVER').length,
+        GOLD: earnedBadgesCount.filter((b) => b.badge.tier === 'GOLD').length,
+        PLATINUM: earnedBadgesCount.filter((b) => b.badge.tier === 'PLATINUM').length,
       };
 
       const categories = Array.from(new Set(allBadges.map((b) => b.badge.category)));
       const badgesByCategory: Record<string, { total: number; earned: number }> = {};
       categories.forEach((cat) => {
         const total = allBadges.filter((b) => b.badge.category === cat).length;
-        const earned = earnedBadges.filter((b) => b.badge.category === cat).length;
+        const earned = earnedBadgesCount.filter((b) => b.badge.category === cat).length;
         badgesByCategory[cat] = { total, earned };
       });
 
       setStats({
         totalBadges: allBadges.length,
-        earnedBadges: earnedBadges.length,
+        earnedBadges: earnedBadgesCount.length,
         totalPoints,
-        completionRate: (earnedBadges.length / allBadges.length) * 100,
+        completionRate: (earnedBadgesCount.length / allBadges.length) * 100,
         badgesByTier,
         badgesByCategory,
       });
       
       console.log('[Achievements] Stats:', {
         totalBadges: allBadges.length,
-        earnedBadges: earnedBadges.length,
+        earnedBadges: earnedBadgesCount.length,
         totalPoints,
       });
     } catch (error) {
