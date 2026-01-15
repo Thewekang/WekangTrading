@@ -118,6 +118,13 @@ export async function syncEconomicEventsFromAPI(): Promise<{
     }, null, 2));
     console.log('🔍 DEBUG: API response written to debug-api-response.json');
     console.log('🔍 First event keys:', events[0] ? Object.keys(events[0]) : 'no events');
+    
+    // STOP HERE - Return early to save API quota
+    return {
+      success: true,
+      imported: 0,
+      error: 'DEBUG MODE: Response saved to debug-api-response.json. Check the file to see field names.'
+    };
 
     // API already filters by high,medium so we just need to map the data
     const filteredEvents = events.filter((event) => {
