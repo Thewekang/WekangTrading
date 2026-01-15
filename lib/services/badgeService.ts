@@ -72,13 +72,22 @@ export async function awardBadge(userId: string, badgeId: string): Promise<UserB
     notified: false,
   }).returning();
 
-  // Update user stats - increment badges earned and total points
+  // Calculate total badges and points properly
+  const earnedBadges = await db
+    .select({ badge: badges })
+    .from(userBadges)
+    .innerJoin(badges, eq(userBadges.badgeId, badges.id))
+    .where(eq(userBadges.userId, userId));
+
+  const totalBadges = earnedBadges.length;
+  const totalPoints = earnedBadges.reduce((sum, { badge }) => sum + badge.points, 0);
+
+  // Update user stats
   await db
     .update(userStats)
     .set({
-      badgesEarned: db.$count(userBadges, eq(userBadges.userId, userId)),
-      // @ts-ignore - SQL expression
-      totalPoints: db.$sum(badges.points).where(eq(userBadges.userId, userId)),
+      badgesEarned: totalBadges,
+      totalPoints: totalPoints,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(userStats.userId, userId));
@@ -173,13 +182,25 @@ export async function checkAndAwardBadges(userId: string, trigger: BadgeTrigger)
   
   const earnedBadges: Badge[] = [];
   
+  console.log(`[checkAndAwardBadges] Checking ${eligibleBadges.length} badges for user ${userId}`);
+  console.log(`[checkAndAwardBadges] User stats:`, {
+    totalTrades: userStat.totalTrades,
+    winRate: userStat.winRate,
+    totalProfit: userStat.totalProfitUsd,
+  });
+  
   for (const badge of eligibleBadges) {
     // Check if already earned
     const alreadyEarned = await hasUserBadge(userId, badge.id);
-    if (alreadyEarned) continue;
+    if (alreadyEarned) {
+      console.log(`  [SKIP] ${badge.name} - already earned`);
+      continue;
+    }
     
     // Evaluate requirement
     const meetsRequirement = evaluateBadgeRequirement(badge, userStat);
+    
+    console.log(`  [${meetsRequirement ? 'PASS' : 'FAIL'}] ${badge.name} - ${JSON.parse(badge.requirement).type}`);
     
     if (meetsRequirement) {
       try {

@@ -5,6 +5,7 @@
 
 import { db } from '../lib/db';
 import { users } from '../lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { initializeUserStats, updateUserStatsFromTrades, checkAndAwardBadges } from '../lib/services/badgeService';
 
 async function recalculateAllUsers() {
@@ -25,6 +26,19 @@ async function recalculateAllUsers() {
       // Recalculate from trades
       await updateUserStatsFromTrades(user.id);
       console.log('  ✓ Stats updated from trades');
+
+      // Debug: Check user stats
+      const { userStats: userStatsTable } = await import('../lib/db/schema');
+      const stats = await db.select().from(userStatsTable).where(eq(userStatsTable.userId, user.id)).limit(1);
+      if (stats.length > 0) {
+        console.log('  📊 Stats:', {
+          totalTrades: stats[0].totalTrades,
+          totalWins: stats[0].totalWins,
+          winRate: stats[0].winRate?.toFixed(2) + '%',
+          sopRate: stats[0].sopComplianceRate?.toFixed(2) + '%',
+          profit: '$' + stats[0].totalProfitUsd?.toFixed(2),
+        });
+      }
 
       // Award eligible badges
       const badges = await checkAndAwardBadges(user.id, 'MANUAL');
