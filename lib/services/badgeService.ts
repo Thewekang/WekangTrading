@@ -216,7 +216,101 @@ export async function initializeUserStats(userId: string): Promise<void> {
   await db.insert(userStats).values({
     userId,
     firstTradeDate: new Date().toISOString().split('T')[0],
+    totalTrades: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    totalProfitUsd: 0,
+    winRate: 0,
+    sopComplianceRate: 0,
+    currentWinStreak: 0,
+    longestWinStreak: 0,
+    currentLogStreak: 0,
+    longestLogStreak: 0,
+    currentSopStreak: 0,
+    longestSopStreak: 0,
+    asiaTrades: 0,
+    europeTrades: 0,
+    usTrades: 0,
+    maxTradesInDay: 0,
+    totalLoggingDays: 0,
+    badgesEarned: 0,
+    totalPoints: 0,
+    hasCompletedTarget: false,
+    hasPerfectMonth: false,
   });
+}
+
+/**
+ * Update user stats from all trades (recalculation)
+ */
+export async function updateUserStatsFromTrades(userId: string): Promise<void> {
+  const { individualTrades } = await import('../db/schema');
+  
+  // Get all trades
+  const trades = await db
+    .select()
+    .from(individualTrades)
+    .where(eq(individualTrades.userId, userId))
+    .orderBy(individualTrades.tradeTimestamp);
+
+  if (trades.length === 0) return;
+
+  // Calculate stats
+  const totalTrades = trades.length;
+  const totalWins = trades.filter(t => t.result === 'WIN').length;
+  const totalLosses = trades.filter(t => t.result === 'LOSS').length;
+  const totalProfitUsd = trades.reduce((sum, t) => sum + t.profitLossUsd, 0);
+  const winRate = (totalWins / totalTrades) * 100;
+  const sopCompliantTrades = trades.filter(t => t.sopFollowed).length;
+  const sopComplianceRate = (sopCompliantTrades / totalTrades) * 100;
+
+  // Session trades
+  const asiaTrades = trades.filter(t => t.marketSession === 'ASIA').length;
+  const europeTrades = trades.filter(t => t.marketSession === 'EUROPE').length;
+  const usTrades = trades.filter(t => t.marketSession === 'US').length;
+
+  // Max trades in a day
+  const tradesByDay = trades.reduce((acc, t) => {
+    const day = new Date(t.tradeTimestamp).toISOString().split('T')[0];
+    acc[day] = (acc[day] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const maxTradesInDay = Math.max(...Object.values(tradesByDay), 0);
+  const totalLoggingDays = Object.keys(tradesByDay).length;
+
+  // Get streak data
+  const { streaks } = await import('../db/schema');
+  const userStreaks = await db.select().from(streaks).where(eq(streaks.userId, userId));
+  
+  const winStreak = userStreaks.find(s => s.streakType === 'WIN_STREAK');
+  const logStreak = userStreaks.find(s => s.streakType === 'LOG_STREAK');
+  const sopStreak = userStreaks.find(s => s.streakType === 'SOP_STREAK');
+
+  // Update user stats
+  await db
+    .update(userStats)
+    .set({
+      totalTrades,
+      totalWins,
+      totalLosses,
+      totalProfitUsd,
+      winRate,
+      sopComplianceRate,
+      asiaTrades,
+      europeTrades,
+      usTrades,
+      maxTradesInDay,
+      totalLoggingDays,
+      currentWinStreak: winStreak?.currentStreak || 0,
+      longestWinStreak: winStreak?.longestStreak || 0,
+      currentLogStreak: logStreak?.currentStreak || 0,
+      longestLogStreak: logStreak?.longestStreak || 0,
+      currentSopStreak: sopStreak?.currentStreak || 0,
+      longestSopStreak: sopStreak?.longestStreak || 0,
+      firstTradeDate: new Date(trades[0].tradeTimestamp).toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(userStats.userId, userId));
 }
 
 /**
@@ -233,13 +327,18 @@ async function sendAchievementNotification(userId: string, badge: Badge): Promis
 export async function getBadgeProgress(userId: string): Promise<Array<{
   badge: Badge;
   progress: number;
-  current: number;
-  target: number;
+  currentValue: number;
+  targetValue: number;
 }>> {
-  const stats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+  // Get or create user stats
+  let stats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
   
   if (stats.length === 0) {
-    return [];
+    // Initialize with defaults
+    await initializeUserStats(userId);
+    // Recalculate from trades
+    await updateUserStatsFromTrades(userId);
+    stats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
   }
 
   const userStat = stats[0];
@@ -295,8 +394,8 @@ export async function getBadgeProgress(userId: string): Promise<Array<{
     return {
       badge,
       progress: progressPercent,
-      current,
-      target,
+      currentValue: current,
+      targetValue: target,
     };
   });
   
