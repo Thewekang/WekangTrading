@@ -21,7 +21,8 @@
     "drizzle:push": "drizzle-kit push",
     "drizzle:studio": "drizzle-kit studio",
     "drizzle:check": "drizzle-kit check",
-    "test:drizzle": "tsx scripts/test-drizzle-connection.ts"
+    "test:drizzle": "tsx scripts/test-drizzle-connection.ts",
+    "seed:badges": "tsx -r dotenv/config scripts/seed-badges.ts dotenv_config_path=.env.local"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
