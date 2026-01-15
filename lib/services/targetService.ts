@@ -285,9 +285,10 @@ async function calculateTargetProgress(
     const hasEnoughData = totalTrades >= minTrades;
 
     if (!hasEnoughData) {
-      // Insufficient data - consider on track if just started (within first 20% of time)
+      // Insufficient data - consider on track if just started
+      // Use either 25% of duration OR first 2 days, whichever is longer
       const timeElapsedPercent = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
-      const justStarted = timeElapsedPercent <= 20; // Within first 20% of duration
+      const justStarted = timeElapsedPercent <= 25 || daysElapsed <= 2;
       
       if (justStarted) {
         // Just started, not enough data yet - on track
