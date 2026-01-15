@@ -106,14 +106,18 @@ export async function syncEconomicEventsFromAPI(): Promise<{
   try {
     const events = await fetchEconomicEventsFromAPI();
     
-    console.log('🔍 DEBUG: Raw API Response');
-    console.log('Total events received:', events.length);
-    console.log('First event FULL:', JSON.stringify(events[0], null, 2));
-    console.log('First event keys:', events[0] ? Object.keys(events[0]) : 'no events');
-    console.log('Sample of 3 events:', events.slice(0, 3).map(e => ({
-      keys: Object.keys(e),
-      sample: e
-    })));
+    // Write raw API response to file for debugging
+    const fs = require('fs');
+    const path = require('path');
+    const debugFile = path.join(process.cwd(), 'debug-api-response.json');
+    fs.writeFileSync(debugFile, JSON.stringify({
+      totalEvents: events.length,
+      firstEvent: events[0],
+      firstEventKeys: events[0] ? Object.keys(events[0]) : [],
+      sampleEvents: events.slice(0, 5)
+    }, null, 2));
+    console.log('🔍 DEBUG: API response written to debug-api-response.json');
+    console.log('🔍 First event keys:', events[0] ? Object.keys(events[0]) : 'no events');
 
     // API already filters by high,medium so we just need to map the data
     const filteredEvents = events.filter((event) => {
