@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 interface BadgeProgress {
   badge: Badge;
   progress: number;
-  current: number;
-  target: number;
+  currentValue: number;
+  targetValue: number;
 }
 
 export function NextBadgesProgress({ limit = 3 }: { limit?: number }) {
@@ -68,7 +68,7 @@ export function NextBadgesProgress({ limit = 3 }: { limit?: number }) {
       <h2 className="text-xl font-bold mb-4">🎯 Next Achievements</h2>
       
       <div className="space-y-4">
-        {badgeProgress.map(({ badge, progress, current, target }) => {
+        {badgeProgress.map(({ badge, progress, currentValue, targetValue }) => {
           const tierColors = BADGE_COLORS[badge.tier as keyof typeof BADGE_COLORS];
           
           return (
@@ -91,7 +91,7 @@ export function NextBadgesProgress({ limit = 3 }: { limit?: number }) {
               {/* Progress Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{formatProgress(current, target, badge)}</span>
+                  <span className="text-gray-600">{formatProgress(currentValue, targetValue, badge)}</span>
                   <span className="font-semibold text-gray-900">{Math.round(progress)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
