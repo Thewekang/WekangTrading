@@ -7,23 +7,23 @@ const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 const RAPIDAPI_HOST = 'multilingual-economic-calendar-api-by-truedata.p.rapidapi.com';
 
 interface RapidAPIEvent {
-  id?: string;
-  event_id?: string;
-  title: string;
-  event_name?: string;
-  date: string;
-  event_date?: string;
-  time?: string;
-  country: string;
-  country_name?: string;
-  currency: string;
-  indicator?: string;
-  category?: string;
+  occurrence_id: number;
+  event_id: number;
+  short_name: string;
+  long_name: string;
+  occurrence_time: string; // ISO 8601 datetime
+  country_id: number;
+  country_name: string;
+  country_flag: string;
   importance: string; // 'high', 'medium', 'low'
-  forecast?: string | number;
-  actual?: string | number;
-  previous?: string | number;
-  period?: string;
+  currency: string;
+  forecast?: number | string | null;
+  actual?: number | string | null;
+  previous?: number | string | null;
+  reference_period?: string;
+  category: string; // e.g., 'economic_activity', 'inflation', 'employment'
+  source?: string;
+  description?: string;
 }
 
 /**
@@ -106,72 +106,42 @@ export async function syncEconomicEventsFromAPI(): Promise<{
   try {
     const events = await fetchEconomicEventsFromAPI();
     
-    // Write raw API response to file for debugging
-    const fs = require('fs');
-    const path = require('path');
-    const debugFile = path.join(process.cwd(), 'debug-api-response.json');
-    fs.writeFileSync(debugFile, JSON.stringify({
-      totalEvents: events.length,
-      firstEvent: events[0],
-      firstEventKeys: events[0] ? Object.keys(events[0]) : [],
-      sampleEvents: events.slice(0, 5)
-    }, null, 2));
-    console.log('🔍 DEBUG: API response written to debug-api-response.json');
-    console.log('🔍 First event keys:', events[0] ? Object.keys(events[0]) : 'no events');
-    
-    // STOP HERE - Return early to save API quota
-    return {
-      success: true,
-      imported: 0,
-      error: 'DEBUG MODE: Response saved to debug-api-response.json. Check the file to see field names.'
-    };
+    console.log('📥 Received', events.length, 'events from API');
 
     // API already filters by high,medium so we just need to map the data
     const filteredEvents = events.filter((event) => {
       const importance = mapImportance(event.importance);
-      console.log(`Event "${event.title || event.event_name}" - Importance: ${event.importance} -> Mapped: ${importance}`);
       return importance === 'HIGH' || importance === 'MEDIUM';
     });
     
-    console.log('🔍 DEBUG: After filtering');
-    console.log('Filtered events count:', filteredEvents.length);
-    console.log('Filtered events:', filteredEvents.map(e => ({
-      title: e.title || e.event_name,
-      date: e.date || e.event_date,
-      importance: mapImportance(e.importance)
-    })));
+    console.log('✅ Filtered events count:', filteredEvents.length);
 
     const fetchedAt = new Date();
 
     // Prepare events for insertion
     const eventsToInsert: NewEconomicEvent[] = filteredEvents.map((event) => {
-      // Combine date and time if available
-      const eventDateStr = event.date || event.event_date || '';
-      const eventTimeStr = event.time || '';
-      const fullDateStr = eventTimeStr ? `${eventDateStr}T${eventTimeStr}` : eventDateStr;
+      // Use occurrence_time (ISO 8601 format with timezone)
+      const eventDate = new Date(event.occurrence_time);
       
-      // Ensure country and currency are max 3 characters
-      const countryCode = (event.country_name || event.country || 'US').substring(0, 3).toUpperCase();
-      const currencyCode = (event.currency || 'USD').substring(0, 3).toUpperCase();
+      // Country code from country_flag (already 3 chars: 'USA', 'EUR', etc.)
+      const countryCode = event.country_flag.substring(0, 3).toUpperCase();
+      const currencyCode = event.currency.substring(0, 3).toUpperCase();
       
-      const mappedEvent = {
-        id: event.id || event.event_id || `${eventDateStr}-${event.title || event.event_name}`,
-        eventDate: new Date(fullDateStr),
+      return {
+        id: `${event.occurrence_id}`,
+        eventDate,
         country: countryCode,
         currency: currencyCode,
-        eventName: event.title || event.event_name || 'Unknown Event',
-        indicator: event.indicator || event.category || null,
+        eventName: event.short_name,
+        indicator: event.category,
         importance: mapImportance(event.importance),
-        forecast: event.forecast?.toString() || null,
-        actual: event.actual?.toString() || null,
-        previous: event.previous?.toString() || null,
-        period: event.period || null,
+        forecast: event.forecast !== null ? String(event.forecast) : null,
+        actual: event.actual !== null ? String(event.actual) : null,
+        previous: event.previous !== null ? String(event.previous) : null,
+        period: event.reference_period || null,
         source: 'API' as const,
         fetchedAt,
       };
-      
-      console.log('🔍 DEBUG: Mapped event for insertion:', JSON.stringify(mappedEvent, null, 2));
-      return mappedEvent;
     });
 
     // Clear existing future events from API source before inserting new ones
