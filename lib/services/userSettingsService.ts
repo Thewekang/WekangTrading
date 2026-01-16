@@ -138,7 +138,6 @@ export async function resetUserAccount(userId: string): Promise<{
       .where(eq(notifications.userId, userId));
   } catch (error) {
     // Notifications table might not exist yet, ignore error
-    console.log('Notifications table not found or empty');
   }
   
   // 9. Increment reset count

@@ -73,9 +73,6 @@ export async function POST(request: NextRequest) {
     let newBadges: any[] = [];
     try {
       newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
-      if (newBadges.length > 0) {
-        console.log(`Awarded ${newBadges.length} new badge(s):`, newBadges.map(b => b.name));
-      }
     } catch (badgeError) {
       // Don't fail trade creation if badge check fails
       console.error('Badge check error (non-fatal):', badgeError);

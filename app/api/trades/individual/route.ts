@@ -74,14 +74,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== API POST /api/trades/individual START ===');
-    
     // Check authentication
     const session = await auth();
-    console.log('Session:', session?.user ? { id: session.user.id, email: session.user.email } : 'No session');
     
     if (!session?.user) {
-      console.log('Unauthorized - no session');
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
@@ -90,20 +86,9 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('Request body received:', body);
-    console.log('Body types:', {
-      tradeTimestamp: typeof body.tradeTimestamp,
-      result: typeof body.result,
-      sopFollowed: typeof body.sopFollowed,
-      profitLossUsd: typeof body.profitLossUsd,
-    });
-    
-    console.log('Validating with individualTradeApiSchema...');
     const validatedData = individualTradeApiSchema.parse(body);
-    console.log('Validation successful:', validatedData);
 
     // Create trade
-    console.log('Creating trade for user:', session.user.id);
     const trade = await createTrade({
       userId: session.user.id,
       tradeTimestamp: new Date(validatedData.tradeTimestamp),
@@ -114,22 +99,15 @@ export async function POST(request: NextRequest) {
       profitLossUsd: validatedData.profitLossUsd,
       notes: validatedData.notes,
     });
-
-    console.log('Trade created successfully:', trade);
     
     // Check and award badges after trade creation
     let newBadges: any[] = [];
     try {
       newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
-      if (newBadges.length > 0) {
-        console.log(`Awarded ${newBadges.length} new badge(s):`, newBadges.map(b => b.name));
-      }
     } catch (badgeError) {
       // Don't fail trade creation if badge check fails
       console.error('Badge check error (non-fatal):', badgeError);
     }
-    
-    console.log('=== API POST /api/trades/individual END (SUCCESS) ===');
     
     return NextResponse.json(
       { 

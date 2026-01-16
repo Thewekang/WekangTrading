@@ -59,10 +59,8 @@ export default function AchievementsPage() {
     // Refresh when page becomes visible (user returns from adding trades)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('Page became visible, checking for updates...');
         const lastUpdate = localStorage.getItem('badgesUpdated');
         if (lastUpdate) {
-          console.log('Badges updated, refreshing...');
           fetchBadges();
           localStorage.removeItem('badgesUpdated');
         }
@@ -72,7 +70,6 @@ export default function AchievementsPage() {
     // Listen for storage events (when badges are updated from trade forms)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'badgesUpdated') {
-        console.log('Storage event: badges updated, refreshing...');
         fetchBadges();
       }
     };

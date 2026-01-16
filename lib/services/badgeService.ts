@@ -182,25 +182,15 @@ export async function checkAndAwardBadges(userId: string, trigger: BadgeTrigger)
   
   const earnedBadges: Badge[] = [];
   
-  console.log(`[checkAndAwardBadges] Checking ${eligibleBadges.length} badges for user ${userId}`);
-  console.log(`[checkAndAwardBadges] User stats:`, {
-    totalTrades: userStat.totalTrades,
-    winRate: userStat.winRate,
-    totalProfit: userStat.totalProfitUsd,
-  });
-  
   for (const badge of eligibleBadges) {
     // Check if already earned
     const alreadyEarned = await hasUserBadge(userId, badge.id);
     if (alreadyEarned) {
-      console.log(`  [SKIP] ${badge.name} - already earned`);
       continue;
     }
     
     // Evaluate requirement
     const meetsRequirement = evaluateBadgeRequirement(badge, userStat);
-    
-    console.log(`  [${meetsRequirement ? 'PASS' : 'FAIL'}] ${badge.name} - ${JSON.parse(badge.requirement).type}`);
     
     if (meetsRequirement) {
       try {
