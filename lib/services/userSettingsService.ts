@@ -4,7 +4,17 @@
  */
 
 import { db } from '@/lib/db';
-import { users, individualTrades, dailySummaries, userTargets } from '@/lib/db/schema';
+import { 
+  users, 
+  individualTrades, 
+  dailySummaries, 
+  userTargets,
+  userBadges,
+  userStats,
+  streaks,
+  motivationalMessages,
+  notifications
+} from '@/lib/db/schema';
 import { eq, count } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
@@ -50,48 +60,88 @@ export async function changeUserPassword(
 }
 
 /**
- * Reset user account (delete all trading data but keep account)
+ * Reset user account (delete all trading data, achievements, and stats but keep account)
  */
 export async function resetUserAccount(userId: string): Promise<{
   deletedTrades: number;
   deletedSummaries: number;
   deletedTargets: number;
+  deletedBadges: number;
+  deletedNotifications: number;
 }> {
-  // Delete all user data (Drizzle doesn't support interactive transactions like Prisma)
-  // Delete in correct order to avoid FK constraints
+  // Delete all user data in correct order to avoid FK constraints
   
-  // Delete individual trades
-  await db
-    .delete(individualTrades)
-    .where(eq(individualTrades.userId, userId));
-  
-  // Count before deletion
-  const [tradesCount] = await db
+  // 1. Delete individual trades
+  const [tradesCountBefore] = await db
     .select({ count: count() })
     .from(individualTrades)
     .where(eq(individualTrades.userId, userId));
   
-  // Delete daily summaries
   await db
-    .delete(dailySummaries)
-    .where(eq(dailySummaries.userId, userId));
+    .delete(individualTrades)
+    .where(eq(individualTrades.userId, userId));
   
-  const [summariesCount] = await db
+  // 2. Delete daily summaries
+  const [summariesCountBefore] = await db
     .select({ count: count() })
     .from(dailySummaries)
     .where(eq(dailySummaries.userId, userId));
   
-  // Delete targets
   await db
-    .delete(userTargets)
-    .where(eq(userTargets.userId, userId));
+    .delete(dailySummaries)
+    .where(eq(dailySummaries.userId, userId));
   
-  const [targetsCount] = await db
+  // 3. Delete targets
+  const [targetsCountBefore] = await db
     .select({ count: count() })
     .from(userTargets)
     .where(eq(userTargets.userId, userId));
   
-  // Increment reset count
+  await db
+    .delete(userTargets)
+    .where(eq(userTargets.userId, userId));
+  
+  // 4. Delete user badges (achievements)
+  const [badgesCountBefore] = await db
+    .select({ count: count() })
+    .from(userBadges)
+    .where(eq(userBadges.userId, userId));
+  
+  await db
+    .delete(userBadges)
+    .where(eq(userBadges.userId, userId));
+  
+  // 5. Delete user streaks
+  await db
+    .delete(streaks)
+    .where(eq(streaks.userId, userId));
+  
+  // 6. Delete user stats
+  await db
+    .delete(userStats)
+    .where(eq(userStats.userId, userId));
+  
+  // 7. Delete motivational messages
+  const [notificationsCountBefore] = await db
+    .select({ count: count() })
+    .from(motivationalMessages)
+    .where(eq(motivationalMessages.userId, userId));
+  
+  await db
+    .delete(motivationalMessages)
+    .where(eq(motivationalMessages.userId, userId));
+  
+  // 8. Delete notifications (if exists)
+  try {
+    await db
+      .delete(notifications)
+      .where(eq(notifications.userId, userId));
+  } catch (error) {
+    // Notifications table might not exist yet, ignore error
+    console.log('Notifications table not found or empty');
+  }
+  
+  // 9. Increment reset count
   const [user] = await db
     .select({ resetCount: users.resetCount })
     .from(users)
@@ -104,9 +154,11 @@ export async function resetUserAccount(userId: string): Promise<{
     .where(eq(users.id, userId));
 
   return {
-    deletedTrades: tradesCount?.count || 0,
-    deletedSummaries: summariesCount?.count || 0,
-    deletedTargets: targetsCount?.count || 0,
+    deletedTrades: tradesCountBefore?.count || 0,
+    deletedSummaries: summariesCountBefore?.count || 0,
+    deletedTargets: targetsCountBefore?.count || 0,
+    deletedBadges: badgesCountBefore?.count || 0,
+    deletedNotifications: notificationsCountBefore?.count || 0,
   };
 }
 
@@ -117,16 +169,22 @@ export async function getUserAccountSummary(userId: string): Promise<{
   totalTrades: number;
   totalSummaries: number;
   totalTargets: number;
+  totalBadges: number;
+  totalNotifications: number;
 }> {
-  const [tradesResult, summariesResult, targetsResult] = await Promise.all([
+  const [tradesResult, summariesResult, targetsResult, badgesResult, notificationsResult] = await Promise.all([
     db.select({ count: count() }).from(individualTrades).where(eq(individualTrades.userId, userId)),
     db.select({ count: count() }).from(dailySummaries).where(eq(dailySummaries.userId, userId)),
     db.select({ count: count() }).from(userTargets).where(eq(userTargets.userId, userId)),
+    db.select({ count: count() }).from(userBadges).where(eq(userBadges.userId, userId)),
+    db.select({ count: count() }).from(motivationalMessages).where(eq(motivationalMessages.userId, userId)),
   ]);
 
   return {
     totalTrades: tradesResult[0]?.count || 0,
     totalSummaries: summariesResult[0]?.count || 0,
     totalTargets: targetsResult[0]?.count || 0,
+    totalBadges: badgesResult[0]?.count || 0,
+    totalNotifications: notificationsResult[0]?.count || 0,
   };
 }

@@ -8,6 +8,7 @@ import { individualTrades, sopTypes } from '../db/schema';
 import { eq, and, desc, gte, lte, inArray, count } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { updateDailySummary } from './dailySummaryService';
+import { updateUserStatsFromTrades } from './badgeService';
 import { VALIDATION, PAGINATION } from '../constants';
 
 interface CreateTradeInput {
@@ -86,6 +87,10 @@ export async function createTrade(input: CreateTradeInput) {
 
   // Update daily summary for this date
   await updateDailySummary(input.userId, input.tradeTimestamp);
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(input.userId);
 
   return trade;
 }
@@ -129,8 +134,13 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   // Update daily summaries for all affected dates
   const uniqueDates = new Set(trades.map(t => t.tradeTimestamp.toISOString().split('T')[0]));
   for (const dateStr of uniqueDates) {
-    await updateDailySummary(userId, new Date(dateStr));
+    const date = new Date(dateStr);
+    await updateDailySummary(userId, date);
   }
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(userId);
 
   return { count: trades.length };
 }
@@ -340,6 +350,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   if (input.tradeTimestamp && input.tradeTimestamp.toDateString() !== existingTrade.tradeTimestamp.toDateString()) {
     await updateDailySummary(userId, input.tradeTimestamp);
   }
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(userId);
 
   return updatedTrade;
 }
@@ -368,6 +382,10 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
 
   // Update daily summary for this date
   await updateDailySummary(userId, trade.tradeTimestamp);
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(userId);
 
   return { success: true };
 }

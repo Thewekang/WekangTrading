@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Search, Trophy, Award, TrendingUp, X } from 'lucide-react';
+import { Search, Trophy, Award, TrendingUp, X, RefreshCw } from 'lucide-react';
 import type { Badge } from '@/lib/db/schema';
 import { BADGE_COLORS } from '@/lib/constants';
 
@@ -31,6 +31,7 @@ interface BadgeStats {
   earnedBadges: number;
   totalPoints: number;
   completionRate: number;
+  totalTrades: number;
   badgesByTier: {
     BRONZE: number;
     SILVER: number;
@@ -44,6 +45,7 @@ export default function AchievementsPage() {
   const [badges, setBadges] = useState<BadgeWithProgress[]>([]);
   const [stats, setStats] = useState<BadgeStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedTier, setSelectedTier] = useState<string>('ALL');
@@ -53,22 +55,57 @@ export default function AchievementsPage() {
 
   useEffect(() => {
     fetchBadges();
+
+    // Refresh when page becomes visible (user returns from adding trades)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, checking for updates...');
+        const lastUpdate = localStorage.getItem('badgesUpdated');
+        if (lastUpdate) {
+          console.log('Badges updated, refreshing...');
+          fetchBadges();
+          localStorage.removeItem('badgesUpdated');
+        }
+      }
+    };
+
+    // Listen for storage events (when badges are updated from trade forms)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'badgesUpdated') {
+        console.log('Storage event: badges updated, refreshing...');
+        fetchBadges();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
-  const fetchBadges = async () => {
+  const fetchBadges = async (isRefresh = false) => {
     try {
-      setLoading(true);
-      const [earnedRes, progressRes] = await Promise.all([
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      const [earnedRes, progressRes, statsRes] = await Promise.all([
         fetch('/api/badges/user'),
         fetch('/api/badges/progress'),
+        fetch('/api/users/me'),
       ]);
 
-      if (!earnedRes.ok || !progressRes.ok) {
+      if (!earnedRes.ok || !progressRes.ok || !statsRes.ok) {
         throw new Error('Failed to fetch badges');
       }
 
       const earnedData = await earnedRes.json();
       const progressData = await progressRes.json();
+      const statsData = await statsRes.json();
 
       // Build earned badges with 100% progress
       const earnedBadges: BadgeWithProgress[] = earnedData.data.badges.map((item: any) => ({
@@ -129,6 +166,7 @@ export default function AchievementsPage() {
         earnedBadges: earnedBadgesCount.length,
         totalPoints,
         completionRate: (earnedBadgesCount.length / allBadges.length) * 100,
+        totalTrades: statsData.data?.totalTrades || 0,
         badgesByTier,
         badgesByCategory,
       });
@@ -136,7 +174,12 @@ export default function AchievementsPage() {
       console.error('Failed to fetch badges:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchBadges(true);
   };
 
   // Filter badges
@@ -199,7 +242,7 @@ export default function AchievementsPage() {
         case 'PROFIT_TOTAL':
           return `Earn $${value.toLocaleString()} total profit`;
         case 'SESSION_TRADES':
-          return `Complete ${value} trades in ${req.session} session`;
+          return `Complete ${value} trades in ${req.sessionType} session`;
         case 'PERFECT_MONTH':
           return 'Win every day in a calendar month';
         case 'COMEBACK':
@@ -233,12 +276,24 @@ export default function AchievementsPage() {
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Trophy className="h-8 w-8 text-yellow-500" />
-        <div>
-          <h1 className="text-3xl font-bold">Achievements</h1>
-          <p className="text-muted-foreground">Track your trading milestones and earn badges</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Trophy className="h-8 w-8 text-yellow-500" />
+          <div>
+            <h1 className="text-3xl font-bold">Achievements</h1>
+            <p className="text-muted-foreground">Track your trading milestones and earn badges</p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
 
       {/* Stats Overview */}
@@ -450,22 +505,68 @@ export default function AchievementsPage() {
 
                 {/* Progress */}
                 {!selectedBadge.earned && (
-                  <div className="p-3 rounded-lg bg-muted">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Progress</span>
-                      <span className="text-sm font-semibold">
-                        {Math.round(selectedBadge.progress)}%
-                      </span>
+                  <div className="space-y-3">
+                    {/* Main Progress (Win Rate, Profit, etc.) */}
+                    <div className="p-3 rounded-lg bg-muted">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">Progress</span>
+                        <span className="text-sm font-semibold">
+                          {Math.round(selectedBadge.progress)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-300 rounded-full h-2.5 mb-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all"
+                          style={{ width: `${Math.min(selectedBadge.progress, 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {selectedBadge.currentValue.toLocaleString()} / {selectedBadge.targetValue.toLocaleString()}
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-300 rounded-full h-2.5 mb-2">
-                      <div
-                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all"
-                        style={{ width: `${Math.min(selectedBadge.progress, 100)}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {selectedBadge.currentValue.toLocaleString()} / {selectedBadge.targetValue.toLocaleString()}
-                    </div>
+
+                    {/* Minimum Trades Progress (for WIN_RATE and SOP_RATE badges) */}
+                    {(() => {
+                      try {
+                        const req = typeof selectedBadge.badge.requirement === 'string' 
+                          ? JSON.parse(selectedBadge.badge.requirement) 
+                          : selectedBadge.badge.requirement;
+                        
+                        if ((req.type === 'WIN_RATE' || req.type === 'SOP_RATE') && req.minTrades) {
+                          const currentTrades = stats?.totalTrades || 0;
+                          const minTrades = req.minTrades;
+                          const tradesProgress = Math.min((currentTrades / minTrades) * 100, 100);
+                          const tradesMet = currentTrades >= minTrades;
+                          
+                          return (
+                            <div className="p-3 rounded-lg bg-muted">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-sm">Minimum Trades</span>
+                                <span className={`text-sm font-semibold ${tradesMet ? 'text-green-600' : ''}`}>
+                                  {tradesMet ? '✓ ' : ''}{Math.round(tradesProgress)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-300 rounded-full h-2.5 mb-2">
+                                <div
+                                  className={`h-2.5 rounded-full transition-all ${
+                                    tradesMet 
+                                      ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                                      : 'bg-gradient-to-r from-orange-500 to-amber-500'
+                                  }`}
+                                  style={{ width: `${Math.min(tradesProgress, 100)}%` }}
+                                />
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {currentTrades.toLocaleString()} / {minTrades.toLocaleString()} trades
+                              </div>
+                            </div>
+                          );
+                        }
+                      } catch {
+                        return null;
+                      }
+                      return null;
+                    })()}
                   </div>
                 )}
 

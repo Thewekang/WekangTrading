@@ -1,11 +1,11 @@
 # WekangTradingJournal
 
-🏍️💰 Trading Performance Tracking System with Individual Trade Timing Analysis
+🏍️💰 Trading Performance Tracking System with Individual Trade Timing Analysis & Gamification
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: ✅ Production Deployed (v1.0.0)  
-> **Current Version**: 1.0.0  
+> **Status**: ✅ Production Deployed (v1.2.0)  
+> **Current Version**: 1.2.0  
 > **Live URL**: https://wekangtrading.vercel.app  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso (LibSQL) + Drizzle ORM + NextAuth.js v5
@@ -14,6 +14,7 @@
 
 ## 🎯 Key Features
 
+### Core Trading Features
 - **Individual Trade Tracking** with timestamps for timing analysis
 - **Dual Entry Workflows**: Real-time (mobile) + Bulk entry (desktop)
 - **Market Session Analysis**: Auto-detect ASIA/EUROPE/US + Overlap sessions (Malaysia GMT+8)
@@ -24,8 +25,21 @@
 - **Data Export**: CSV + PDF reports with filter support
 - **Profit/Loss Tracking**: USD per trade with aggregated insights
 - **Fast Dashboard**: Pre-calculated daily summaries with interactive charts
+
+### 🎮 Gamification & Achievements (v1.2.0)
+- **34 Achievement Badges**: Bronze, Silver, Gold, Platinum tiers
+- **9 Badge Categories**: Trades, Win Streak, Profit, Win Rate, SOP, Log Streak, Sessions, Targets, Max Trades/Day
+- **Streak Tracking**: Win streaks, logging streaks, SOP compliance streaks
+- **Real-time Progress**: Automatic badge awarding with celebration animations
+- **Points System**: Earn points to track overall progress
+- **Motivational Messages**: Contextual encouragement on achievements
+- **Achievement Gallery**: Visual badge collection display
+
+### User Experience
 - **Toast Notifications**: Non-blocking, modern UX feedback
 - **Mobile-Friendly**: Optimized for on-the-go trade entry
+- **Achievement Celebrations**: Animated badge reveals with confetti
+- **Smart Refresh**: Updates only when needed (no reload spam)
 
 ---
 
@@ -47,6 +61,8 @@ WekangTradingJournal/
 │   ├── 08-ADMIN-FEATURES.md       # Admin panel guide
 │   ├── 09-TARGET-MANAGEMENT.md    # Target system v0.4.0
 │   ├── 10-TESTING-GUIDE.md        # Testing procedures
+│   ├── 11-VERSION-1.1.0-ROADMAP.md # v1.1.0 planning
+│   ├── 12-GAMIFICATION-SYSTEM.md  # Badge & achievement system 🆕
 │   ├── setup/                     # Setup & configuration guides
 │   ├── deployment/                # Deployment procedures
 │   ├── reference/                 # Technical references
@@ -64,9 +80,22 @@ WekangTradingJournal/
 **Phase 3** (Week 6-7): ✅ Dashboard & Analytics - COMPLETE  
 **Phase 4** (Week 8): ✅ Advanced Features - COMPLETE  
 **Phase 5** (Week 9-10): ✅ Enhanced Features & Security - COMPLETE  
-**Phase 6** (Documentation): ✅ Documentation Consolidation - COMPLETE
+**Phase 6** (Documentation): ✅ Documentation Consolidation - COMPLETE  
+**Phase 7** (Gamification): ✅ Badge & Achievement System - COMPLETE
 
-### Phase 5 Completed Features ✅
+### Phase 7 Completed Features ✅ (v1.2.0)
+- **Badge System**: 34 unique badges across 9 categories with 4 tiers
+- **Streak Tracking**: Win, log, and SOP compliance streaks
+- **Achievement Gallery**: Visual badge collection with progress tracking
+- **Real-time Awarding**: Automatic badge detection on trade submission
+- **Celebration Animations**: Multi-badge modals with confetti effects
+- **Points System**: Accumulate points from earned badges
+- **Progress Indicators**: Real-time progress bars for unearned badges
+- **Motivational System**: Context-aware achievement notifications
+- **Stats Synchronization**: Automatic recalculation on all trade operations
+- **Enhanced Account Reset**: Includes all gamification data
+
+### Phase 5 Completed Features ✅ (v1.0.0)
 - **Invite-Only Registration**: Security with admin-generated invite codes
 - **Admin User Management**: Full CRUD operations for user accounts
 - **Admin Trade Viewer**: View and delete trades across all users

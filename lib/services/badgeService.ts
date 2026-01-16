@@ -266,6 +266,7 @@ export async function initializeUserStats(userId: string): Promise<void> {
  */
 export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   const { individualTrades } = await import('../db/schema');
+  const { updateWinStreak, updateLogStreak, recalculateSopStreakFromTrades } = await import('./streakService');
   
   // Get all trades
   const trades = await db
@@ -275,6 +276,20 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
     .orderBy(individualTrades.tradeTimestamp);
 
   if (trades.length === 0) return;
+  
+  // Update WIN and LOG streaks for all unique trading dates (MUST be sorted chronologically)
+  const uniqueDates = Array.from(new Set(trades.map(t => new Date(t.tradeTimestamp).toISOString().split('T')[0]))).sort();
+  for (const dateStr of uniqueDates) {
+    const date = new Date(dateStr + 'T00:00:00.000Z'); // Parse as UTC
+    await updateWinStreak(userId, date);
+    await updateLogStreak(userId, date);
+  }
+  
+  // Recalculate SOP streak from ALL trades (not per-day, per-trade!)
+  await recalculateSopStreakFromTrades(userId, trades.map(t => ({
+    sopFollowed: t.sopFollowed,
+    tradeTimestamp: new Date(t.tradeTimestamp)
+  })));
 
   // Calculate stats
   const totalTrades = trades.length;
@@ -299,7 +314,7 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   const maxTradesInDay = Math.max(...Object.values(tradesByDay), 0);
   const totalLoggingDays = Object.keys(tradesByDay).length;
 
-  // Get streak data
+  // Get streak data (now populated from above)
   const { streaks } = await import('../db/schema');
   const userStreaks = await db.select().from(streaks).where(eq(streaks.userId, userId));
   
@@ -379,13 +394,15 @@ export async function getBadgeProgress(userId: string): Promise<Array<{
         current = userStat.totalTrades;
         break;
       case 'WIN_STREAK':
-        current = userStat.longestWinStreak;
+        // Show CURRENT streak for progress (what you're building now)
+        // Badge AWARDING uses longest streak (see checkAndAwardBadges)
+        current = userStat.currentWinStreak;
         break;
       case 'LOG_STREAK':
-        current = userStat.longestLogStreak;
+        current = userStat.currentLogStreak;
         break;
       case 'SOP_STREAK':
-        current = userStat.longestSopStreak;
+        current = userStat.currentSopStreak;
         break;
       case 'PROFIT_TOTAL':
         current = userStat.totalProfitUsd;

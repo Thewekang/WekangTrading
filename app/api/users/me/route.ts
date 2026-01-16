@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, userStats } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { userPreferencesSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
@@ -41,9 +41,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Get user stats
+    const stats = await db.select()
+      .from(userStats)
+      .where(eq(userStats.userId, session.user.id))
+      .get();
+
     return NextResponse.json({
       success: true,
-      data: user,
+      data: {
+        ...user,
+        totalTrades: stats?.totalTrades || 0,
+        winRate: stats?.winRate || 0,
+        sopRate: stats?.sopRate || 0,
+        totalProfitUsd: stats?.totalProfitUsd || 0,
+      },
     });
 
   } catch (error: any) {

@@ -48,13 +48,21 @@ export default function NotificationsPage() {
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setMessages(data.data.data);
-          setUnreadCount(data.data.unreadCount);
+        if (data.success && data.data) {
+          setMessages(data.data.data || []);
+          setUnreadCount(data.data.unreadCount || 0);
+        } else {
+          setMessages([]);
+          setUnreadCount(0);
         }
+      } else {
+        setMessages([]);
+        setUnreadCount(0);
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error);
+      setMessages([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
@@ -67,9 +75,11 @@ export default function NotificationsPage() {
       });
       
       if (response.ok) {
-        setMessages(messages.map(msg => 
-          msg.id === messageId ? { ...msg, isRead: true } : msg
-        ));
+        setMessages((prevMessages) => 
+          prevMessages?.map(msg => 
+            msg.id === messageId ? { ...msg, isRead: true } : msg
+          ) || []
+        );
         setUnreadCount(Math.max(0, unreadCount - 1));
       }
     } catch (error) {
@@ -79,7 +89,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      const unreadMessages = messages.filter(msg => !msg.isRead);
+      const unreadMessages = messages?.filter(msg => !msg.isRead) || [];
       
       await Promise.all(
         unreadMessages.map(msg =>
@@ -87,7 +97,9 @@ export default function NotificationsPage() {
         )
       );
       
-      setMessages(messages.map(msg => ({ ...msg, isRead: true })));
+      setMessages((prevMessages) => 
+        prevMessages?.map(msg => ({ ...msg, isRead: true })) || []
+      );
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
@@ -162,7 +174,7 @@ export default function NotificationsPage() {
 
       {/* Messages List */}
       <div className="space-y-3">
-        {messages.length === 0 ? (
+        {!messages || messages.length === 0 ? (
           <Card className="p-12 text-center">
             <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No notifications</h3>

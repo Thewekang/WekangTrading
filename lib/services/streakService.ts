@@ -71,7 +71,7 @@ export async function updateWinStreak(userId: string, tradeDate: Date): Promise<
   
   // Check if this is the next consecutive day
   const lastDate = streak.lastStreakDate ? new Date(streak.lastStreakDate) : null;
-  const isConsecutive = lastDate ? isNextTradingDay(lastDate, tradeDate) : false;
+  const isConsecutive = lastDate ? isNextCalendarDay(lastDate, tradeDate) : false;
   
   if (isWinningDay) {
     // Winning day - increment or start streak
@@ -237,6 +237,58 @@ export async function updateSopStreak(userId: string, sopFollowed: boolean): Pro
         .where(eq(userStats.userId, userId));
     }
   }
+}
+
+/**
+ * Recalculate SOP streak from all trades (chronological order)
+ * This should be called during full recalculation from updateUserStatsFromTrades
+ */
+export async function recalculateSopStreakFromTrades(
+  userId: string,
+  trades: Array<{ sopFollowed: boolean; tradeTimestamp: Date }>
+): Promise<void> {
+  // Sort trades chronologically
+  const sortedTrades = trades.sort((a, b) => a.tradeTimestamp.getTime() - b.tradeTimestamp.getTime());
+  
+  let currentStreak = 0;
+  let longestStreak = 0;
+  
+  // Go through each trade in order
+  for (const trade of sortedTrades) {
+    if (trade.sopFollowed) {
+      currentStreak++;
+      longestStreak = Math.max(longestStreak, currentStreak);
+    } else {
+      currentStreak = 0; // Break streak
+    }
+  }
+  
+  // Get or create streak
+  let streak = await getUserStreak(userId, 'SOP_STREAK');
+  if (!streak) {
+    streak = await initializeStreak(userId, 'SOP_STREAK');
+  }
+  
+  // Update database
+  await db
+    .update(streaks)
+    .set({
+      currentStreak,
+      longestStreak,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(streaks.id, streak.id));
+  
+  // Update user stats
+  await db
+    .update(userStats)
+    .set({
+      currentSopStreak: currentStreak,
+      longestSopStreak: longestStreak,
+      totalSopCompliant: sortedTrades.filter(t => t.sopFollowed).length,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(userStats.userId, userId));
 }
 
 /**

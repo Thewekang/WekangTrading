@@ -7,6 +7,150 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+---
+
+## [1.2.0] - 2026-01-17
+
+### 🎮 Gamification & Achievement System
+
+Major feature release introducing comprehensive gamification to encourage consistent trading habits and motivate performance improvement.
+
+**New Feature**: Badge & Achievement System  
+**Documentation**: [12-GAMIFICATION-SYSTEM.md](./docs/12-GAMIFICATION-SYSTEM.md)
+
+#### Added
+
+**Badge System**:
+- ✅ 34 unique achievement badges across 9 categories
+- ✅ 4-tier badge system (Bronze 30-40pts, Silver 50pts, Gold 100pts, Platinum 150pts)
+- ✅ Categories: Trades, Win Streak, Profit, Win Rate, SOP, Log Streak, Sessions, Targets, Max Trades/Day
+- ✅ Automatic badge awarding on trade submission
+- ✅ Badge progress tracking with percentage indicators
+- ✅ Badge collection gallery with earned/locked states
+- ✅ Total points system
+
+**Streak Tracking**:
+- ✅ Win Streak: Consecutive winning days (positive daily profit)
+- ✅ Log Streak: Consecutive logging days (daily trade activity)
+- ✅ SOP Streak: Consecutive SOP-compliant trades
+- ✅ Current vs. Longest streak tracking
+- ✅ Automatic streak reset on break
+- ✅ Streak milestone notifications
+
+**Achievement Features**:
+- ✅ Real-time badge progress display
+- ✅ Multi-badge celebration modals with animations
+- ✅ Pagination slider for multiple simultaneous awards
+- ✅ Achievement notifications system
+- ✅ Motivational messages on milestones
+- ✅ Badge details modal with requirements
+
+**User Stats Enhancement**:
+- ✅ Denormalized `user_stats` table for fast badge checks
+- ✅ Automatic stats recalculation on trade operations
+- ✅ Stats sync on create/update/delete/bulk operations
+- ✅ Performance optimized progress calculations
+
+**Database Schema**:
+- ✅ New table: `badges` (34 seeded badges)
+- ✅ New table: `user_badges` (earned badge records)
+- ✅ New table: `streaks` (win/log/SOP streak tracking)
+- ✅ Enhanced: `user_stats` (streak fields + aggregates)
+- ✅ Enhanced: `motivational_messages` (achievement notifications)
+
+**API Endpoints**:
+- ✅ `GET /api/badges` - List all available badges
+- ✅ `GET /api/badges/user` - Get user's earned badges
+- ✅ `GET /api/badges/progress` - Get progress towards unearned badges
+- ✅ Enhanced: `GET /api/users/me` - Includes badge stats
+
+**UI Components**:
+- ✅ Achievements page (`/dashboard/achievements`)
+- ✅ Badge celebration modal with confetti
+- ✅ Badge progress cards with dual progress bars (WIN_RATE)
+- ✅ Badge details modal with category/tier display
+- ✅ Notification dropdown for achievement alerts
+
+#### Fixed
+
+**Critical Bug Fixes**:
+- ✅ **Badge Progress Sync**: Fixed stale values - now updates immediately after trade submission
+- ✅ **SOP Streak Calculation**: Fixed incorrect trade counting (was 27, should be 7) - now counts consecutive trades, not days
+- ✅ **Win Streak Weekend Logic**: Fixed weekend skipping for 24/7 forex markets - now uses calendar days
+- ✅ **Celebration Slider Navigation**: Fixed "Next Badge" button closing instead of advancing
+- ✅ **Progress Display**: Badge progress now shows CURRENT streak (not longest) for monitoring
+- ✅ **Account Reset**: Now includes badges, streaks, and all gamification data
+
+**Performance Improvements**:
+- ✅ Reduced aggressive page reloading on achievements page
+- ✅ Smart refresh only when badges actually updated
+- ✅ Removed window focus event listener causing reload spam
+- ✅ Optimized stats recalculation (~200-500ms per trade operation)
+
+#### Changed
+
+**Streak Behavior Clarification**:
+- Current streak resets to 0 on break
+- Longest streak preserved permanently
+- Badges based on longest streak (remain earned after break)
+- Progress bars show current streak (for monitoring)
+
+**Enhanced Account Reset**:
+- Now deletes: trades, summaries, targets, badges, streaks, stats, notifications, messages
+- Preserves: login credentials, email, role, account settings
+- Displays comprehensive deletion summary before confirmation
+
+**Badge Award Logic**:
+- Uses `longestStreak` for badge awarding (permanent achievements)
+- Uses `currentStreak` for progress display (active monitoring)
+- Dual-threshold for WIN_RATE badges (percentage + minimum trades)
+
+#### Technical Details
+
+**Files Modified**:
+- `lib/services/badgeService.ts` - Badge evaluation and progress calculation
+- `lib/services/streakService.ts` - Added `recalculateSopStreakFromTrades()`
+- `lib/services/individualTradeService.ts` - Integrated stats sync on all operations
+- `lib/services/userSettingsService.ts` - Enhanced account reset
+- `app/(user)/dashboard/achievements/page.tsx` - Smart refresh logic
+- `components/animations/BadgeCelebration.tsx` - Fixed slider navigation
+- Database migrations for new tables and fields
+
+**Scripts Added**:
+- `scripts/test-badge-apis.ts` - Badge system testing
+- `scripts/test-streak-progress.ts` - Streak progress verification
+- `scripts/check-sop-badge.ts` - SOP streak debugging
+
+**Dependencies**:
+- No new dependencies (uses existing React, Drizzle ORM, shadcn/ui)
+
+#### Migration Notes
+
+**For Existing Users**:
+1. Database migrations will auto-create new tables
+2. Existing trades will be processed for badge eligibility
+3. Run `updateUserStatsFromTrades()` for each user to initialize stats
+4. Badges will be awarded retroactively based on achievements
+
+**Admin Actions Required**:
+```bash
+# Apply migrations (automatic on deployment)
+npm run drizzle:push
+
+# Seed badge definitions
+npm run seed:badges
+
+# Recalculate user stats
+npm run recalc
+```
+
+#### Breaking Changes
+None. Fully backward compatible with v1.0.0.
+
+---
+
 ## [1.0.0] - 2026-01-12
 
 ### 🎉 Initial Production Release

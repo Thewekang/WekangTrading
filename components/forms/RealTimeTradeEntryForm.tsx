@@ -125,6 +125,9 @@ export function RealTimeTradeEntryForm() {
 
       const result = await response.json();
 
+      console.log('Trade submission result:', result);
+      console.log('Badges in response:', result.badges);
+
       if (!response.ok || !result.success) {
         setErrorMessage(result.error?.message || 'Failed to create trade');
         return;
@@ -132,8 +135,14 @@ export function RealTimeTradeEntryForm() {
       
       // Check if badges were earned
       if (result.badges && result.badges.length > 0) {
+        console.log('Setting earned badges:', result.badges);
         setEarnedBadges(result.badges);
         setShowCelebration(true);
+        // Set flag to refresh achievements page
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+      } else {
+        // Still set flag for achievements page to refresh progress
+        localStorage.setItem('badgesUpdated', Date.now().toString());
       }
       
       // Success

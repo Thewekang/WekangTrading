@@ -296,7 +296,7 @@ export const INITIAL_BADGES: NewBadge[] = [
   {
     id: 'sharpshooter',
     name: 'Accurate',
-    description: '70%+ win rate achieved',
+    description: 'Achieve 70%+ win rate over minimum 50 trades',
     category: 'PERFORMANCE',
     tier: 'BRONZE',
     icon: '🎯',
@@ -308,7 +308,7 @@ export const INITIAL_BADGES: NewBadge[] = [
   {
     id: 'sniper',
     name: 'Precision',
-    description: '75%+ win rate maintained',
+    description: 'Maintain 75%+ win rate over minimum 100 trades',
     category: 'PERFORMANCE',
     tier: 'SILVER',
     icon: '🔫',
@@ -320,7 +320,7 @@ export const INITIAL_BADGES: NewBadge[] = [
   {
     id: 'elite_performer',
     name: 'Top Tier',
-    description: '80%+ win rate achieved',
+    description: 'Achieve elite 80%+ win rate over minimum 100 trades',
     category: 'PERFORMANCE',
     tier: 'GOLD',
     icon: '🎖️',
@@ -332,7 +332,7 @@ export const INITIAL_BADGES: NewBadge[] = [
   {
     id: 'win_rate_king',
     name: 'Untouchable',
-    description: 'Elite 85%+ win rate over 200 trades',
+    description: 'Master level: 85%+ win rate over minimum 200 trades',
     category: 'PERFORMANCE',
     tier: 'PLATINUM',
     icon: '👑',

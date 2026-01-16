@@ -27,13 +27,21 @@ export function MotivationalMessagesFeed({ limit = 5 }: MessageFeedProps) {
       const response = await fetch(`/api/messages?limit=${limit}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setMessages(data.data);
-          setUnreadCount(data.unreadCount);
+        if (data.success && data.data) {
+          setMessages(data.data.data || []);
+          setUnreadCount(data.data.unreadCount || 0);
+        } else {
+          setMessages([]);
+          setUnreadCount(0);
         }
+      } else {
+        setMessages([]);
+        setUnreadCount(0);
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error);
+      setMessages([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
@@ -42,9 +50,11 @@ export function MotivationalMessagesFeed({ limit = 5 }: MessageFeedProps) {
   async function markAsRead(messageId: string) {
     try {
       await fetch(`/api/messages/${messageId}/read`, { method: 'PATCH' });
-      setMessages(messages.map(m => 
-        m.id === messageId ? { ...m, isRead: true } : m
-      ));
+      setMessages((prevMessages) => 
+        prevMessages.map(m => 
+          m.id === messageId ? { ...m, isRead: true } : m
+        )
+      );
       setUnreadCount(Math.max(0, unreadCount - 1));
     } catch (error) {
       console.error('Failed to mark as read:', error);

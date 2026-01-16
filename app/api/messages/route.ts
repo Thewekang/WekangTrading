@@ -61,8 +61,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: messages,
-      unreadCount: unreadMessages.length,
+      data: {
+        data: messages,
+        unreadCount: unreadMessages.length,
+      },
     });
   } catch (error) {
     console.error('Error fetching messages:', error);

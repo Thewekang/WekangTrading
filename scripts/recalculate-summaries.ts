@@ -7,6 +7,7 @@
 import { db } from '../lib/db';
 import { users, individualTrades } from '../lib/db/schema';
 import { updateDailySummaryForDate } from '../lib/services/dailySummaryService';
+import { updateUserStatsFromTrades } from '../lib/services/badgeService';
 import { eq } from 'drizzle-orm';
 
 async function main() {
@@ -54,6 +55,10 @@ async function main() {
       await updateDailySummaryForDate(userId, date);
       totalUpdated++;
     }
+    
+    // Update user stats after all daily summaries
+    console.log('   Updating user stats from trades...');
+    await updateUserStatsFromTrades(userId);
 
     console.log(`   ✅ Done\n`);
   }

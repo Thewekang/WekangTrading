@@ -24,18 +24,6 @@ export function BadgeCelebration({ badges, isOpen, onClose }: BadgeCelebrationPr
     if (isOpen && badges.length > 0) {
       setShowConfetti(true);
       setCurrentBadgeIndex(0);
-      
-      // Auto-cycle through badges if multiple
-      if (badges.length > 1) {
-        const interval = setInterval(() => {
-          setCurrentBadgeIndex((prev) => {
-            if (prev < badges.length - 1) return prev + 1;
-            return prev;
-          });
-        }, 3000);
-        
-        return () => clearInterval(interval);
-      }
     }
   }, [isOpen, badges]);
 
@@ -43,6 +31,18 @@ export function BadgeCelebration({ badges, isOpen, onClose }: BadgeCelebrationPr
 
   const currentBadge = badges[currentBadgeIndex];
   const tierColors = BADGE_COLORS[currentBadge.tier as keyof typeof BADGE_COLORS];
+
+  const handleNext = () => {
+    if (currentBadgeIndex < badges.length - 1) {
+      setCurrentBadgeIndex(currentBadgeIndex + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleDotClick = (index: number) => {
+    setCurrentBadgeIndex(index);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -124,14 +124,16 @@ export function BadgeCelebration({ badges, isOpen, onClose }: BadgeCelebrationPr
           {badges.length > 1 && (
             <div className="flex justify-center gap-2 mt-6">
               {badges.map((_, index) => (
-                <div
+                <button
                   key={index}
+                  onClick={() => handleDotClick(index)}
                   className={cn(
-                    'w-2 h-2 rounded-full transition-all',
+                    'h-2 rounded-full transition-all hover:bg-yellow-400',
                     index === currentBadgeIndex
                       ? 'bg-yellow-500 w-8'
-                      : 'bg-gray-300'
+                      : 'bg-gray-300 w-2'
                   )}
+                  aria-label={`View badge ${index + 1}`}
                 />
               ))}
             </div>
@@ -139,7 +141,7 @@ export function BadgeCelebration({ badges, isOpen, onClose }: BadgeCelebrationPr
 
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={handleNext}
             className="mt-6 w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold py-3 px-6 rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-105 shadow-lg"
           >
             {badges.length > 1 && currentBadgeIndex < badges.length - 1
