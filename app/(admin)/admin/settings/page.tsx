@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Settings, Info, Link as LinkIcon, User } from 'lucide-react';
 
 export default async function AdminSettingsPage() {
   const session = await auth();
@@ -12,7 +13,10 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">General Settings</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Settings className="h-8 w-8" />
+          General Settings
+        </h1>
         <p className="text-muted-foreground mt-2">
           Manage system-wide configuration and preferences
         </p>
@@ -21,7 +25,10 @@ export default async function AdminSettingsPage() {
       {/* Personal Account Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Personal Account Settings</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Personal Account Settings
+          </CardTitle>
           <CardDescription>Manage your profile, password, and preferences</CardDescription>
         </CardHeader>
         <CardContent>
@@ -40,7 +47,10 @@ export default async function AdminSettingsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>System Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              System Information
+            </CardTitle>
             <CardDescription>Current system status and version</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -61,7 +71,10 @@ export default async function AdminSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Links</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5" />
+              Quick Links
+            </CardTitle>
             <CardDescription>Access common admin tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
