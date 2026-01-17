@@ -50,16 +50,10 @@ export default async function AdminLayout({
                   Trades
                 </Link>
                 <Link
-                  href="/admin/economic-calendar"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  📅 Calendar Settings
-                </Link>
-                <Link
                   href="/admin/economic-calendar/view"
                   className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
-                  📊 Calendar View
+                  📊 Calendar
                 </Link>
                 <Link
                   href="/admin/sop-types"
@@ -72,6 +66,18 @@ export default async function AdminLayout({
                   className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
                   Invite Codes
+                </Link>
+                <Link
+                  href="/admin/economic-calendar"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  📅 Calendar Settings
+                </Link>
+                <Link
+                  href="/admin/settings"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                >
+                  Settings
                 </Link>
               </div>
             </div>
