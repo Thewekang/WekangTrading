@@ -107,8 +107,8 @@ export default function EconomicCalendarAdminPage() {
     try {
       const response = await fetch('/api/calendar?type=today');
       const data = await response.json();
-      if (data.success && data.data.lastSync) {
-        setLastSync(new Date(data.data.lastSync));
+      if (data.success && data.lastSync) {
+        setLastSync(new Date(data.lastSync));
       }
     } catch (error) {
       console.error('Error fetching last sync:', error);
