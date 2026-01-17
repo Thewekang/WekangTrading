@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { COMMON_TIMEZONES, getAllTimezones, getCurrentTimeInTimezone } from '@/lib/utils/timezones';
+import { User, Mail, Shield, Globe, Lock, Save } from 'lucide-react';
 
 interface AccountSummary {
   totalTrades: number;
@@ -36,6 +37,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [allTimezones, setAllTimezones] = useState<string[]>([]);
+
+  // Profile editing state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   // Timezone preferences state
   const [selectedTimezone, setSelectedTimezone] = useState('Asia/Kuala_Lumpur');
@@ -69,10 +75,36 @@ export default function SettingsPage() {
       if (response.ok) {
         const result = await response.json();
         setUserInfo(result.data);
+        setName(result.data.name);
+        setEmail(result.data.email);
         setSelectedTimezone(result.data.preferredTimezone || 'Asia/Kuala_Lumpur');
       }
     } catch (error) {
       console.error('Failed to fetch user info:', error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Failed to update profile');
+      }
+
+      showToast('Profile updated successfully', 'success');
+      setUserInfo(result.data);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update profile', 'error');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -213,43 +245,69 @@ export default function SettingsPage() {
 
       {/* Profile Information */}
       <Card className="p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Profile Information</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Profile Information
+        </h2>
         <div className="space-y-4">
           <div>
-            <Label>Name</Label>
+            <Label htmlFor="name">Name</Label>
             <Input
+              id="name"
               type="text"
-              value={userInfo?.name || ''}
-              disabled
-              className="bg-gray-50"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={userInfo?.role !== 'ADMIN'}
+              className={userInfo?.role !== 'ADMIN' ? 'bg-gray-50' : ''}
             />
-            <p className="text-xs text-gray-600 mt-1">Contact admin to change your name</p>
+            {userInfo?.role !== 'ADMIN' && (
+              <p className="text-xs text-gray-600 mt-1">Contact admin to change your name</p>
+            )}
           </div>
           <div>
-            <Label>Email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
+              id="email"
               type="email"
-              value={userInfo?.email || ''}
-              disabled
-              className="bg-gray-50"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={userInfo?.role !== 'ADMIN'}
+              className={userInfo?.role !== 'ADMIN' ? 'bg-gray-50' : ''}
             />
-            <p className="text-xs text-gray-600 mt-1">Contact admin to change your email</p>
+            {userInfo?.role !== 'ADMIN' && (
+              <p className="text-xs text-gray-600 mt-1">Contact admin to change your email</p>
+            )}
           </div>
           <div>
             <Label>Role</Label>
-            <Input
-              type="text"
-              value={userInfo?.role || ''}
-              disabled
-              className="bg-gray-50"
-            />
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-gray-500" />
+              <Input
+                type="text"
+                value={userInfo?.role || ''}
+                disabled
+                className="bg-gray-50"
+              />
+            </div>
           </div>
+          {userInfo?.role === 'ADMIN' && (
+            <Button
+              onClick={handleSaveProfile}
+              disabled={savingProfile || (name === userInfo?.name && email === userInfo?.email)}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {savingProfile ? 'Saving...' : 'Save Profile'}
+            </Button>
+          )}
         </div>
       </Card>
 
       {/* Timezone Preferences */}
       <Card className="p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Display Preferences</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Globe className="h-5 w-5" />
+          Display Preferences
+        </h2>
         <div className="space-y-4">
           <div>
             <Label htmlFor="timezone">Preferred Timezone</Label>
@@ -291,6 +349,7 @@ export default function SettingsPage() {
             onClick={handleSaveTimezone}
             disabled={savingTimezone || selectedTimezone === userInfo?.preferredTimezone}
           >
+            <Save className="mr-2 h-4 w-4" />
             {savingTimezone ? 'Saving...' : 'Save Timezone Preferences'}
           </Button>
         </div>
@@ -298,7 +357,10 @@ export default function SettingsPage() {
 
       {/* Change Password */}
       <Card className="p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">Change Password</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Lock className="h-5 w-5" />
+          Change Password
+        </h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <Label htmlFor="current-password">Current Password</Label>
@@ -335,13 +397,15 @@ export default function SettingsPage() {
             />
           </div>
           <Button type="submit" disabled={changingPassword}>
+            <Lock className="mr-2 h-4 w-4" />
             {changingPassword ? 'Changing Password...' : 'Change Password'}
           </Button>
         </form>
       </Card>
 
-      {/* Account Actions */}
-      <Card className="p-6 mb-6 border-red-200">
+      {/* Account Actions - Only show for non-admin users */}
+      {userInfo?.role !== 'ADMIN' && (
+        <Card className="p-6 mb-6 border-red-200">
         <h2 className="text-xl font-bold mb-4 text-red-600">Danger Zone</h2>
         <div className="space-y-4">
           <div>
@@ -359,6 +423,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+      )}
 
       {/* Reset Confirmation Modal */}
       {showResetModal && accountSummary && (
