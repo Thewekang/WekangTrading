@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import Link from 'next/link';
+import SettingsDropdown from '@/components/admin/SettingsDropdown';
 
 export default async function AdminLayout({
   children,
@@ -55,30 +56,7 @@ export default async function AdminLayout({
                 >
                   📊 Calendar
                 </Link>
-                <Link
-                  href="/admin/sop-types"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  SOP Types
-                </Link>
-                <Link
-                  href="/admin/invite-codes"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  Invite Codes
-                </Link>
-                <Link
-                  href="/admin/economic-calendar"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  📅 Calendar Settings
-                </Link>
-                <Link
-                  href="/admin/settings"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                >
-                  Settings
-                </Link>
+                <SettingsDropdown />
               </div>
             </div>
             <div className="flex items-center space-x-4">
