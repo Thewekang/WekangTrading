@@ -9,14 +9,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+**Admin Navigation & UI Enhancements**:
+- ✅ Settings dropdown menu in admin navigation (General, SOP Types, Invite Codes, Calendar)
+- ✅ Icons throughout admin interface (lucide-react)
+- ✅ Admin profile editing (name, email for admin users)
+- ✅ Admin General settings page
+- ✅ Separated calendar view from cron settings
+
+**Economic Calendar Monitoring**:
+- ✅ Cron job monitoring dashboard with countdown timer
+- ✅ Execution history (last 10 runs) with status, duration, errors
+- ✅ Real-time countdown to next cron execution
+- ✅ Auto-refresh (countdown 1s, logs 30s)
+- ✅ Database table: `cron_logs` for tracking
+
+**Calendar View**:
+- ✅ Dedicated admin calendar view page at `/admin/economic-calendar/view`
+- ✅ Event grouping by date with visual indicators
+- ✅ Impact bars (HIGH/MEDIUM/LOW)
+- ✅ Country flags and currency pairs
+
 ### Changed
 
 **Economic Calendar Optimization**:
-- 🔄 Changed cron job from weekly to weekday schedule (Mon-Fri)
+- 🔄 Changed cron job from weekly to weekdays-only (Mon-Fri)
 - ⏰ Runs at 05:00 UTC / 00:00 EST (US market start time)
 - 🚫 Skips weekends (no market activity)
 - 📉 Reduced fetch window from 14 days to 7 days (rolling window)
-- 📊 API usage: ~22 requests/month (within 50 request monthly limit)
+- 📊 API usage: ~22 requests/month (within 50 request monthly limit, 56% buffer)
+- 📅 Cron syntax: `0 5 * * 1-5` (previously: `0 0 * * 1`)
+
+**Admin Settings**:
+- 🎯 Admin users can now edit their own profile (name, email)
+- 🚫 Removed "Danger Zone" reset account for admin users
+- 🎨 Added icons to all settings sections
+
+### Fixed
+
+- 🐛 Fixed hydration errors (removed nested html/body tags in error.tsx)
+- 🐛 Fixed TimezoneProvider issue in admin pages
+- 🐛 Fixed 404 error for /admin/settings page
+- 🐛 Fixed dropdown positioning in admin navigation
+
+### Technical
+
+**Database Changes**:
+- New table: `cron_logs` (id, jobName, status, startedAt, completedAt, duration, itemsProcessed, errorCode, errorMessage)
+- Migration: `npm run drizzle:push` required
+
+**API Endpoints**:
+- `/api/admin/economic-calendar/cron-logs` - GET cron execution logs and next run time
+- Enhanced `/api/admin/economic-calendar/sync` - Now logs all executions to database
+
+**Files Created**:
+- `app/(admin)/admin/economic-calendar/view/page.tsx` - Calendar view page
+- `app/(admin)/admin/settings/page.tsx` - General settings page
+- `app/api/admin/economic-calendar/cron-logs/route.ts` - Cron logs API
+- `components/admin/SettingsDropdown.tsx` - Dropdown menu component
+- `lib/db/schema/cronLogs.ts` - Cron logs schema
+
+**Files Modified**:
+- `app/(admin)/layout.tsx` - Navigation with icons and dropdown
+- `app/(user)/settings/page.tsx` - Admin profile editing
+- `app/(admin)/admin/economic-calendar/page.tsx` - Monitoring dashboard
+- `lib/services/economicCalendarService.ts` - Fetch window optimization
+- `vercel.json` - Updated cron schedule
 
 ---
 
