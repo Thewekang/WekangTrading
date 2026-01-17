@@ -18,6 +18,25 @@ export default async function AdminSettingsPage() {
         </p>
       </div>
 
+      {/* Personal Account Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal Account Settings</CardTitle>
+          <CardDescription>Manage your profile, password, and preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <a 
+            href="/settings" 
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          >
+            Go to Profile Settings →
+          </a>
+          <p className="text-sm text-muted-foreground mt-3">
+            Change your password, timezone, and view your account information
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
