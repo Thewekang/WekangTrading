@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import Link from 'next/link';
 import SettingsDropdown from '@/components/admin/SettingsDropdown';
+import { LayoutDashboard, Users, TrendingUp, Calendar } from 'lucide-react';
 
 export default async function AdminLayout({
   children,
@@ -34,27 +35,31 @@ export default async function AdminLayout({
               <div className="hidden sm:ml-8 sm:flex sm:space-x-8 items-center">
                 <Link
                   href="/admin/overview"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-900 hover:border-gray-300"
+                  className="inline-flex items-center gap-1.5 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-900 hover:border-gray-300"
                 >
+                  <LayoutDashboard className="h-4 w-4" />
                   Overview
                 </Link>
                 <Link
                   href="/admin/users"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-1.5 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
+                  <Users className="h-4 w-4" />
                   Users
                 </Link>
                 <Link
                   href="/admin/trades"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-1.5 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
+                  <TrendingUp className="h-4 w-4" />
                   Trades
                 </Link>
                 <Link
                   href="/admin/economic-calendar/view"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-1.5 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
-                  📊 Calendar
+                  <Calendar className="h-4 w-4" />
+                  Calendar
                 </Link>
                 <SettingsDropdown />
               </div>
