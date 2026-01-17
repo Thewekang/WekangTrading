@@ -1,14 +1,21 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { syncEconomicEventsFromAPI, importEconomicEventsFromJSON } from '@/lib/services/economicCalendarService';
+import { db } from '@/lib/db';
+import { cronLogs } from '@/lib/db/schema';
 
 // POST /api/admin/economic-calendar/sync
 // Sync events from RapidAPI
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  const logId = `cron_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const isCronJob = request.headers.get('user-agent')?.includes('vercel-cron');
+
   try {
     const session = await auth();
 
-    if (!session || session.user.role !== 'ADMIN') {
+    // Allow cron jobs without authentication
+    if (!isCronJob && (!session || session.user.role !== 'ADMIN')) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } },
         { status: 403 }
@@ -20,15 +27,50 @@ export async function POST(request: Request) {
 
     // Handle API sync
     if (action === 'api' || !action) {
+      // Log start
+      await db.insert(cronLogs).values({
+        id: logId,
+        jobName: 'economic-calendar-sync',
+        status: 'RUNNING',
+        startedAt: new Date(),
+        message: 'Starting economic calendar sync from API',
+      });
+
       const result = await syncEconomicEventsFromAPI();
+      const duration = Date.now() - startTime;
 
       if (result.success) {
+        // Log success
+        await db.update(cronLogs)
+          .set({
+            status: 'SUCCESS',
+            completedAt: new Date(),
+            duration,
+            itemsProcessed: result.imported,
+            message: `Successfully imported ${result.imported} events from API`,
+          })
+          .where(eq(cronLogs.id, logId));
+
         return NextResponse.json({
           success: true,
           message: `Successfully imported ${result.imported} events from API`,
           data: { imported: result.imported },
         });
       } else {
+        // Log error
+        await db.update(cronLogs)
+          .set({
+            status: 'ERROR',
+            completedAt: new Date(),
+            duration,
+            itemsProcessed: 0,
+            errorCode: 'SYNC_FAILED',
+            errorMessage: result.error || 'Failed to sync events from API',
+            message: 'Sync failed',
+            details: JSON.stringify({ error: result.error }),
+          })
+          .where(eq(cronLogs.id, logId));
+
         return NextResponse.json(
           {
             success: false,
@@ -90,6 +132,29 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   } catch (error) {
+    const duration = Date.now() - startTime;
+    
+    // Log critical error
+    try {
+      await db.insert(cronLogs).values({
+        id: logId,
+        jobName: 'economic-calendar-sync',
+        status: 'ERROR',
+        startedAt: new Date(startTime),
+        completedAt: new Date(),
+        duration,
+        errorCode: 'INTERNAL_ERROR',
+        errorMessage: error instanceof Error ? error.message : 'An unexpected error occurred',
+        message: 'Critical error during sync',
+        details: JSON.stringify({ 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined 
+        }),
+      });
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+
     console.error('Error in economic calendar sync:', error);
     return NextResponse.json(
       {
