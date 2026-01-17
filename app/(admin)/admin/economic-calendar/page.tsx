@@ -221,10 +221,12 @@ export default function EconomicCalendarAdminPage() {
             Sync economic events from API or manually import from JSON
           </p>
         </div>
-        <Button variant="outline" onClick={() => window.location.href = '/calendar'}>
-          <Calendar className="mr-2 h-4 w-4" />
-          View Calendar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.location.href = '/admin/economic-calendar/view'}>
+            <Calendar className="mr-2 h-4 w-4" />
+            View Calendar
+          </Button>
+        </div>
       </div>
 
       {/* Last Sync Info */}
