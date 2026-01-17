@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/admin/economic-calendar/sync?action=api",
-      "schedule": "0 0 * * 1"
+      "schedule": "0 2 * * *"
     }
   ]
 }

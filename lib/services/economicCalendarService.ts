@@ -3,6 +3,9 @@ import { economicEvents, type NewEconomicEvent } from '@/lib/db/schema';
 import { eq, gte, lte, and, desc } from 'drizzle-orm';
 
 // RapidAPI configuration - Multilingual Economic Calendar API by TrueData
+// Monthly limit: 50 requests
+// Cron schedule: Daily at 02:00 UTC (~30 requests/month)
+// Fetch range: 7 days ahead (rolling window updated daily)
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 const RAPIDAPI_HOST = 'multilingual-economic-calendar-api-by-truedata.p.rapidapi.com';
 
@@ -29,7 +32,7 @@ interface RapidAPIEvent {
 /**
  * Fetch economic events from RapidAPI Multilingual Economic Calendar
  * @param fromDate - Start date (default: today)
- * @param toDate - End date (default: 14 days from now)
+ * @param toDate - End date (default: 7 days from now for daily sync)
  * @param countryId - Country ID (default: '5' for USA)
  * @returns Array of economic events
  */
@@ -43,7 +46,7 @@ export async function fetchEconomicEventsFromAPI(
   }
 
   const from = fromDate || new Date();
-  const to = toDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days from now
+  const to = toDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now (optimized for daily sync)
 
   // Only fetch HIGH importance events
   const url = `https://${RAPIDAPI_HOST}/economic-events/filter?date_from=${from.toISOString().split('T')[0]}&date_to=${to.toISOString().split('T')[0]}&country_id=${countryId}&importance=high&lang=en`;
