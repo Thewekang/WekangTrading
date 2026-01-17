@@ -12,9 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 **Economic Calendar Optimization**:
-- 🔄 Changed cron job from weekly to daily (02:00 UTC) to optimize API usage
+- 🔄 Changed cron job from weekly to weekday schedule (Mon-Fri)
+- ⏰ Runs at 05:00 UTC / 00:00 EST (US market start time)
+- 🚫 Skips weekends (no market activity)
 - 📉 Reduced fetch window from 14 days to 7 days (rolling window)
-- 📊 API usage: ~30 requests/month (within 50 request monthly limit)
+- 📊 API usage: ~22 requests/month (within 50 request monthly limit)
 
 ---
 

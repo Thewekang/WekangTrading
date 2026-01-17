@@ -4,8 +4,8 @@ import { eq, gte, lte, and, desc } from 'drizzle-orm';
 
 // RapidAPI configuration - Multilingual Economic Calendar API by TrueData
 // Monthly limit: 50 requests
-// Cron schedule: Daily at 02:00 UTC (~30 requests/month)
-// Fetch range: 7 days ahead (rolling window updated daily)
+// Cron schedule: Weekdays at 05:00 UTC / 00:00 EST (US market start, Mon-Fri, ~22 requests/month)
+// Fetch range: 7 days ahead (rolling window updated on trading days)
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 const RAPIDAPI_HOST = 'multilingual-economic-calendar-api-by-truedata.p.rapidapi.com';
 
