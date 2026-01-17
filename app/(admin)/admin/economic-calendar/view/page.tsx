@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useTimezone } from '@/contexts/TimezoneContext';
 import { Settings, Calendar as CalendarIcon } from 'lucide-react';
 import {
   Table,
@@ -34,7 +33,6 @@ interface GroupedEvents {
 }
 
 export default function AdminCalendarViewPage() {
-  const { formatDate } = useTimezone();
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,15 +57,11 @@ export default function AdminCalendarViewPage() {
   const groupEventsByDate = (events: EconomicEvent[]): GroupedEvents => {
     return events.reduce((acc, event) => {
       const eventDate = new Date(event.eventDate);
-      const dateKey = formatDate(eventDate, {
+      const dateKey = eventDate.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        hour: undefined,
-        minute: undefined,
-        second: undefined,
-        hour12: undefined,
       });
       
       if (!acc[dateKey]) acc[dateKey] = [];
@@ -77,7 +71,7 @@ export default function AdminCalendarViewPage() {
   };
 
   const formatTime = (dateStr: string) => {
-    return formatDate(new Date(dateStr), {
+    return new Date(dateStr).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
