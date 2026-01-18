@@ -1,8 +1,8 @@
 # WekangTradingJournal Design Summary
 
-**Document Version**: 2.1  
-**Last Updated**: January 9, 2026  
-**Status**: ✅ Phase 2 Complete - Phase 3 In Progress
+**Document Version**: 3.0  
+**Last Updated**: January 18, 2026  
+**Status**: ✅ v1.2.0 Production Release
 
 ## 🏍️💰 App Icon: Fast motorcycle with money element
 
@@ -19,10 +19,11 @@ Complete design documentation has been created for a **Trading Performance Track
 - ✅ **Frontend**: Next.js 15 (App Router) + TypeScript + Tailwind CSS
 - ✅ **Backend**: Next.js API Routes (serverless)
 - ✅ **Database**: Turso (SQLite for serverless/edge)
-- ✅ **ORM**: Prisma
+- ✅ **ORM**: Drizzle ORM
 - ✅ **Authentication**: NextAuth.js v5
 - ✅ **Charts**: Recharts
 - ✅ **UI Components**: shadcn/ui
+- ✅ **External APIs**: RapidAPI (Economic Calendar)
 
 **CRITICAL**: Traditional SQLite files are NOT compatible with Vercel's serverless architecture. Turso is the only viable SQLite-compatible solution for this deployment.
 
@@ -44,14 +45,22 @@ app/
 ├── (auth)/          → Login, Register
 ├── (user)/          → Dashboard, Individual/Bulk Trade Entry
 │   ├── analytics/   → Session Analysis, Hourly Performance
+│   ├── badges/      → Badge progress and achievements
 ├── (admin)/         → Admin Dashboard, User Management
+│   ├── overview/    → System statistics and charts
+│   ├── economic-calendar/ → Event management and sync
+│   ├── settings/    → Profile editing, cron monitoring
 └── api/
     ├── trades/individual/  → Individual trade CRUD
     ├── trades/bulk/        → Bulk trade entry
     ├── summaries/daily/    → Fast dashboard queries
-    └── stats/              → Session + Hourly analytics
+    ├── stats/              → Session + Hourly analytics
+    ├── badges/             → Badge system APIs
+    ├── economic-calendar/  → Calendar event APIs
+    └── admin/settings/     → Admin profile management
 
 lib/
+├── db/schema/       → Drizzle ORM schemas (SSOT)
 ├── constants.ts     → SSOT for enums (includes MarketSession)
 ├── types.ts         → SSOT for TypeScript types
 ├── validations.ts   → SSOT for Zod schemas
@@ -59,6 +68,8 @@ lib/
     ├── individualTradeService.ts
     ├── dailySummaryService.ts
     ├── sessionAnalysisService.ts
+    ├── badgeService.ts
+    ├── economicCalendarService.ts
 ```
 
 ---
@@ -69,8 +80,13 @@ lib/
 2. **individual_trades** - Each trade with timestamp, result, SOP, profit/loss USD, auto-calculated market session
 3. **daily_summaries** - Auto-calculated daily aggregations for fast queries
 4. **user_targets** - Customizable performance targets
-5. **sessions** - Authentication sessions
-6. **accounts** - OAuth accounts (future)
+5. **badges** - Achievement badges for gamification
+6. **trader_badges** - User badge progress and awards
+7. **trader_streaks** - Win/loss streak tracking
+8. **economic_events** - Economic calendar data from RapidAPI
+9. **cron_logs** - Scheduled job execution logs
+10. **sessions** - Authentication sessions
+11. **accounts** - OAuth accounts (future)
 
 **Key Design Change**: 
 - **OLD**: Single `trades` table with daily totals (win count, loss count)
@@ -82,7 +98,10 @@ lib/
 - **Daily summaries auto-update** (trigger on individual trade changes)
 - CHECK constraints for data integrity
 - Optimized indexes for session and hourly queries
-- Prisma ORM for type-safe access
+- **Drizzle ORM** for type-safe access with native LibSQL support
+- **Gamification system** with badges and streaks
+- **Economic calendar** integration via RapidAPI
+- **Cron job monitoring** for automated tasks
 
 **Sample Individual Trade Record**:
 ```typescript
@@ -230,6 +249,9 @@ lib/
 ✅ Visual charts and graphs  
 ✅ SOP compliance tracking  
 ✅ Separate win rates for SOP vs non-SOP trades  
+✅ **Gamification system**: Badges and achievements to motivate traders  
+✅ **Economic calendar**: Track high-impact events affecting trading  
+✅ **Streak tracking**: Monitor consecutive wins/losses  
 
 ### For Admins
 ✅ Monitor all user performance (with session data)  
@@ -237,6 +259,10 @@ lib/
 ✅ Comparison charts across users  
 ✅ User management (view, edit, delete)  
 ✅ System-wide statistics  
+✅ **Economic calendar management**: Import and sync events  
+✅ **Cron job monitoring**: Track scheduled task execution  
+✅ **Badge management**: Create and manage achievements  
+✅ **Enhanced navigation**: Settings dropdown with profile editing  
 
 ---
 
@@ -476,12 +502,13 @@ This design strictly adheres to your non-negotiable rules:
 
 ---
 
-**✅ IMPLEMENTATION IN PROGRESS - Phase 2 Complete (60%)**  
-**Next Phase**: Phase 3 - Dashboard & Analytics  
-**See**: [RESUME.md](../RESUME.md) for quick restart guide
+**✅ v1.2.0 PRODUCTION RELEASE COMPLETE**  
+**Released**: January 17, 2026  
+**Next Version**: v1.2.1 (Bug fixes and refinements)  
+**See**: [CHANGELOG.md](../CHANGELOG.md) for complete release notes
 
 ---
 
 *Document prepared by: Development Team*  
-*Date: January 9, 2026*  
-*Version: 2.1*
+*Date: January 18, 2026*  
+*Version: 3.0*

@@ -1,9 +1,9 @@
 # API Specification
 
 ## Document Control
-- **Version**: 2.2
-- **Last Updated**: January 12, 2026
-- **Implementation Status**: ✅ Production (v0.4.0)
+- **Version**: 3.0
+- **Last Updated**: January 18, 2026
+- **Implementation Status**: ✅ Production (v1.2.0)
 - **Base URL**: `/api`
 
 ---
@@ -249,6 +249,75 @@ Cookie: next-auth.session-token=<session_token>
       "total": 50,
       "totalPages": 3
     }
+  }
+}
+```
+
+---
+
+## 3.5 Badge System Endpoints
+
+### 3.5.1 GET `/api/badges`
+**Description**: Get all available badges.
+
+**Access**: Authenticated (USER, ADMIN)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "bdg_first_win",
+      "name": "First Win",
+      "description": "Achieve your first winning trade",
+      "category": "MILESTONE",
+      "icon": "🏆",
+      "requirement": 1,
+      "sortOrder": 1
+    }
+  ]
+}
+```
+
+### 3.5.2 GET `/api/badges/user`
+**Description**: Get current user's badge progress.
+
+**Access**: Authenticated (USER, ADMIN)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "badgeId": "bdg_first_win",
+      "progress": 1,
+      "awarded": true,
+      "awardedAt": "2026-01-15T10:30:00Z",
+      "badge": {
+        "name": "First Win",
+        "icon": "🏆"
+      }
+    }
+  ]
+}
+```
+
+### 3.5.3 GET `/api/badges/progress`
+**Description**: Get detailed progress for all badges.
+
+**Access**: Authenticated (USER, ADMIN)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": {
+    "awarded": 5,
+    "inProgress": 3,
+    "notStarted": 12,
+    "badges": [...]
   }
 }
 ```
@@ -1280,6 +1349,181 @@ Market sessions are **auto-calculated** server-side from timestamp:
 
 ---
 
+## 15. Economic Calendar Endpoints
+
+### 15.1 GET `/api/economic-calendar/events`
+**Description**: Get economic events for date range.
+
+**Access**: Authenticated (USER, ADMIN)
+
+**Query Parameters**:
+- `startDate`: ISO date string (required)
+- `endDate`: ISO date string (required)
+- `impact`: "HIGH" | "MEDIUM" | "LOW" (optional filter)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "evt_123",
+      "title": "Non-Farm Payrolls",
+      "country": "US",
+      "date": "2026-01-17",
+      "time": "13:30",
+      "impact": "HIGH",
+      "forecast": "200K",
+      "previous": "195K"
+    }
+  ]
+}
+```
+
+### 15.2 POST `/api/admin/economic-calendar/sync`
+**Description**: Manually sync calendar from RapidAPI.
+
+**Access**: Authenticated (ADMIN)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": {
+    "synced": 45,
+    "updated": 12,
+    "skipped": 3
+  },
+  "message": "Calendar synced successfully"
+}
+```
+
+### 15.3 POST `/api/admin/economic-calendar/import`
+**Description**: Import events from CSV file.
+
+**Access**: Authenticated (ADMIN)
+
+**Request Body**: FormData with CSV file
+
+**Success Response (201)**:
+```json
+{
+  "success": true,
+  "data": {
+    "imported": 100,
+    "duplicates": 5
+  }
+}
+```
+
+### 15.4 GET `/api/admin/economic-calendar/cron-logs`
+**Description**: Get cron job execution logs.
+
+**Access**: Authenticated (ADMIN)
+
+**Query Parameters**:
+- `page`: number (default: 1)
+- `limit`: number (default: 50)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "id": "log_123",
+        "jobName": "sync-calendar",
+        "status": "SUCCESS",
+        "startedAt": "2026-01-18T00:00:00Z",
+        "completedAt": "2026-01-18T00:00:05Z",
+        "duration": 5000,
+        "recordsProcessed": 45,
+        "errorMessage": null
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "total": 100,
+      "totalPages": 2
+    }
+  }
+}
+```
+
+---
+
+## 16. Admin Settings Endpoints
+
+### 16.1 GET `/api/admin/settings/profile`
+**Description**: Get admin profile (same as `/api/users/me` but admin-specific route).
+
+**Access**: Authenticated (ADMIN)
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "usr_admin",
+    "email": "admin@example.com",
+    "name": "Admin User",
+    "role": "ADMIN",
+    "createdAt": "2026-01-01T00:00:00Z"
+  }
+}
+```
+
+### 16.2 PATCH `/api/admin/settings/profile`
+**Description**: Update admin profile.
+
+**Access**: Authenticated (ADMIN)
+
+**Request Body**:
+```typescript
+{
+  "name"?: string,
+  "email"?: string
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "usr_admin",
+    "name": "Updated Name",
+    "email": "newemail@example.com"
+  },
+  "message": "Profile updated successfully"
+}
+```
+
+### 16.3 PATCH `/api/admin/settings/password`
+**Description**: Change admin password (same as `/api/users/me/password`).
+
+**Access**: Authenticated (ADMIN)
+
+**Request Body**:
+```typescript
+{
+  "currentPassword": string,
+  "newPassword": string
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "message": "Password updated successfully"
+}
+```
+
+---
+
 ## Acceptance Criteria
 
 - ✅ All endpoints documented with examples
@@ -1295,7 +1539,7 @@ Market sessions are **auto-calculated** server-side from timestamp:
 
 ---
 
-**Status**: UPDATED - Individual Trade Tracking Model
-**Version**: 2.0
-**Next Document**: System Architecture (needs update)
+**Status**: ✅ PRODUCTION - v1.2.0 Complete
+**Version**: 3.0
+**Next Document**: [Database Schema](./03-DATABASE-SCHEMA.md)
 

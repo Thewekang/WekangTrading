@@ -1,8 +1,8 @@
 # Admin Features Documentation
 
-**Document Version**: 1.0  
-**Last Updated**: January 12, 2026  
-**Status**: ✅ Production (v0.4.0)
+**Document Version**: 2.0  
+**Last Updated**: January 18, 2026  
+**Status**: ✅ Production (v1.2.0)
 
 ---
 
@@ -13,9 +13,13 @@
 3. [User Management](#user-management)
 4. [Performance Monitoring](#performance-monitoring)
 5. [Coaching Tools](#coaching-tools)
-6. [Security & Authorization](#security--authorization)
-7. [API Endpoints](#api-endpoints)
-8. [Visual Reference](#visual-reference)
+6. [Economic Calendar Management](#economic-calendar-management)
+7. [Cron Job Monitoring](#cron-job-monitoring)
+8. [Settings Dropdown Navigation](#settings-dropdown-navigation)
+9. [Admin Profile Editing](#admin-profile-editing)
+10. [Security & Authorization](#security--authorization)
+11. [API Endpoints](#api-endpoints)
+12. [Visual Reference](#visual-reference)
 
 ---
 
@@ -31,6 +35,10 @@ WekangTradingJournal includes a comprehensive admin panel for monitoring team pe
 - **User Management**: Search, sort, and analyze individual users
 - **Coaching Dashboard**: SOP analysis and best practices identification
 - **Calendar View**: User activity heatmap with performance indicators
+- **Economic Calendar Management**: Import and sync economic events
+- **Cron Job Monitoring**: Track scheduled task execution
+- **Settings Navigation**: Dropdown menu for admin settings
+- **Profile Management**: Edit admin name, email, and password
 - **Role Separation**: Admins cannot trade, users cannot access admin panel
 
 ---
@@ -268,6 +276,281 @@ WekangTradingJournal includes a comprehensive admin panel for monitoring team pe
 - Users select SOP type during trade entry
 - Defaults to "Others" if no specific type selected
 - Admin can analyze which SOP types perform best
+
+---
+
+## Economic Calendar Management
+
+**Route**: `/admin/economic-calendar`  
+**Access**: ADMIN role only
+
+### Features
+
+**Event Management**:
+- View all upcoming economic events
+- Filter by impact (HIGH/MEDIUM/LOW)
+- Filter by country
+- Search by event title
+- Sort by date/time
+
+**Data Sources**:
+1. **RapidAPI Integration**: Automated daily sync
+2. **CSV Import**: Bulk import from file
+3. **Manual Sync**: On-demand API fetch
+
+**Sync Operations**:
+- **Daily Automatic Sync**: Runs at 00:00 UTC via cron job
+- **Manual Sync Button**: Fetch latest data immediately
+- **CSV Import**: Upload custom event list
+
+### Sync Dashboard
+
+**Statistics Cards**:
+- Total Events (next 7 days)
+- Last Sync Time
+- High Impact Events
+- Sync Status (success/error)
+
+**Sync History Table**:
+- Sync timestamp
+- Source (API/CSV/Manual)
+- Records synced
+- Records updated
+- Status
+- Duration
+
+**Manual Sync Button**:
+- Triggers immediate API call to RapidAPI
+- Shows loading state during sync
+- Displays results (synced, updated, skipped)
+- Error handling with retry option
+
+### CSV Import
+
+**Upload Interface**:
+- Drag-and-drop file upload
+- CSV format validation
+- Preview imported data
+- Duplicate detection
+
+**CSV Format**:
+```csv
+title,country,date,time,impact,forecast,previous,currency
+Non-Farm Payrolls,US,2026-01-17,13:30,HIGH,200K,195K,USD
+```
+
+**Validation Rules**:
+- All required fields present
+- Valid date format (YYYY-MM-DD)
+- Valid time format (HH:MM)
+- Impact must be HIGH/MEDIUM/LOW
+- Country code exists
+- No duplicate events
+
+**Import Results**:
+- Total rows processed
+- Successfully imported
+- Duplicates skipped
+- Errors (with row numbers)
+
+### API Endpoints
+
+- `GET /api/admin/economic-calendar/events` - List all events
+- `POST /api/admin/economic-calendar/sync` - Manual sync
+- `POST /api/admin/economic-calendar/import` - CSV upload
+- `DELETE /api/admin/economic-calendar/events/[id]` - Delete event
+- `GET /api/admin/economic-calendar/cron-logs` - Sync history
+
+---
+
+## Cron Job Monitoring
+
+**Route**: `/admin/settings/cron-monitoring`  
+**Access**: ADMIN role only
+
+### Purpose
+
+Monitor automated scheduled tasks (cron jobs) to ensure they execute successfully and troubleshoot failures.
+
+### Monitored Jobs
+
+1. **sync-calendar**: Daily economic calendar sync (00:00 UTC)
+2. **recalc-summaries**: Daily summary recalculation (future)
+3. **cleanup-old-data**: Data retention cleanup (future)
+
+### Dashboard Features
+
+**Statistics Overview**:
+- Total Executions (24 hours)
+- Success Rate (%)
+- Average Duration (ms)
+- Last Run Timestamp
+- Failed Jobs (24 hours)
+
+**Execution Logs Table**:
+- Job Name (with icon)
+- Status (🟢 SUCCESS / 🔴 ERROR / 🟡 IN_PROGRESS)
+- Started At
+- Completed At
+- Duration (ms)
+- Records Processed
+- Error Message (if failed)
+
+**Filtering**:
+- Filter by job name
+- Filter by status
+- Date range selector
+- Search by error message
+
+**Status Indicators**:
+- 🟢 **SUCCESS**: Job completed without errors
+- 🔴 **ERROR**: Job failed with error
+- 🟡 **IN_PROGRESS**: Job currently running
+- ⏸️ **TIMEOUT**: Job exceeded maximum duration
+
+### Log Details
+
+**Click on log row to expand**:
+- Full error stack trace (if error)
+- Detailed execution metrics
+- Related records (e.g., events synced)
+- Retry button (if failed)
+
+### Alerts (Future Enhancement)
+
+- Email notification on consecutive failures (3+)
+- Slack/Discord webhook integration
+- SMS alerts for critical jobs
+- Custom alert thresholds per job
+
+### API Endpoints
+
+- `GET /api/admin/settings/cron-logs` - List logs (paginated)
+- `GET /api/admin/settings/cron-logs/[id]` - Log details
+- `GET /api/admin/settings/cron-stats` - Statistics
+- `POST /api/admin/settings/cron-logs/[id]/retry` - Retry failed job
+
+---
+
+## Settings Dropdown Navigation
+
+**Location**: Admin navigation bar (top-right corner)  
+**Access**: ADMIN role only
+
+### Features
+
+Enhanced admin navigation with a settings dropdown menu next to the user profile icon.
+
+**Dropdown Menu Items**:
+1. **Profile Settings** → `/admin/settings/profile`
+2. **Cron Job Monitoring** → `/admin/settings/cron-monitoring`
+3. **System Settings** → `/admin/settings/system` (future)
+
+**UI Components**:
+- Settings gear icon (⚙️)
+- Dropdown trigger on click
+- Smooth animation
+- Keyboard navigation support
+- Mobile-responsive
+
+**Implementation**:
+```tsx
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon">
+      <Settings className="h-5 w-5" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem asChild>
+      <Link href="/admin/settings/profile">
+        <User className="mr-2 h-4 w-4" />
+        Profile Settings
+      </Link>
+    </DropdownMenuItem>
+    <DropdownMenuItem asChild>
+      <Link href="/admin/settings/cron-monitoring">
+        <Clock className="mr-2 h-4 w-4" />
+        Cron Jobs
+      </Link>
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+---
+
+## Admin Profile Editing
+
+**Route**: `/admin/settings/profile`  
+**Access**: ADMIN role only
+
+### Features
+
+**View Profile Information**:
+- Name
+- Email
+- Role (ADMIN)
+- Account created date
+- Last login (future)
+
+**Edit Profile**:
+- Change Name
+- Change Email (with validation)
+- Upload Profile Picture (future)
+
+**Change Password**:
+- Current Password (required)
+- New Password (min 8 chars)
+- Confirm New Password (must match)
+- Password strength indicator
+
+**Form Validation**:
+- Email format validation
+- Password strength requirements
+- Duplicate email check
+- Current password verification
+
+### UI Layout
+
+**Profile Card**:
+```
+┌──────────────────────────────────────┐
+│ Admin Profile                        │
+├──────────────────────────────────────┤
+│ Name:    [John Admin        ] [Edit] │
+│ Email:   [admin@example.com ] [Edit] │
+│ Role:    ADMIN                       │
+│ Created: January 1, 2026             │
+└──────────────────────────────────────┘
+```
+
+**Password Change Section**:
+```
+┌──────────────────────────────────────┐
+│ Change Password                      │
+├──────────────────────────────────────┤
+│ Current Password: [*************]    │
+│ New Password:     [*************]    │
+│ Confirm Password: [*************]    │
+│                                      │
+│ [Cancel]  [Update Password]          │
+└──────────────────────────────────────┘
+```
+
+### API Endpoints
+
+- `GET /api/admin/settings/profile` - Get admin profile
+- `PATCH /api/admin/settings/profile` - Update name/email
+- `PATCH /api/admin/settings/password` - Change password
+
+### Security Features
+
+- Current password verification required
+- Password hashing (bcrypt)
+- Session refresh after password change
+- Email change requires re-authentication (future)
+- Audit log for profile changes (future)
 
 ---
 
@@ -610,6 +893,6 @@ if (!session || session.user.role !== 'ADMIN') {
 
 ---
 
-**Last Updated**: January 12, 2026  
-**Version**: 1.0  
-**Status**: ✅ Production
+**Last Updated**: January 18, 2026  
+**Version**: 2.0  
+**Status**: ✅ Production (v1.2.0)

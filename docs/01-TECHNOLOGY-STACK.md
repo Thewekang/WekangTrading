@@ -1,8 +1,8 @@
 # Technology Stack Recommendation
 
-**Document Version**: 2.3  
-**Last Updated**: January 12, 2026  
-**Implementation Status**: ✅ Production Deployed (v0.4.0)
+**Document Version**: 2.4  
+**Last Updated**: January 18, 2026  
+**Implementation Status**: ✅ Production Deployed (v1.2.0)
 
 ## Overview
 This document outlines the recommended technology stack for the WekangTradingJournal performance tracking system.
@@ -95,6 +95,13 @@ This document outlines the recommended technology stack for the WekangTradingJou
   - Simple API
   - Supports bar charts, line charts, pie charts
   - Lightweight alternative: **Chart.js** with react-chartjs-2
+
+### External APIs
+- **Economic Calendar**: **RapidAPI**
+  - Real-time economic event data
+  - High-impact event tracking
+  - Automated daily sync via cron jobs
+  - Free tier: 500 requests/month
 
 ### Form Handling
 - **Library**: **React Hook Form**
@@ -260,5 +267,5 @@ WekangTradingJournal/
 ---
 
 **Status**: ✅ APPROVED & IMPLEMENTED  
-**Current Version**: 0.2.0 (Phase 2 Complete)  
+**Current Version**: v1.2.0 (Production)  
 **Next Document**: [System Architecture Design](./02-SYSTEM-ARCHITECTURE.md)
