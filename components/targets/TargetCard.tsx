@@ -8,14 +8,7 @@ import { memo, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
-import type { UserTarget } from '@/lib/db/schema';
-
-// Type for target with calculated progress
-type TargetWithProgress = UserTarget & {
-  currentValue: number;
-  progress: number;
-  isCompleted: boolean;
-};
+import type { TargetWithProgress } from '@/lib/services/targetService';
 
 interface TargetCardProps {
   target: TargetWithProgress;
@@ -29,7 +22,6 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-  const { progress } = target;
 
   // Check if target is in the future
   const { isFutureTarget, daysUntilStart } = useMemo(() => {
@@ -51,9 +43,9 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
     'behind': { bg: 'bg-red-100', text: 'text-red-800', label: '⚠ Behind' },
     'completed': { bg: 'bg-blue-100', text: 'text-blue-800', label: '✓ Completed' },
     'failed': { bg: 'bg-gray-100', text: 'text-gray-800', label: '✗ Failed' },
-  };
+  } as const;
 
-  const status = statusConfig[progress.status];
+  const status = statusConfig[target.progress.status];
 
   // Progress bar color based on progress percentage
   const getProgressColor = (progressPercent: number, isOnTrack: boolean) => {
@@ -173,7 +165,7 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">Days Remaining</span>
           <span className="font-semibold text-gray-900">
-            {progress.daysRemaining} / {progress.daysTotal}
+            {target.progress.daysRemaining} / {target.progress.daysTotal}
           </span>
         </div>
       </div>
@@ -183,17 +175,17 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-gray-700 font-medium">Win Rate</span>
           <span className="text-gray-900 font-semibold">
-            {progress.currentWinRate}% / {target.targetWinRate}%
+            {target.progress.currentWinRate}% / {target.targetWinRate}%
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all ${getProgressColor(progress.winRateProgress, progress.isWinRateOnTrack)}`}
-            style={{ width: `${Math.min(progress.winRateProgress, 100)}%` }}
+            className={`h-2 rounded-full transition-all ${getProgressColor(target.progress.winRateProgress, target.progress.isWinRateOnTrack)}`}
+            style={{ width: `${Math.min(target.progress.winRateProgress, 100)}%` }}
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          {progress.winRateProgress.toFixed(1)}% of target achieved
+          {target.progress.winRateProgress.toFixed(1)}% of target achieved
         </p>
       </div>
 
@@ -202,37 +194,37 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-gray-700 font-medium">SOP Compliance</span>
           <span className="text-gray-900 font-semibold">
-            {progress.currentSopRate}% / {target.targetSopRate}%
+            {target.progress.currentSopRate}% / {target.targetSopRate}%
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all ${getProgressColor(progress.sopRateProgress, progress.isSopRateOnTrack)}`}
-            style={{ width: `${Math.min(progress.sopRateProgress, 100)}%` }}
+            className={`h-2 rounded-full transition-all ${getProgressColor(target.progress.sopRateProgress, target.progress.isSopRateOnTrack)}`}
+            style={{ width: `${Math.min(target.progress.sopRateProgress, 100)}%` }}
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          {progress.sopRateProgress.toFixed(1)}% of target achieved
+          {target.progress.sopRateProgress.toFixed(1)}% of target achieved
         </p>
       </div>
 
       {/* Profit Progress (if set) */}
-      {target.targetProfitUsd && progress.profitProgress !== null && (
+      {target.targetProfitUsd && target.progress.profitProgress !== null && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-gray-700 font-medium">Profit</span>
             <span className="text-gray-900 font-semibold">
-              ${progress.currentProfitUsd.toFixed(2)} / ${target.targetProfitUsd.toFixed(2)}
+              ${target.progress.currentProfitUsd.toFixed(2)} / ${target.targetProfitUsd.toFixed(2)}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition-all ${getProgressColor(progress.profitProgress, progress.isProfitOnTrack ?? false)}`}
-              style={{ width: `${Math.min(progress.profitProgress, 100)}%` }}
+              className={`h-2 rounded-full transition-all ${getProgressColor(target.progress.profitProgress, target.progress.isProfitOnTrack ?? false)}`}
+              style={{ width: `${Math.min(target.progress.profitProgress, 100)}%` }}
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            {progress.profitProgress.toFixed(1)}% of target achieved
+            {target.progress.profitProgress.toFixed(1)}% of target achieved
           </p>
         </div>
       )}
@@ -247,7 +239,7 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
       {/* Actions */}
       <div className="flex gap-2 mt-4">
         {/* Mark Complete Button - Only show for active, non-completed targets */}
-        {progress.status !== 'completed' && progress.status !== 'failed' && (
+        {target.progress.status !== 'completed' && target.progress.status !== 'failed' && (
           <button
             onClick={() => setShowCompleteConfirm(true)}
             disabled={isCompleting}
@@ -283,11 +275,11 @@ const TargetCard = memo(({ target }: TargetCardProps) => {
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Win Rate:</span>
-                  <span className="font-medium">{progress.currentWinRate}% / {target.targetWinRate}%</span>
+                  <span className="font-medium">{target.progress.currentWinRate}% / {target.targetWinRate}%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">SOP Compliance:</span>
-                  <span className="font-medium">{progress.currentSopRate}% / {target.targetSopRate}%</span>
+                  <span className="font-medium">{target.progress.currentSopRate}% / {target.targetSopRate}%</span>
                 </div>
               </div>
             </div>

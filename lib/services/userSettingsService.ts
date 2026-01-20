@@ -12,8 +12,7 @@ import {
   userBadges,
   userStats,
   streaks,
-  motivationalMessages,
-  notifications
+  motivationalMessages
 } from '@/lib/db/schema';
 import { eq, count } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
@@ -67,7 +66,6 @@ export async function resetUserAccount(userId: string): Promise<{
   deletedSummaries: number;
   deletedTargets: number;
   deletedBadges: number;
-  deletedNotifications: number;
 }> {
   // Delete all user data in correct order to avoid FK constraints
   
@@ -122,25 +120,11 @@ export async function resetUserAccount(userId: string): Promise<{
     .where(eq(userStats.userId, userId));
   
   // 7. Delete motivational messages
-  const [notificationsCountBefore] = await db
-    .select({ count: count() })
-    .from(motivationalMessages)
-    .where(eq(motivationalMessages.userId, userId));
-  
   await db
     .delete(motivationalMessages)
     .where(eq(motivationalMessages.userId, userId));
   
-  // 8. Delete notifications (if exists)
-  try {
-    await db
-      .delete(notifications)
-      .where(eq(notifications.userId, userId));
-  } catch (error) {
-    // Notifications table might not exist yet, ignore error
-  }
-  
-  // 9. Increment reset count
+  // 8. Increment reset count
   const [user] = await db
     .select({ resetCount: users.resetCount })
     .from(users)
@@ -157,7 +141,6 @@ export async function resetUserAccount(userId: string): Promise<{
     deletedSummaries: summariesCountBefore?.count || 0,
     deletedTargets: targetsCountBefore?.count || 0,
     deletedBadges: badgesCountBefore?.count || 0,
-    deletedNotifications: notificationsCountBefore?.count || 0,
   };
 }
 
@@ -169,9 +152,9 @@ export async function getUserAccountSummary(userId: string): Promise<{
   totalSummaries: number;
   totalTargets: number;
   totalBadges: number;
-  totalNotifications: number;
+  totalMessages: number;
 }> {
-  const [tradesResult, summariesResult, targetsResult, badgesResult, notificationsResult] = await Promise.all([
+  const [tradesResult, summariesResult, targetsResult, badgesResult, messagesResult] = await Promise.all([
     db.select({ count: count() }).from(individualTrades).where(eq(individualTrades.userId, userId)),
     db.select({ count: count() }).from(dailySummaries).where(eq(dailySummaries.userId, userId)),
     db.select({ count: count() }).from(userTargets).where(eq(userTargets.userId, userId)),
@@ -184,6 +167,6 @@ export async function getUserAccountSummary(userId: string): Promise<{
     totalSummaries: summariesResult[0]?.count || 0,
     totalTargets: targetsResult[0]?.count || 0,
     totalBadges: badgesResult[0]?.count || 0,
-    totalNotifications: notificationsResult[0]?.count || 0,
+    totalMessages: messagesResult[0]?.count || 0,
   };
 }
