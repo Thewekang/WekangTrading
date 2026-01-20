@@ -1,12 +1,21 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { getPersonalStats, getDailyTrends, getSessionStats, getHourlyStats } from '@/lib/services/statsService';
 import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
-import SessionComparisonChart from '@/components/charts/SessionComparisonChart';
-import HourlyHeatmap from '@/components/charts/HourlyHeatmap';
+import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import TargetProgressCard from '@/components/dashboard/TargetProgressCard';
+
+// Dynamic imports for chart components (lazy loading)
+const SessionComparisonChart = dynamic(() => import('@/components/charts/SessionComparisonChart'), {
+  loading: () => <ChartSkeleton />
+});
+
+const HourlyHeatmap = dynamic(() => import('@/components/charts/HourlyHeatmap'), {
+  loading: () => <ChartSkeleton />
+});
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
