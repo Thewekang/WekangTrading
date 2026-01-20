@@ -36,6 +36,9 @@ export const userBadges = sqliteTable('user_badges', {
   userBadgeIdx: uniqueIndex('user_badge_idx').on(table.userId, table.badgeId),
   userIdIdx: index('user_badges_user_id_idx').on(table.userId),
   earnedAtIdx: index('user_badges_earned_at_idx').on(table.earnedAt),
+  
+  // Phase 2: Composite index for badge progress queries
+  userEarnedIdx: index('idx_user_badges_user_earned').on(table.userId, table.earnedAt),
 }));
 
 // Type inference

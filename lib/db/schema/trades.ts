@@ -18,11 +18,17 @@ export const individualTrades = sqliteTable('individual_trades', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({
+  // Existing indexes
   userTimestampIdx: index('individual_trades_user_timestamp_idx').on(table.userId, table.tradeTimestamp),
   dailySummaryIdx: index('individual_trades_daily_summary_idx').on(table.dailySummaryId),
   sopTypeIdx: index('individual_trades_sop_type_idx').on(table.sopTypeId),
   marketSessionIdx: index('individual_trades_market_session_idx').on(table.marketSession),
   resultIdx: index('individual_trades_result_idx').on(table.result),
+  
+  // Phase 2: Composite indexes for performance
+  userTimestampResultIdx: index('idx_trades_user_timestamp_result').on(table.userId, table.tradeTimestamp, table.result),
+  userDateResultIdx: index('idx_trades_user_date_result').on(table.userId, table.tradeTimestamp, table.result),
+  userSessionIdx: index('idx_trades_user_session').on(table.userId, table.marketSession),
 }));
 
 // Export types
