@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { syncEconomicEventsFromAPI, importEconomicEventsFromJSON } from '@/lib/services/economicCalendarService';
 import { db } from '@/lib/db';
 import { cronLogs } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 // POST /api/admin/economic-calendar/sync
 // Sync events from RapidAPI

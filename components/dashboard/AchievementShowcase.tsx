@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { BadgeCard } from '@/components/badges/BadgeCard';
 import { Badge, UserBadge } from '@/lib/db/schema';
 import Link from 'next/link';
@@ -13,16 +13,12 @@ interface AchievementShowcaseProps {
   limit?: number;
 }
 
-export function AchievementShowcase({ limit = 4 }: AchievementShowcaseProps) {
+export const AchievementShowcase = memo(({ limit = 4 }: AchievementShowcaseProps) => {
   const [recentBadges, setRecentBadges] = useState<Array<{ badge: Badge; userBadge: UserBadge }>>([]);
   const [totalBadges, setTotalBadges] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchRecentBadges();
-  }, [limit]);
-
-  async function fetchRecentBadges() {
+  const fetchRecentBadges = useCallback(async () => {
     try {
       const response = await fetch('/api/badges/user');
       if (response.ok) {
@@ -39,7 +35,11 @@ export function AchievementShowcase({ limit = 4 }: AchievementShowcaseProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [limit]);
+
+  useEffect(() => {
+    fetchRecentBadges();
+  }, [fetchRecentBadges]);
 
   if (loading) {
     return (
@@ -103,4 +103,6 @@ export function AchievementShowcase({ limit = 4 }: AchievementShowcaseProps) {
       </div>
     </div>
   );
-}
+});
+
+AchievementShowcase.displayName = 'AchievementShowcase';

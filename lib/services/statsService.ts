@@ -82,7 +82,13 @@ export async function getPersonalStats(
   }
 
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalLosses: dailySummaries.totalLosses,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(and(...conditions))
     .orderBy(dailySummaries.tradeDate);
@@ -110,7 +116,10 @@ export async function getPersonalStats(
 
   // Query individual_trades for accurate session breakdown
   const tradesForPeriod = await db
-    .select()
+    .select({
+      marketSession: individualTrades.marketSession,
+      result: individualTrades.result,
+    })
     .from(individualTrades)
     .where(
       startDate
@@ -279,7 +288,11 @@ export async function getDailyTrends(
 
   // Query daily_summaries
   const summaries = await db
-    .select()
+    .select({
+      tradeDate: dailySummaries.tradeDate,
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+    })
     .from(dailySummaries)
     .where(
       and(

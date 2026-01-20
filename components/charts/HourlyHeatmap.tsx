@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface HourlyData {
@@ -44,7 +44,7 @@ const formatHour = (hour: number): string => {
   return `${hour - 12} PM`;
 };
 
-export default function HourlyHeatmap({ data: initialData, userId, period = 'month' }: HourlyHeatmapProps) {
+const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: HourlyHeatmapProps) => {
   const [timezone, setTimezone] = useState<string>('0');
   const [data, setData] = useState<HourlyData[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +62,7 @@ export default function HourlyHeatmap({ data: initialData, userId, period = 'mon
   }, []);
 
   // Fetch data with selected timezone
-  const fetchData = async (tz: string) => {
+  const fetchData = useCallback(async (tz: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/stats/by-hour?period=${period}&timezone=${tz}`);
@@ -75,19 +75,19 @@ export default function HourlyHeatmap({ data: initialData, userId, period = 'mon
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [period]);
 
   // Handle timezone change
-  const handleTimezoneChange = (newTimezone: string) => {
+  const handleTimezoneChange = useCallback((newTimezone: string) => {
     setTimezone(newTimezone);
     localStorage.setItem('hourlyHeatmapTimezone', newTimezone);
     fetchData(newTimezone);
-  };
+  }, [fetchData]);
 
-  const selectedTimezone = TIMEZONES.find(tz => tz.value === timezone);
+  const selectedTimezone = useMemo(() => TIMEZONES.find(tz => tz.value === timezone), [timezone]);
   
   // Transform data for chart
-  const chartData = data.map(item => ({
+  const chartData = useMemo(() => data.map(item => ({
     hour: item.hour,
     hourLabel: formatHour(item.hour),
     hourShort: `${item.hour}:00`,
@@ -95,12 +95,12 @@ export default function HourlyHeatmap({ data: initialData, userId, period = 'mon
     trades: item.totalTrades,
     wins: item.totalWins,
     hasTrades: item.totalTrades > 0,
-  }));
+  })), [data]);
 
   // Find best hour (with at least 2 trades)
-  const bestHour = data
+  const bestHour = useMemo(() => data
     .filter(h => h.totalTrades >= 2)
-    .sort((a, b) => b.winRate - a.winRate)[0];
+    .sort((a, b) => b.winRate - a.winRate)[0], [data]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -266,4 +266,7 @@ export default function HourlyHeatmap({ data: initialData, userId, period = 'mon
       </div>
     </div>
   );
-}
+});
+
+HourlyHeatmap.displayName = 'HourlyHeatmap';
+export default HourlyHeatmap;

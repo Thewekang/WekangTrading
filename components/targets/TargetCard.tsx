@@ -4,17 +4,24 @@
  */
 'use client';
 
-import type { TargetWithProgress } from '@/lib/services/targetService';
-import { useState } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import type { UserTarget } from '@/lib/db/schema';
+
+// Type for target with calculated progress
+type TargetWithProgress = UserTarget & {
+  currentValue: number;
+  progress: number;
+  isCompleted: boolean;
+};
 
 interface TargetCardProps {
   target: TargetWithProgress;
 }
 
-export default function TargetCard({ target }: TargetCardProps) {
+const TargetCard = memo(({ target }: TargetCardProps) => {
   const router = useRouter();
   const { formatDate } = useTimezone();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -25,14 +32,17 @@ export default function TargetCard({ target }: TargetCardProps) {
   const { progress } = target;
 
   // Check if target is in the future
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startDate = new Date(target.startDate);
-  startDate.setHours(0, 0, 0, 0);
-  const isFutureTarget = startDate > today;
-  const daysUntilStart = isFutureTarget 
-    ? Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
+  const { isFutureTarget, daysUntilStart } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(target.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    const isFutureTarget = startDate > today;
+    const daysUntilStart = isFutureTarget 
+      ? Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    return { isFutureTarget, daysUntilStart };
+  }, [target.startDate]);
 
   // Status badge styling
   const statusConfig = {
@@ -53,7 +63,7 @@ export default function TargetCard({ target }: TargetCardProps) {
     return 'bg-red-500';
   };
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
@@ -73,9 +83,9 @@ export default function TargetCard({ target }: TargetCardProps) {
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [target.id, router]);
 
-  const handleDeactivate = async () => {
+  const handleDeactivate = useCallback(async () => {
     setShowDeactivateConfirm(false);
 
     try {
@@ -95,9 +105,9 @@ export default function TargetCard({ target }: TargetCardProps) {
       console.error('Deactivate error:', error);
       showToast('An error occurred while deactivating target', 'error');
     }
-  };
+  }, [target.id, router]);
 
-  const handleMarkComplete = async () => {
+  const handleMarkComplete = useCallback(async () => {
     setShowCompleteConfirm(false);
     setIsCompleting(true);
 
@@ -120,7 +130,7 @@ export default function TargetCard({ target }: TargetCardProps) {
     } finally {
       setIsCompleting(false);
     }
-  };
+  }, [target.id, router]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
@@ -351,4 +361,7 @@ export default function TargetCard({ target }: TargetCardProps) {
       )}
     </div>
   );
-}
+});
+
+TargetCard.displayName = 'TargetCard';
+export default TargetCard;

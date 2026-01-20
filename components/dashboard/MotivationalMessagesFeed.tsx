@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { MotivationalMessage } from '@/lib/db/schema';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -13,16 +13,12 @@ interface MessageFeedProps {
   limit?: number;
 }
 
-export function MotivationalMessagesFeed({ limit = 5 }: MessageFeedProps) {
+export const MotivationalMessagesFeed = memo(({ limit = 5 }: MessageFeedProps) => {
   const [messages, setMessages] = useState<MotivationalMessage[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMessages();
-  }, [limit]);
-
-  async function fetchMessages() {
+  const fetchMessages = useCallback(async () => {
     try {
       const response = await fetch(`/api/messages?limit=${limit}`);
       if (response.ok) {
@@ -45,9 +41,13 @@ export function MotivationalMessagesFeed({ limit = 5 }: MessageFeedProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [limit]);
 
-  async function markAsRead(messageId: string) {
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
+
+  const markAsRead = useCallback(async (messageId: string) => {
     try {
       await fetch(`/api/messages/${messageId}/read`, { method: 'PATCH' });
       setMessages((prevMessages) => 
@@ -59,7 +59,7 @@ export function MotivationalMessagesFeed({ limit = 5 }: MessageFeedProps) {
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
-  }
+  }, [unreadCount]);
 
   if (loading) {
     return (
@@ -148,7 +148,9 @@ export function MotivationalMessagesFeed({ limit = 5 }: MessageFeedProps) {
       </div>
     </div>
   );
-}
+});
+
+MotivationalMessagesFeed.displayName = 'MotivationalMessagesFeed';
 
 function getMessageTypeColor(type: string): string {
   switch (type) {
@@ -190,3 +192,4 @@ function formatRelativeTime(dateStr: string): string {
   
   return date.toLocaleDateString();
 }
+

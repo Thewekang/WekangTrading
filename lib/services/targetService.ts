@@ -220,7 +220,12 @@ async function calculateTargetProgress(
 
   // Filter daily summaries within target period
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(
       and(
@@ -434,7 +439,12 @@ export async function getTargetSuggestions(
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(
       and(

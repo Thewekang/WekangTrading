@@ -2,6 +2,7 @@
  * Badge Component - Display achievement badge with locked/unlocked states
  */
 
+import { memo } from 'react';
 import { Badge as BadgeType } from '@/lib/db/schema';
 import { BADGE_COLORS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,7 @@ interface BadgeProps {
   onClick?: () => void;
 }
 
-export function BadgeCard({ 
+export const BadgeCard = memo(({ 
   badge, 
   earned = false, 
   earnedAt,
@@ -24,7 +25,7 @@ export function BadgeCard({
   size = 'md',
   showProgress = true,
   onClick 
-}: BadgeProps) {
+}: BadgeProps) => {
   const tierColors = earned ? BADGE_COLORS[badge.tier as keyof typeof BADGE_COLORS] : BADGE_COLORS.LOCKED;
   
   const sizeClasses = {
@@ -107,7 +108,9 @@ export function BadgeCard({
       </div>
     </div>
   );
-}
+});
+
+BadgeCard.displayName = 'BadgeCard';
 
 /**
  * Badge Detail Tooltip/Modal Content

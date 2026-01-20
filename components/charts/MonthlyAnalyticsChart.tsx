@@ -5,6 +5,7 @@
 
 'use client';
 
+import { memo, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 interface MonthlyData {
@@ -24,8 +25,8 @@ interface MonthlyAnalyticsChartProps {
   year: number;
 }
 
-export default function MonthlyAnalyticsChart({ data, metric, year }: MonthlyAnalyticsChartProps) {
-  const getMetricConfig = () => {
+const MonthlyAnalyticsChart = memo(({ data, metric, year }: MonthlyAnalyticsChartProps) => {
+  const getMetricConfig = useCallback(() => {
     switch (metric) {
       case 'winRate':
         return {
@@ -60,22 +61,22 @@ export default function MonthlyAnalyticsChart({ data, metric, year }: MonthlyAna
           yAxisDomain: undefined,
         };
     }
-  };
+  }, [metric]);
 
-  const config = getMetricConfig();
+  const config = useMemo(() => getMetricConfig(), [getMetricConfig]);
 
   // Get bar color based on value (for profit/loss)
-  const getBarColor = (entry: MonthlyData, index: number) => {
+  const getBarColor = useCallback((entry: MonthlyData, index: number) => {
     if (metric === 'profitLoss') {
       return entry.profitLoss >= 0 ? '#10b981' : '#ef4444';
     }
     return config.color;
-  };
+  }, [metric, config.color]);
 
   // Format month names for mobile (3-letter abbreviation)
-  const formatMonthName = (monthName: string) => {
+  const formatMonthName = useCallback((monthName: string) => {
     return monthName.substring(0, 3);
-  };
+  }, []);
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
@@ -185,4 +186,7 @@ export default function MonthlyAnalyticsChart({ data, metric, year }: MonthlyAna
       </div>
     </div>
   );
-}
+});
+
+MonthlyAnalyticsChart.displayName = 'MonthlyAnalyticsChart';
+export default MonthlyAnalyticsChart;

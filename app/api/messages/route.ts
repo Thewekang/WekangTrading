@@ -25,32 +25,23 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
     // Build query
-    let query = db
+    const conditions = unreadOnly
+      ? and(
+          eq(motivationalMessages.userId, session.user.id),
+          eq(motivationalMessages.isRead, false)
+        )
+      : eq(motivationalMessages.userId, session.user.id);
+
+    const messages = await db
       .select()
       .from(motivationalMessages)
-      .where(eq(motivationalMessages.userId, session.user.id))
+      .where(conditions)
       .orderBy(desc(motivationalMessages.createdAt))
       .limit(limit);
 
-    if (unreadOnly) {
-      query = db
-        .select()
-        .from(motivationalMessages)
-        .where(
-          and(
-            eq(motivationalMessages.userId, session.user.id),
-            eq(motivationalMessages.isRead, false)
-          )
-        )
-        .orderBy(desc(motivationalMessages.createdAt))
-        .limit(limit);
-    }
-
-    const messages = await query;
-
-    // Count unread messages
+    // Count unread messages - only need to count
     const unreadMessages = await db
-      .select()
+      .select({ id: motivationalMessages.id })
       .from(motivationalMessages)
       .where(
         and(

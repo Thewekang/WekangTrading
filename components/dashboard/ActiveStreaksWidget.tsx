@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 
 interface StreakData {
   winStreak: { current: number; longest: number };
@@ -12,15 +12,11 @@ interface StreakData {
   sopStreak: { current: number; longest: number };
 }
 
-export function ActiveStreaksWidget() {
+export const ActiveStreaksWidget = memo(() => {
   const [streaks, setStreaks] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStreaks();
-  }, []);
-
-  async function fetchStreaks() {
+  const fetchStreaks = useCallback(async () => {
     try {
       const response = await fetch('/api/streaks');
       if (response.ok) {
@@ -34,7 +30,11 @@ export function ActiveStreaksWidget() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchStreaks();
+  }, [fetchStreaks]);
 
   if (loading) {
     return (
@@ -132,4 +132,6 @@ export function ActiveStreaksWidget() {
       )}
     </div>
   );
-}
+});
+
+ActiveStreaksWidget.displayName = 'ActiveStreaksWidget';
