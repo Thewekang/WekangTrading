@@ -8,6 +8,14 @@ import { memo, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import type { UserTarget } from '@/lib/db/schema';
+
+// Type for target with calculated progress
+type TargetWithProgress = UserTarget & {
+  currentValue: number;
+  progress: number;
+  isCompleted: boolean;
+};
 
 interface TargetCardProps {
   target: TargetWithProgress;

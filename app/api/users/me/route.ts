@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         ...user,
         totalTrades: stats?.totalTrades || 0,
         winRate: stats?.winRate || 0,
-        sopRate: stats?.sopRate || 0,
+        sopRate: stats?.sopComplianceRate || 0,
         totalProfitUsd: stats?.totalProfitUsd || 0,
       },
     });
