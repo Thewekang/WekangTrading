@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Optimize package imports for better tree-shaking
+    optimizePackageImports: ['recharts', 'lucide-react', '@radix-ui/react-icons'],
   },
 };
 
