@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useDebouncedCallback } from 'use-debounce';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,7 @@ export function RealTimeTradeEntryForm() {
     reset,
     setValue,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<IndividualTradeInput>({
     resolver: zodResolver(individualTradeSchema),
@@ -61,6 +63,14 @@ export function RealTimeTradeEntryForm() {
       notes: '',
     },
   });
+
+  // Debounced validation for number inputs (300ms delay)
+  const debouncedValidation = useDebouncedCallback(
+    (fieldName: string) => {
+      trigger(fieldName as keyof IndividualTradeInput);
+    },
+    300
+  );
 
   // Set timestamp after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -353,7 +363,10 @@ export function RealTimeTradeEntryForm() {
             step="0.01"
             min="0"
             placeholder="e.g. 50.00"
-            {...register('profitLossUsd', { valueAsNumber: true })}
+            {...register('profitLossUsd', { 
+              valueAsNumber: true,
+              onChange: () => debouncedValidation('profitLossUsd')
+            })}
             className="mt-1 text-base" // Larger text for mobile
           />
           <p className="mt-1 text-xs text-gray-500">Enter amount as positive number (auto-calculated based on WIN/LOSS)</p>

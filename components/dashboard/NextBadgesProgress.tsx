@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, useCallback } from 'react';
 import { Badge } from '@/lib/db/schema';
 import { BADGE_COLORS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -16,15 +16,11 @@ interface BadgeProgress {
   targetValue: number;
 }
 
-export function NextBadgesProgress({ limit = 3 }: { limit?: number }) {
+export const NextBadgesProgress = memo(({ limit = 3 }: { limit?: number }) => {
   const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBadgeProgress();
-  }, []);
-
-  async function fetchBadgeProgress() {
+  const fetchBadgeProgress = useCallback(async () => {
     try {
       const response = await fetch('/api/badges/progress');
       if (response.ok) {
@@ -39,7 +35,11 @@ export function NextBadgesProgress({ limit = 3 }: { limit?: number }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchBadgeProgress();
+  }, [fetchBadgeProgress]);
 
   if (loading) {
     return (
@@ -115,7 +115,9 @@ export function NextBadgesProgress({ limit = 3 }: { limit?: number }) {
       </div>
     </div>
   );
-}
+});
+
+NextBadgesProgress.displayName = 'NextBadgesProgress';
 
 function formatProgress(current: number, target: number, badge: Badge): string {
   const requirement = JSON.parse(badge.requirement);

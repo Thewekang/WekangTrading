@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,17 @@ export function BulkTradeEntryForm() {
   const [successMessage, setSuccessMessage] = useState('');
   const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
   const [showCelebration, setShowCelebration] = useState(false);
+
+  // Debounced validation for amount inputs (300ms delay)
+  const debouncedAmountValidation = useDebouncedCallback(
+    (rowId: string, value: string) => {
+      // Clear error if value is being entered
+      if (value && parseFloat(value) > 0) {
+        setErrorMessage('');
+      }
+    },
+    300
+  );
 
   // Fetch SOP types
   useEffect(() => {
@@ -306,7 +318,10 @@ export function BulkTradeEntryForm() {
                       step="0.01"
                       min="0"
                       value={row.amount}
-                      onChange={(e) => handleUpdateRow(row.id, 'amount', e.target.value)}
+                      onChange={(e) => {
+                        handleUpdateRow(row.id, 'amount', e.target.value);
+                        debouncedAmountValidation(row.id, e.target.value);
+                      }}
                       placeholder="50.00"
                       className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />

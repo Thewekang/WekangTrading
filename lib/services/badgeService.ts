@@ -31,6 +31,7 @@ export type BadgeTrigger = 'TRADE_INSERT' | 'DAILY_SUMMARY' | 'TARGET_COMPLETE' 
  * Get all available badges
  */
 export async function getAllBadges(): Promise<Badge[]> {
+  // Returns all fields - needed for badge requirement evaluation
   return db.select().from(badges).where(eq(badges.isActive, true)).orderBy(badges.category, badges.order);
 }
 
@@ -38,6 +39,7 @@ export async function getAllBadges(): Promise<Badge[]> {
  * Get user's earned badges
  */
 export async function getUserBadges(userId: string): Promise<UserBadge[]> {
+  // Returns all fields - needed for badge display
   return db.select().from(userBadges).where(eq(userBadges.userId, userId)).orderBy(desc(userBadges.earnedAt));
 }
 
@@ -46,7 +48,7 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
  */
 export async function hasUserBadge(userId: string, badgeId: string): Promise<boolean> {
   const result = await db
-    .select()
+    .select({ id: userBadges.id })
     .from(userBadges)
     .where(and(eq(userBadges.userId, userId), eq(userBadges.badgeId, badgeId)))
     .limit(1);
@@ -218,7 +220,7 @@ function filterBadgesByTrigger(badges: Badge[], trigger: BadgeTrigger): Badge[] 
  * Initialize user stats (called when user first creates trade)
  */
 export async function initializeUserStats(userId: string): Promise<void> {
-  const existing = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+  const existing = await db.select({ id: userStats.id }).from(userStats).where(eq(userStats.userId, userId)).limit(1);
   
   if (existing.length > 0) {
     return; // Already initialized
@@ -260,7 +262,13 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   
   // Get all trades
   const trades = await db
-    .select()
+    .select({
+      result: individualTrades.result,
+      sopFollowed: individualTrades.sopFollowed,
+      profitLossUsd: individualTrades.profitLossUsd,
+      marketSession: individualTrades.marketSession,
+      tradeTimestamp: individualTrades.tradeTimestamp,
+    })
     .from(individualTrades)
     .where(eq(individualTrades.userId, userId))
     .orderBy(individualTrades.tradeTimestamp);

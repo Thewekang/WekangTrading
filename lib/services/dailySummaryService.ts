@@ -41,7 +41,12 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
 
   // Fetch all trades for this user and date
   const trades = await db
-    .select()
+    .select({
+      result: individualTrades.result,
+      sopFollowed: individualTrades.sopFollowed,
+      profitLossUsd: individualTrades.profitLossUsd,
+      marketSession: individualTrades.marketSession,
+    })
     .from(individualTrades)
     .where(and(
       eq(individualTrades.userId, userId),
@@ -97,7 +102,9 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
 
   // Check if summary exists
   const [existingSummary] = await db
-    .select()
+    .select({
+      id: dailySummaries.id,
+    })
     .from(dailySummaries)
     .where(and(
       eq(dailySummaries.userId, userId),

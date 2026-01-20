@@ -53,7 +53,9 @@ export async function updateWinStreak(userId: string, tradeDate: Date): Promise<
   
   // Get daily summary for this date
   const summary = await db
-    .select()
+    .select({
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(and(eq(dailySummaries.userId, userId), eq(dailySummaries.tradeDate, tradeDate)))
     .limit(1);
