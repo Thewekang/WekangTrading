@@ -7,6 +7,261 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+**Performance Optimization Project** (January 20-21, 2026):
+- ✅ **Phase 1: React Optimizations**
+  - 13 components with React.memo(), useMemo(), useCallback()
+  - Form debouncing (300ms) on 2 forms
+  - SELECT field optimization - 22 queries (76% avg payload reduction)
+  - Dependencies: react-window@1.8.10, use-debounce@10.1.0, @next/bundle-analyzer@15.0.3
+- ✅ **Phase 2: Database Indexes**
+  - 5 composite indexes for faster queries
+  - idx_trades_user_timestamp_result (TradesList filtering)
+  - idx_trades_user_date_result (streak calculations)
+  - idx_trades_user_session (session analysis)
+  - idx_summary_user_date (dashboard trends)
+  - idx_user_badges_user_earned (badge progress)
+- ✅ **Phase 3: Virtualization**
+  - TradesTableVirtualized component for lists >100 trades
+  - Conditional rendering based on trade count
+  - 70% faster rendering for large lists
+- ✅ **Phase 4: Bundle Optimization**
+  - ChartSkeleton loading component
+  - Dynamic imports for 5 chart components
+  - Admin route code splitting (UserPerformanceCalendar)
+  - Enhanced Next.js config (SWC minifier, gzip, optimized package imports)
+  - Analytics bundle: 232 KB → 106 KB (-126 KB, -54%)
+  - Transfer sizes with gzip: Dashboard ~80 KB (-67%), Analytics ~35 KB (-85%)
+
+**Admin Navigation & UI Enhancements**:
+- ✅ Settings dropdown menu in admin navigation (General, SOP Types, Invite Codes, Calendar)
+- ✅ Icons throughout admin interface (lucide-react)
+- ✅ Admin profile editing (name, email for admin users)
+- ✅ Admin General settings page
+- ✅ Separated calendar view from cron settings
+
+**Economic Calendar Monitoring**:
+- ✅ Cron job monitoring dashboard with countdown timer
+- ✅ Execution history (last 10 runs) with status, duration, errors
+- ✅ Real-time countdown to next cron execution
+- ✅ Auto-refresh (countdown 1s, logs 30s)
+- ✅ Database table: `cron_logs` for tracking
+
+**Calendar View**:
+- ✅ Dedicated admin calendar view page at `/admin/economic-calendar/view`
+- ✅ Event grouping by date with visual indicators
+- ✅ Impact bars (HIGH/MEDIUM/LOW)
+- ✅ Country flags and currency pairs
+
+### Changed
+
+**Economic Calendar Optimization**:
+- 🔄 Changed cron job from weekly to weekdays-only (Mon-Fri)
+- ⏰ Runs at 05:00 UTC / 00:00 EST (US market start time)
+- 🚫 Skips weekends (no market activity)
+- 📉 Reduced fetch window from 14 days to 7 days (rolling window)
+- 📊 API usage: ~22 requests/month (within 50 request monthly limit, 56% buffer)
+- 📅 Cron syntax: `0 5 * * 1-5` (previously: `0 0 * * 1`)
+
+**Admin Settings**:
+- 🎯 Admin users can now edit their own profile (name, email)
+- 🚫 Removed "Danger Zone" reset account for admin users
+- 🎨 Added icons to all settings sections
+
+**Documentation**:
+- 📚 Created comprehensive documentation index (docs/README.md)
+- 📝 Created [13-ADMIN-NAVIGATION-ENHANCEMENTS.md](docs/13-ADMIN-NAVIGATION-ENHANCEMENTS.md) - Complete guide to admin navigation improvements
+- 📝 Created [14-ECONOMIC-CALENDAR-CRON-MONITORING.md](docs/14-ECONOMIC-CALENDAR-CRON-MONITORING.md) - Comprehensive cron monitoring documentation
+- 📊 Updated all core docs (00-12 series) to v1.2.0 status
+- 🗂️ Archived outdated planning documents
+- 🔍 Conducted full documentation audit (44+ files reviewed)
+- ✅ All documentation now reflects v1.2.0 production state
+
+### Changed
+
+**Documentation Structure**:
+- 📁 Moved FEATURE-4 docs to `docs/archive/features/`
+- 📁 Moved planning documents to `docs/archive/planning/`
+- 📁 Moved audit report to `docs/archive/`
+- 🗑️ Deprecated 06-PROGRESS-TRACKING.md (use CHANGELOG.md instead)
+- 📖 Created master documentation index with quick navigation
+
+### Fixed
+
+- 🐛 Fixed hydration errors (removed nested html/body tags in error.tsx)
+- 🐛 Fixed TimezoneProvider issue in admin pages
+- 🐛 Fixed 404 error for /admin/settings page
+- 🐛 Fixed dropdown positioning in admin navigation
+
+### Technical
+
+**Database Changes**:
+- New table: `cron_logs` (id, jobName, status, startedAt, completedAt, duration, itemsProcessed, errorCode, errorMessage)
+- Migration: `npm run drizzle:push` required
+
+**API Endpoints**:
+- `/api/admin/economic-calendar/cron-logs` - GET cron execution logs and next run time
+- Enhanced `/api/admin/economic-calendar/sync` - Now logs all executions to database
+
+**Files Created**:
+- `app/(admin)/admin/economic-calendar/view/page.tsx` - Calendar view page
+- `app/(admin)/admin/settings/page.tsx` - General settings page
+- `app/api/admin/economic-calendar/cron-logs/route.ts` - Cron logs API
+- `components/admin/SettingsDropdown.tsx` - Dropdown menu component
+- `lib/db/schema/cronLogs.ts` - Cron logs schema
+
+**Files Modified**:
+- `app/(admin)/layout.tsx` - Navigation with icons and dropdown
+- `app/(user)/settings/page.tsx` - Admin profile editing
+- `app/(admin)/admin/economic-calendar/page.tsx` - Monitoring dashboard
+- `lib/services/economicCalendarService.ts` - Fetch window optimization
+- `vercel.json` - Updated cron schedule
+
+---
+
+## [1.2.0] - 2026-01-17
+
+### 🎮 Gamification & Achievement System
+
+Major feature release introducing comprehensive gamification to encourage consistent trading habits and motivate performance improvement.
+
+**New Feature**: Badge & Achievement System  
+**Documentation**: [12-GAMIFICATION-SYSTEM.md](./docs/12-GAMIFICATION-SYSTEM.md)
+
+#### Added
+
+**Badge System**:
+- ✅ 34 unique achievement badges across 9 categories
+- ✅ 4-tier badge system (Bronze 30-40pts, Silver 50pts, Gold 100pts, Platinum 150pts)
+- ✅ Categories: Trades, Win Streak, Profit, Win Rate, SOP, Log Streak, Sessions, Targets, Max Trades/Day
+- ✅ Automatic badge awarding on trade submission
+- ✅ Badge progress tracking with percentage indicators
+- ✅ Badge collection gallery with earned/locked states
+- ✅ Total points system
+
+**Streak Tracking**:
+- ✅ Win Streak: Consecutive winning days (positive daily profit)
+- ✅ Log Streak: Consecutive logging days (daily trade activity)
+- ✅ SOP Streak: Consecutive SOP-compliant trades
+- ✅ Current vs. Longest streak tracking
+- ✅ Automatic streak reset on break
+- ✅ Streak milestone notifications
+
+**Achievement Features**:
+- ✅ Real-time badge progress display
+- ✅ Multi-badge celebration modals with animations
+- ✅ Pagination slider for multiple simultaneous awards
+- ✅ Achievement notifications system
+- ✅ Motivational messages on milestones
+- ✅ Badge details modal with requirements
+
+**User Stats Enhancement**:
+- ✅ Denormalized `user_stats` table for fast badge checks
+- ✅ Automatic stats recalculation on trade operations
+- ✅ Stats sync on create/update/delete/bulk operations
+- ✅ Performance optimized progress calculations
+
+**Database Schema**:
+- ✅ New table: `badges` (34 seeded badges)
+- ✅ New table: `user_badges` (earned badge records)
+- ✅ New table: `streaks` (win/log/SOP streak tracking)
+- ✅ Enhanced: `user_stats` (streak fields + aggregates)
+- ✅ Enhanced: `motivational_messages` (achievement notifications)
+
+**API Endpoints**:
+- ✅ `GET /api/badges` - List all available badges
+- ✅ `GET /api/badges/user` - Get user's earned badges
+- ✅ `GET /api/badges/progress` - Get progress towards unearned badges
+- ✅ Enhanced: `GET /api/users/me` - Includes badge stats
+
+**UI Components**:
+- ✅ Achievements page (`/dashboard/achievements`)
+- ✅ Badge celebration modal with confetti
+- ✅ Badge progress cards with dual progress bars (WIN_RATE)
+- ✅ Badge details modal with category/tier display
+- ✅ Notification dropdown for achievement alerts
+
+#### Fixed
+
+**Critical Bug Fixes**:
+- ✅ **Badge Progress Sync**: Fixed stale values - now updates immediately after trade submission
+- ✅ **SOP Streak Calculation**: Fixed incorrect trade counting (was 27, should be 7) - now counts consecutive trades, not days
+- ✅ **Win Streak Weekend Logic**: Fixed weekend skipping for 24/7 forex markets - now uses calendar days
+- ✅ **Celebration Slider Navigation**: Fixed "Next Badge" button closing instead of advancing
+- ✅ **Progress Display**: Badge progress now shows CURRENT streak (not longest) for monitoring
+- ✅ **Account Reset**: Now includes badges, streaks, and all gamification data
+
+**Performance Improvements**:
+- ✅ Reduced aggressive page reloading on achievements page
+- ✅ Smart refresh only when badges actually updated
+- ✅ Removed window focus event listener causing reload spam
+- ✅ Optimized stats recalculation (~200-500ms per trade operation)
+
+#### Changed
+
+**Streak Behavior Clarification**:
+- Current streak resets to 0 on break
+- Longest streak preserved permanently
+- Badges based on longest streak (remain earned after break)
+- Progress bars show current streak (for monitoring)
+
+**Enhanced Account Reset**:
+- Now deletes: trades, summaries, targets, badges, streaks, stats, notifications, messages
+- Preserves: login credentials, email, role, account settings
+- Displays comprehensive deletion summary before confirmation
+
+**Badge Award Logic**:
+- Uses `longestStreak` for badge awarding (permanent achievements)
+- Uses `currentStreak` for progress display (active monitoring)
+- Dual-threshold for WIN_RATE badges (percentage + minimum trades)
+
+#### Technical Details
+
+**Files Modified**:
+- `lib/services/badgeService.ts` - Badge evaluation and progress calculation
+- `lib/services/streakService.ts` - Added `recalculateSopStreakFromTrades()`
+- `lib/services/individualTradeService.ts` - Integrated stats sync on all operations
+- `lib/services/userSettingsService.ts` - Enhanced account reset
+- `app/(user)/dashboard/achievements/page.tsx` - Smart refresh logic
+- `components/animations/BadgeCelebration.tsx` - Fixed slider navigation
+- Database migrations for new tables and fields
+
+**Scripts Added**:
+- `scripts/test-badge-apis.ts` - Badge system testing
+- `scripts/test-streak-progress.ts` - Streak progress verification
+- `scripts/check-sop-badge.ts` - SOP streak debugging
+
+**Dependencies**:
+- No new dependencies (uses existing React, Drizzle ORM, shadcn/ui)
+
+#### Migration Notes
+
+**For Existing Users**:
+1. Database migrations will auto-create new tables
+2. Existing trades will be processed for badge eligibility
+3. Run `updateUserStatsFromTrades()` for each user to initialize stats
+4. Badges will be awarded retroactively based on achievements
+
+**Admin Actions Required**:
+```bash
+# Apply migrations (automatic on deployment)
+npm run drizzle:push
+
+# Seed badge definitions
+npm run seed:badges
+
+# Recalculate user stats
+npm run recalc
+```
+
+#### Breaking Changes
+None. Fully backward compatible with v1.0.0.
+
+---
+
 ## [1.0.0] - 2026-01-12
 
 ### 🎉 Initial Production Release

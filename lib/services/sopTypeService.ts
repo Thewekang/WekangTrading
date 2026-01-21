@@ -34,7 +34,7 @@ export async function createSopType(data: {
 }) {
   // Check if name already exists
   const [existing] = await db
-    .select()
+    .select({ id: sopTypes.id })
     .from(sopTypes)
     .where(eq(sopTypes.name, data.name))
     .limit(1);
@@ -71,7 +71,7 @@ export async function updateSopType(
   // If updating name, check for duplicates
   if (data.name) {
     const [existing] = await db
-      .select()
+      .select({ id: sopTypes.id })
       .from(sopTypes)
       .where(
         and(

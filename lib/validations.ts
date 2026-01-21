@@ -44,6 +44,11 @@ export const individualTradeSchema = z.object({
   profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),
+  symbol: z.string()
+    .min(2, 'Symbol must be at least 2 characters')
+    .max(10, 'Symbol must be less than 10 characters')
+    .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
+    .optional(),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
 
@@ -67,6 +72,11 @@ export const individualTradeApiSchema = z.object({
   profitLossUsd: z.number().refine((val) => val !== 0, {
     message: 'Profit/loss cannot be zero',
   }),
+  symbol: z.string()
+    .min(2, 'Symbol must be at least 2 characters')
+    .max(10, 'Symbol must be less than 10 characters')
+    .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
+    .optional(),
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
 
@@ -105,6 +115,26 @@ export const userTargetSchema = z.object({
 });
 
 // ============================================
+// USER PREFERENCES VALIDATION SCHEMAS
+// ============================================
+
+export const userPreferencesSchema = z.object({
+  preferredTimezone: z.string()
+    .min(1, 'Timezone is required')
+    .refine(
+      (tz) => {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      'Invalid timezone identifier'
+    ),
+});
+
+// ============================================
 // TYPES FROM SCHEMAS
 // ============================================
 
@@ -114,3 +144,4 @@ export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
 export type IndividualTradeInput = z.infer<typeof individualTradeSchema>;
 export type BulkTradeEntryInput = z.infer<typeof bulkTradeEntrySchema>;
 export type UserTargetInput = z.infer<typeof userTargetSchema>;
+export type UserPreferencesInput = z.infer<typeof userPreferencesSchema>;

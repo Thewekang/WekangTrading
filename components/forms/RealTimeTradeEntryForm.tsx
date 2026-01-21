@@ -8,11 +8,14 @@
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useDebouncedCallback } from 'use-debounce';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
+import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
   id: string;
@@ -38,6 +41,8 @@ export function RealTimeTradeEntryForm() {
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const {
     register,
@@ -46,6 +51,7 @@ export function RealTimeTradeEntryForm() {
     reset,
     setValue,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<IndividualTradeInput>({
     resolver: zodResolver(individualTradeSchema),
@@ -57,6 +63,14 @@ export function RealTimeTradeEntryForm() {
       notes: '',
     },
   });
+
+  // Debounced validation for number inputs (300ms delay)
+  const debouncedValidation = useDebouncedCallback(
+    (fieldName: string) => {
+      trigger(fieldName as keyof IndividualTradeInput);
+    },
+    300
+  );
 
   // Set timestamp after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -109,6 +123,7 @@ export function RealTimeTradeEntryForm() {
         sopFollowed: data.sopFollowed,
         sopTypeId: data.sopTypeId || null,
         profitLossUsd: profitLoss,
+        symbol: data.symbol || undefined,
         notes: data.notes || undefined,
       };
 
@@ -123,6 +138,17 @@ export function RealTimeTradeEntryForm() {
       if (!response.ok || !result.success) {
         setErrorMessage(result.error?.message || 'Failed to create trade');
         return;
+      }
+      
+      // Check if badges were earned
+      if (result.badges && result.badges.length > 0) {
+        setEarnedBadges(result.badges);
+        setShowCelebration(true);
+        // Set flag to refresh achievements page
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+      } else {
+        // Still set flag for achievements page to refresh progress
+        localStorage.setItem('badgesUpdated', Date.now().toString());
       }
       
       // Success
@@ -308,6 +334,26 @@ export function RealTimeTradeEntryForm() {
           )}
         </div>
 
+        {/* Symbol (Optional) */}
+        <div>
+          <Label htmlFor="symbol">Symbol (Optional)</Label>
+          <Input
+            id="symbol"
+            type="text"
+            placeholder="e.g. EURUSD, GBPJPY"
+            {...register('symbol')}
+            className="mt-1 text-base uppercase"
+            maxLength={10}
+            onChange={(e) => {
+              e.target.value = e.target.value.toUpperCase();
+            }}
+          />
+          <p className="mt-1 text-xs text-gray-500">Trading pair or instrument (2-10 characters, uppercase)</p>
+          {errors.symbol && (
+            <p className="mt-1 text-sm text-red-600">{errors.symbol.message}</p>
+          )}
+        </div>
+
         {/* Profit/Loss USD */}
         <div>
           <Label htmlFor="profitLossUsd">Amount (USD) *</Label>
@@ -317,7 +363,10 @@ export function RealTimeTradeEntryForm() {
             step="0.01"
             min="0"
             placeholder="e.g. 50.00"
-            {...register('profitLossUsd', { valueAsNumber: true })}
+            {...register('profitLossUsd', { 
+              valueAsNumber: true,
+              onChange: () => debouncedValidation('profitLossUsd')
+            })}
             className="mt-1 text-base" // Larger text for mobile
           />
           <p className="mt-1 text-xs text-gray-500">Enter amount as positive number (auto-calculated based on WIN/LOSS)</p>
@@ -361,6 +410,16 @@ export function RealTimeTradeEntryForm() {
           </Button>
         </div>
       </form>
+      
+      {/* Badge Celebration Animation */}
+      <BadgeCelebration 
+        badges={earnedBadges}
+        isOpen={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          setEarnedBadges([]);
+        }}
+      />
     </div>
   );
 }

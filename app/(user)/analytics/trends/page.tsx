@@ -6,11 +6,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TrendLineChart from '@/components/charts/TrendLineChart';
-import ComparisonChart from '@/components/charts/ComparisonChart';
+import dynamic from 'next/dynamic';
 import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
-import MonthlyAnalyticsChart from '@/components/charts/MonthlyAnalyticsChart';
+import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import { calculateMovingAverages } from '@/lib/utils/trendCalculations';
+
+// Dynamic imports for chart components (lazy loading)
+const TrendLineChart = dynamic(() => import('@/components/charts/TrendLineChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
+
+const ComparisonChart = dynamic(() => import('@/components/charts/ComparisonChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
+
+const MonthlyAnalyticsChart = dynamic(() => import('@/components/charts/MonthlyAnalyticsChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
 import type { DailyTrend } from '@/lib/utils/trendCalculations';
 import type { ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
 

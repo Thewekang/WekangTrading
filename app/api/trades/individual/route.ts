@@ -9,6 +9,7 @@ import { auth } from '@/lib/auth';
 import { createTrade, getTrades } from '@/lib/services/individualTradeService';
 import { individualTradeApiSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
+import { checkAndAwardBadges } from '@/lib/services/badgeService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,14 +74,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== API POST /api/trades/individual START ===');
-    
     // Check authentication
     const session = await auth();
-    console.log('Session:', session?.user ? { id: session.user.id, email: session.user.email } : 'No session');
     
     if (!session?.user) {
-      console.log('Unauthorized - no session');
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
@@ -89,35 +86,36 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('Request body received:', body);
-    console.log('Body types:', {
-      tradeTimestamp: typeof body.tradeTimestamp,
-      result: typeof body.result,
-      sopFollowed: typeof body.sopFollowed,
-      profitLossUsd: typeof body.profitLossUsd,
-    });
-    
-    console.log('Validating with individualTradeApiSchema...');
     const validatedData = individualTradeApiSchema.parse(body);
-    console.log('Validation successful:', validatedData);
 
     // Create trade
-    console.log('Creating trade for user:', session.user.id);
     const trade = await createTrade({
       userId: session.user.id,
       tradeTimestamp: new Date(validatedData.tradeTimestamp),
       result: validatedData.result,
       sopFollowed: validatedData.sopFollowed,
       sopTypeId: validatedData.sopTypeId,
+      symbol: validatedData.symbol,
       profitLossUsd: validatedData.profitLossUsd,
       notes: validatedData.notes,
     });
-
-    console.log('Trade created successfully:', trade);
-    console.log('=== API POST /api/trades/individual END (SUCCESS) ===');
+    
+    // Check and award badges after trade creation
+    let newBadges: any[] = [];
+    try {
+      newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+    } catch (badgeError) {
+      // Don't fail trade creation if badge check fails
+      console.error('Badge check error (non-fatal):', badgeError);
+    }
     
     return NextResponse.json(
-      { success: true, data: trade, message: 'Trade created successfully' },
+      { 
+        success: true, 
+        data: trade, 
+        badges: newBadges, // Include earned badges in response
+        message: 'Trade created successfully' 
+      },
       { status: 201 }
     );
   } catch (error) {

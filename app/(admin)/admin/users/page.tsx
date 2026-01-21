@@ -1,12 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showToast } from '@/components/ui/Toast';
-import UserPerformanceCalendar from '@/components/admin/UserPerformanceCalendar';
+
+// Dynamic import for large admin component (lazy load when modal opens)
+const UserPerformanceCalendar = dynamic(() => import('@/components/admin/UserPerformanceCalendar'), {
+  loading: () => <div className="flex items-center justify-center h-64"><div className="text-gray-500">Loading calendar...</div></div>,
+  ssr: false
+});
 
 interface User {
   id: string;

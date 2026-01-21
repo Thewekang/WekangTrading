@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 
@@ -24,7 +24,7 @@ interface TrendLineChartProps {
   tooltipFormatter?: (value: number) => string;
 }
 
-export default function TrendLineChart({
+const TrendLineChart = memo(({
   data,
   metricName,
   metricLabel,
@@ -32,7 +32,7 @@ export default function TrendLineChart({
   showMA30 = false,
   yAxisFormatter = (value) => value.toFixed(1),
   tooltipFormatter = (value) => value.toFixed(2),
-}: TrendLineChartProps) {
+}: TrendLineChartProps) => {
   const chartData = useMemo(() => {
     return data.map(item => ({
       ...item,
@@ -102,4 +102,7 @@ export default function TrendLineChart({
       </LineChart>
     </ResponsiveContainer>
   );
-}
+});
+
+TrendLineChart.displayName = 'TrendLineChart';
+export default TrendLineChart;

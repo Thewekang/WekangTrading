@@ -4,21 +4,37 @@
  */
 'use client';
 
-import type { TargetWithProgress } from '@/lib/services/targetService';
-import { useState } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui/Toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import type { TargetWithProgress } from '@/lib/services/targetService';
 
 interface TargetCardProps {
   target: TargetWithProgress;
 }
 
-export default function TargetCard({ target }: TargetCardProps) {
+const TargetCard = memo(({ target }: TargetCardProps) => {
   const router = useRouter();
+  const { formatDate } = useTimezone();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
-  const { progress } = target;
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+
+  // Check if target is in the future
+  const { isFutureTarget, daysUntilStart } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(target.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    const isFutureTarget = startDate > today;
+    const daysUntilStart = isFutureTarget 
+      ? Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    return { isFutureTarget, daysUntilStart };
+  }, [target.startDate]);
 
   // Status badge styling
   const statusConfig = {
@@ -27,9 +43,9 @@ export default function TargetCard({ target }: TargetCardProps) {
     'behind': { bg: 'bg-red-100', text: 'text-red-800', label: '⚠ Behind' },
     'completed': { bg: 'bg-blue-100', text: 'text-blue-800', label: '✓ Completed' },
     'failed': { bg: 'bg-gray-100', text: 'text-gray-800', label: '✗ Failed' },
-  };
+  } as const;
 
-  const status = statusConfig[progress.status];
+  const status = statusConfig[target.progress.status];
 
   // Progress bar color based on progress percentage
   const getProgressColor = (progressPercent: number, isOnTrack: boolean) => {
@@ -39,7 +55,7 @@ export default function TargetCard({ target }: TargetCardProps) {
     return 'bg-red-500';
   };
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
@@ -59,9 +75,9 @@ export default function TargetCard({ target }: TargetCardProps) {
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [target.id, router]);
 
-  const handleDeactivate = async () => {
+  const handleDeactivate = useCallback(async () => {
     setShowDeactivateConfirm(false);
 
     try {
@@ -81,10 +97,44 @@ export default function TargetCard({ target }: TargetCardProps) {
       console.error('Deactivate error:', error);
       showToast('An error occurred while deactivating target', 'error');
     }
-  };
+  }, [target.id, router]);
+
+  const handleMarkComplete = useCallback(async () => {
+    setShowCompleteConfirm(false);
+    setIsCompleting(true);
+
+    try {
+      const response = await fetch(`/api/targets/${target.id}/complete`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        showToast('Target marked as completed! 🎉', 'success');
+        router.refresh();
+      } else {
+        const data = await response.json();
+        showToast(data.error?.message || 'Failed to complete target', 'error');
+      }
+    } catch (error) {
+      console.error('Complete error:', error);
+      showToast('An error occurred while completing target', 'error');
+    } finally {
+      setIsCompleting(false);
+    }
+  }, [target.id, router]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+      {/* Future Target Indicator */}
+      {isFutureTarget && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+          <span className="text-blue-700 font-medium">
+            📅 Starts in {daysUntilStart} {daysUntilStart === 1 ? 'day' : 'days'}
+          </span>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -102,7 +152,7 @@ export default function TargetCard({ target }: TargetCardProps) {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1" suppressHydrationWarning>
-            {new Date(target.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(target.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {formatDate(target.startDate, { month: 'short', day: 'numeric', year: 'numeric' })} - {formatDate(target.endDate, { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.bg} ${status.text} whitespace-nowrap`}>
@@ -115,7 +165,7 @@ export default function TargetCard({ target }: TargetCardProps) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">Days Remaining</span>
           <span className="font-semibold text-gray-900">
-            {progress.daysRemaining} / {progress.daysTotal}
+            {target.progress.daysRemaining} / {target.progress.daysTotal}
           </span>
         </div>
       </div>
@@ -125,17 +175,17 @@ export default function TargetCard({ target }: TargetCardProps) {
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-gray-700 font-medium">Win Rate</span>
           <span className="text-gray-900 font-semibold">
-            {progress.currentWinRate}% / {target.targetWinRate}%
+            {target.progress.currentWinRate}% / {target.targetWinRate}%
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all ${getProgressColor(progress.winRateProgress, progress.isWinRateOnTrack)}`}
-            style={{ width: `${Math.min(progress.winRateProgress, 100)}%` }}
+            className={`h-2 rounded-full transition-all ${getProgressColor(target.progress.winRateProgress, target.progress.isWinRateOnTrack)}`}
+            style={{ width: `${Math.min(target.progress.winRateProgress, 100)}%` }}
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          {progress.winRateProgress.toFixed(1)}% of target achieved
+          {target.progress.winRateProgress.toFixed(1)}% of target achieved
         </p>
       </div>
 
@@ -144,37 +194,37 @@ export default function TargetCard({ target }: TargetCardProps) {
         <div className="flex items-center justify-between text-sm mb-2">
           <span className="text-gray-700 font-medium">SOP Compliance</span>
           <span className="text-gray-900 font-semibold">
-            {progress.currentSopRate}% / {target.targetSopRate}%
+            {target.progress.currentSopRate}% / {target.targetSopRate}%
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all ${getProgressColor(progress.sopRateProgress, progress.isSopRateOnTrack)}`}
-            style={{ width: `${Math.min(progress.sopRateProgress, 100)}%` }}
+            className={`h-2 rounded-full transition-all ${getProgressColor(target.progress.sopRateProgress, target.progress.isSopRateOnTrack)}`}
+            style={{ width: `${Math.min(target.progress.sopRateProgress, 100)}%` }}
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          {progress.sopRateProgress.toFixed(1)}% of target achieved
+          {target.progress.sopRateProgress.toFixed(1)}% of target achieved
         </p>
       </div>
 
       {/* Profit Progress (if set) */}
-      {target.targetProfitUsd && progress.profitProgress !== null && (
+      {target.targetProfitUsd && target.progress.profitProgress !== null && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-gray-700 font-medium">Profit</span>
             <span className="text-gray-900 font-semibold">
-              ${progress.currentProfitUsd.toFixed(2)} / ${target.targetProfitUsd.toFixed(2)}
+              ${target.progress.currentProfitUsd.toFixed(2)} / ${target.targetProfitUsd.toFixed(2)}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition-all ${getProgressColor(progress.profitProgress, progress.isProfitOnTrack ?? false)}`}
-              style={{ width: `${Math.min(progress.profitProgress, 100)}%` }}
+              className={`h-2 rounded-full transition-all ${getProgressColor(target.progress.profitProgress, target.progress.isProfitOnTrack ?? false)}`}
+              style={{ width: `${Math.min(target.progress.profitProgress, 100)}%` }}
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            {progress.profitProgress.toFixed(1)}% of target achieved
+            {target.progress.profitProgress.toFixed(1)}% of target achieved
           </p>
         </div>
       )}
@@ -188,6 +238,16 @@ export default function TargetCard({ target }: TargetCardProps) {
 
       {/* Actions */}
       <div className="flex gap-2 mt-4">
+        {/* Mark Complete Button - Only show for active, non-completed targets */}
+        {target.progress.status !== 'completed' && target.progress.status !== 'failed' && (
+          <button
+            onClick={() => setShowCompleteConfirm(true)}
+            disabled={isCompleting}
+            className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors disabled:opacity-50"
+          >
+            {isCompleting ? 'Completing...' : '✓ Mark Complete'}
+          </button>
+        )}
         <button
           onClick={() => setShowDeactivateConfirm(true)}
           className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
@@ -204,6 +264,43 @@ export default function TargetCard({ target }: TargetCardProps) {
       </div>
 
       {/* Confirmation Dialogs */}
+      {showCompleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Mark Target as Completed</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              This will mark your target as completed and move it to history. This action cannot be undone.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Win Rate:</span>
+                  <span className="font-medium">{target.progress.currentWinRate}% / {target.targetWinRate}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">SOP Compliance:</span>
+                  <span className="font-medium">{target.progress.currentSopRate}% / {target.targetSopRate}%</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCompleteConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMarkComplete}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+              >
+                Mark Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDeactivateConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
@@ -256,4 +353,7 @@ export default function TargetCard({ target }: TargetCardProps) {
       )}
     </div>
   );
-}
+});
+
+TargetCard.displayName = 'TargetCard';
+export default TargetCard;

@@ -1,15 +1,30 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { getPersonalStats, getDailyTrends, getSessionStats, getHourlyStats } from '@/lib/services/statsService';
 import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
-import SessionComparisonChart from '@/components/charts/SessionComparisonChart';
-import HourlyHeatmap from '@/components/charts/HourlyHeatmap';
+import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import TargetProgressCard from '@/components/dashboard/TargetProgressCard';
+
+// Dynamic imports for chart components (lazy loading)
+const SessionComparisonChart = dynamic(() => import('@/components/charts/SessionComparisonChart'), {
+  loading: () => <ChartSkeleton />
+});
+
+const HourlyHeatmap = dynamic(() => import('@/components/charts/HourlyHeatmap'), {
+  loading: () => <ChartSkeleton />
+});
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
+import TodayEconomicNews from '@/components/calendar/TodayEconomicNews';
+import WeeklyEconomicNews from '@/components/calendar/WeeklyEconomicNews';
+import { AchievementShowcase } from '@/components/dashboard/AchievementShowcase';
+import { ActiveStreaksWidget } from '@/components/dashboard/ActiveStreaksWidget';
+import { NextBadgesProgress } from '@/components/dashboard/NextBadgesProgress';
+import { MotivationalMessagesFeed } from '@/components/dashboard/MotivationalMessagesFeed';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -67,6 +82,24 @@ export default async function DashboardPage() {
 
         {/* Daily Loss Alert */}
         <DailyLossAlert className="mb-6" />
+
+        {/* Achievement Showcase */}
+        <div className="mb-6">
+          <AchievementShowcase limit={4} />
+        </div>
+
+        {/* Gamification Widgets Row */}
+        <div className="grid gap-6 lg:grid-cols-3 mb-6">
+          <ActiveStreaksWidget />
+          <NextBadgesProgress limit={3} />
+          <MotivationalMessagesFeed limit={5} />
+        </div>
+
+        {/* Economic News Widgets */}
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
+          <TodayEconomicNews />
+          <WeeklyEconomicNews />
+        </div>
 
         {/* Stats Cards and Best SOP */}
         <div className="grid gap-6 lg:grid-cols-3 mb-6">

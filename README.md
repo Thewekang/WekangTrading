@@ -1,11 +1,11 @@
 # WekangTradingJournal
 
-🏍️💰 Trading Performance Tracking System with Individual Trade Timing Analysis
+🏍️💰 Trading Performance Tracking System with Individual Trade Timing Analysis & Gamification
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: ✅ Production Deployed (v1.0.0)  
-> **Current Version**: 1.0.0  
+> **Status**: ✅ Production Deployed (v1.2.1)  
+> **Current Version**: 1.2.1  
 > **Live URL**: https://wekangtrading.vercel.app  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso (LibSQL) + Drizzle ORM + NextAuth.js v5
@@ -14,6 +14,7 @@
 
 ## 🎯 Key Features
 
+### Core Trading Features
 - **Individual Trade Tracking** with timestamps for timing analysis
 - **Dual Entry Workflows**: Real-time (mobile) + Bulk entry (desktop)
 - **Market Session Analysis**: Auto-detect ASIA/EUROPE/US + Overlap sessions (Malaysia GMT+8)
@@ -24,8 +25,21 @@
 - **Data Export**: CSV + PDF reports with filter support
 - **Profit/Loss Tracking**: USD per trade with aggregated insights
 - **Fast Dashboard**: Pre-calculated daily summaries with interactive charts
+
+### 🎮 Gamification & Achievements (v1.2.0)
+- **34 Achievement Badges**: Bronze, Silver, Gold, Platinum tiers
+- **9 Badge Categories**: Trades, Win Streak, Profit, Win Rate, SOP, Log Streak, Sessions, Targets, Max Trades/Day
+- **Streak Tracking**: Win streaks, logging streaks, SOP compliance streaks
+- **Real-time Progress**: Automatic badge awarding with celebration animations
+- **Points System**: Earn points to track overall progress
+- **Motivational Messages**: Contextual encouragement on achievements
+- **Achievement Gallery**: Visual badge collection display
+
+### User Experience
 - **Toast Notifications**: Non-blocking, modern UX feedback
 - **Mobile-Friendly**: Optimized for on-the-go trade entry
+- **Achievement Celebrations**: Animated badge reveals with confetti
+- **Smart Refresh**: Updates only when needed (no reload spam)
 
 ---
 
@@ -47,6 +61,8 @@ WekangTradingJournal/
 │   ├── 08-ADMIN-FEATURES.md       # Admin panel guide
 │   ├── 09-TARGET-MANAGEMENT.md    # Target system v0.4.0
 │   ├── 10-TESTING-GUIDE.md        # Testing procedures
+│   ├── 11-VERSION-1.1.0-ROADMAP.md # v1.1.0 planning
+│   ├── 12-GAMIFICATION-SYSTEM.md  # Badge & achievement system 🆕
 │   ├── setup/                     # Setup & configuration guides
 │   ├── deployment/                # Deployment procedures
 │   ├── reference/                 # Technical references
@@ -64,9 +80,22 @@ WekangTradingJournal/
 **Phase 3** (Week 6-7): ✅ Dashboard & Analytics - COMPLETE  
 **Phase 4** (Week 8): ✅ Advanced Features - COMPLETE  
 **Phase 5** (Week 9-10): ✅ Enhanced Features & Security - COMPLETE  
-**Phase 6** (Documentation): ✅ Documentation Consolidation - COMPLETE
+**Phase 6** (Documentation): ✅ Documentation Consolidation - COMPLETE  
+**Phase 7** (Gamification): ✅ Badge & Achievement System - COMPLETE
 
-### Phase 5 Completed Features ✅
+### Phase 7 Completed Features ✅ (v1.2.0)
+- **Badge System**: 34 unique badges across 9 categories with 4 tiers
+- **Streak Tracking**: Win, log, and SOP compliance streaks
+- **Achievement Gallery**: Visual badge collection with progress tracking
+- **Real-time Awarding**: Automatic badge detection on trade submission
+- **Celebration Animations**: Multi-badge modals with confetti effects
+- **Points System**: Accumulate points from earned badges
+- **Progress Indicators**: Real-time progress bars for unearned badges
+- **Motivational System**: Context-aware achievement notifications
+- **Stats Synchronization**: Automatic recalculation on all trade operations
+- **Enhanced Account Reset**: Includes all gamification data
+
+### Phase 5 Completed Features ✅ (v1.0.0)
 - **Invite-Only Registration**: Security with admin-generated invite codes
 - **Admin User Management**: Full CRUD operations for user accounts
 - **Admin Trade Viewer**: View and delete trades across all users
@@ -286,6 +315,117 @@ This project is private and proprietary.
 
 ---
 
-**Current Version**: 0.4.0+  
-**Last Updated**: January 12, 2026  
-**Status**: Production Ready ✅ - All Phases Complete 🎉
+---
+
+## 📚 Documentation Index
+
+**Documentation Version**: 3.2  
+**Last Updated**: January 21, 2026  
+**Documentation Status**: ✅ CURRENT
+
+### Quick Navigation
+
+**For New Developers** - Start here:
+1. [00-DESIGN-SUMMARY.md](docs/00-DESIGN-SUMMARY.md) - Project overview, goals, design principles
+2. [01-TECHNOLOGY-STACK.md](docs/01-TECHNOLOGY-STACK.md) - Tech stack and dependencies
+3. [02-SYSTEM-ARCHITECTURE.md](docs/02-SYSTEM-ARCHITECTURE.md) - Architecture and file structure
+4. [setup/LOCAL-DEV-GUIDE.md](docs/setup/LOCAL-DEV-GUIDE.md) - Local development setup
+
+**For Feature Development**:
+- [03-DATABASE-SCHEMA.md](docs/03-DATABASE-SCHEMA.md) - Complete database schema (15 tables)
+- [04-API-SPECIFICATION.md](docs/04-API-SPECIFICATION.md) - All 50+ API endpoints
+- [10-TESTING-GUIDE.md](docs/10-TESTING-GUIDE.md) - Testing procedures
+- [reference/DRIZZLE-QUERY-REFERENCE.md](docs/reference/DRIZZLE-QUERY-REFERENCE.md) - ORM usage examples
+
+**For Deployment**:
+- [deployment/DEPLOYMENT-GUIDE.md](docs/deployment/DEPLOYMENT-GUIDE.md) - Complete deployment process
+- [deployment/PRODUCTION-CHECKLIST.md](docs/deployment/PRODUCTION-CHECKLIST.md) - Pre-deployment checklist
+- [deployment/GIT-WORKFLOW-STRATEGY.md](docs/deployment/GIT-WORKFLOW-STRATEGY.md) - Branch strategy
+
+### Core Documentation Series (00-14)
+
+| # | Document | Purpose | Status |
+|---|----------|---------|--------|
+| 00 | [DESIGN-SUMMARY.md](docs/00-DESIGN-SUMMARY.md) | Project goals, features overview | ✅ Current |
+| 01 | [TECHNOLOGY-STACK.md](docs/01-TECHNOLOGY-STACK.md) | Tech stack, dependencies | ✅ Current |
+| 02 | [SYSTEM-ARCHITECTURE.md](docs/02-SYSTEM-ARCHITECTURE.md) | Architecture, routes, components | ✅ Current |
+| 03 | [DATABASE-SCHEMA.md](docs/03-DATABASE-SCHEMA.md) | 15 tables, relationships, ERD | ✅ Current |
+| 04 | [API-SPECIFICATION.md](docs/04-API-SPECIFICATION.md) | 50+ endpoints, request/response | ✅ Current |
+| 05 | [MILESTONES-ROADMAP.md](docs/05-MILESTONES-ROADMAP.md) | Version history, roadmap | ✅ Current |
+| 07 | [ENHANCED-FEATURES.md](docs/07-ENHANCED-FEATURES.md) | Advanced features deep-dive | ✅ Current |
+| 08 | [ADMIN-FEATURES.md](docs/08-ADMIN-FEATURES.md) | Admin interface guide | ✅ Current |
+| 09 | [TARGET-MANAGEMENT.md](docs/09-TARGET-MANAGEMENT.md) | Target setting and tracking | ✅ Current |
+| 10 | [TESTING-GUIDE.md](docs/10-TESTING-GUIDE.md) | Testing procedures, QA | ✅ Current |
+| 11 | [VERSION-1.1.0-ROADMAP.md](docs/11-VERSION-1.1.0-ROADMAP.md) | Future feature planning | ✅ Current |
+| 12 | [GAMIFICATION-SYSTEM.md](docs/12-GAMIFICATION-SYSTEM.md) | 34 badges, streaks, achievements | ✅ Current |
+| 13 | [ADMIN-NAVIGATION-ENHANCEMENTS.md](docs/13-ADMIN-NAVIGATION-ENHANCEMENTS.md) | Admin UI improvements | ✅ Current |
+| 14 | [ECONOMIC-CALENDAR-CRON-MONITORING.md](docs/14-ECONOMIC-CALENDAR-CRON-MONITORING.md) | Cron monitoring, calendar sync | ✅ Current |
+
+**Note**: Doc #06 (PROGRESS-TRACKING) is deprecated. Use [CHANGELOG.md](CHANGELOG.md) for progress tracking.
+
+### Performance Optimization Documentation 🆕
+
+**Phase 8 - Performance Optimization** (v1.2.1):
+- [PERFORMANCE-OPTIMIZATION-COMPLETE.md](docs/features/PERFORMANCE-OPTIMIZATION-COMPLETE.md) - Complete technical summary
+- [DOCS-CONSISTENCY-VERIFICATION.md](docs/features/DOCS-CONSISTENCY-VERIFICATION.md) - Documentation accuracy audit
+- [PHASE-1-SUMMARY.md](docs/features/PHASE-1-SUMMARY.md) - React optimizations
+- [PHASE-4-DYNAMIC-IMPORTS-RESULTS.md](docs/features/PHASE-4-DYNAMIC-IMPORTS-RESULTS.md) - Bundle optimization results
+
+**Performance Achievements**:
+- 60-80% overall runtime improvement
+- 54% smaller analytics bundle (232KB → 106KB)
+- 67-85% smaller transfer sizes (gzip)
+- 76% smaller API payloads
+- 70% faster large list rendering
+
+### Documentation Structure
+
+```
+docs/
+├── 00-14-*.md               ← Core documentation series
+├── archive/                 ← Historical documents
+│   ├── features/            ← Completed feature docs
+│   ├── planning/            ← Original planning docs
+│   └── session-summaries/   ← Development session handoffs
+├── deployment/              ← Deployment guides
+├── features/                ← Feature-specific docs
+│   ├── PERFORMANCE-OPTIMIZATION-COMPLETE.md 🆕
+│   └── DOCS-CONSISTENCY-VERIFICATION.md 🆕
+├── reference/               ← Quick references
+└── setup/                   ← Setup and configuration
+```
+
+### Documentation by Use Case
+
+**Setting Up Development**:
+1. [setup/LOCAL-DEV-GUIDE.md](docs/setup/LOCAL-DEV-GUIDE.md)
+2. [setup/TURSO-SETUP-GUIDE.md](docs/setup/TURSO-SETUP-GUIDE.md)
+3. [reference/DRIZZLE-QUERY-REFERENCE.md](docs/reference/DRIZZLE-QUERY-REFERENCE.md)
+
+**Understanding the System**:
+1. [00-DESIGN-SUMMARY.md](docs/00-DESIGN-SUMMARY.md)
+2. [02-SYSTEM-ARCHITECTURE.md](docs/02-SYSTEM-ARCHITECTURE.md)
+3. [03-DATABASE-SCHEMA.md](docs/03-DATABASE-SCHEMA.md)
+
+**Building Features**:
+1. [04-API-SPECIFICATION.md](docs/04-API-SPECIFICATION.md)
+2. [03-DATABASE-SCHEMA.md](docs/03-DATABASE-SCHEMA.md)
+3. [10-TESTING-GUIDE.md](docs/10-TESTING-GUIDE.md)
+
+**Deploying Changes**:
+1. [deployment/GIT-WORKFLOW-STRATEGY.md](docs/deployment/GIT-WORKFLOW-STRATEGY.md)
+2. [deployment/PRODUCTION-CHECKLIST.md](docs/deployment/PRODUCTION-CHECKLIST.md)
+3. [deployment/DEPLOYMENT-GUIDE.md](docs/deployment/DEPLOYMENT-GUIDE.md)
+
+**Understanding Specific Features**:
+- **Performance**: [PERFORMANCE-OPTIMIZATION-COMPLETE.md](docs/features/PERFORMANCE-OPTIMIZATION-COMPLETE.md) 🆕
+- **Gamification**: [12-GAMIFICATION-SYSTEM.md](docs/12-GAMIFICATION-SYSTEM.md)
+- **Admin Tools**: [08-ADMIN-FEATURES.md](docs/08-ADMIN-FEATURES.md)
+- **Economic Calendar**: [14-ECONOMIC-CALENDAR-CRON-MONITORING.md](docs/14-ECONOMIC-CALENDAR-CRON-MONITORING.md)
+- **Targets**: [09-TARGET-MANAGEMENT.md](docs/09-TARGET-MANAGEMENT.md)
+
+---
+
+**Current Version**: 1.2.1  
+**Last Updated**: January 21, 2026  
+**Status**: Production Ready ✅ - All Phases Complete + Performance Optimized 🚀

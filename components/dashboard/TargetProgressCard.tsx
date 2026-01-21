@@ -2,6 +2,7 @@
  * Target Progress Card Component (for Dashboard)
  * Compact version of target display for dashboard
  */
+import { memo } from 'react';
 import Link from 'next/link';
 import type { TargetWithProgress } from '@/lib/services/targetService';
 
@@ -9,7 +10,7 @@ interface TargetProgressCardProps {
   target: TargetWithProgress;
 }
 
-export default function TargetProgressCard({ target }: TargetProgressCardProps) {
+const TargetProgressCard = memo(({ target }: TargetProgressCardProps) => {
   const { progress } = target;
 
   // Status styling
@@ -121,4 +122,7 @@ export default function TargetProgressCard({ target }: TargetProgressCardProps) 
       </div>
     </Link>
   );
-}
+});
+
+TargetProgressCard.displayName = 'TargetProgressCard';
+export default TargetProgressCard;

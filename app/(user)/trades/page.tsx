@@ -44,6 +44,11 @@ export default async function TradesPage() {
                 📋 Bulk Entry
               </Button>
             </Link>
+            <Link href="/trades/import">
+              <Button size="lg" variant="outline" className="min-h-[44px]">
+                📁 Import CSV
+              </Button>
+            </Link>
           </div>
         </div>
 

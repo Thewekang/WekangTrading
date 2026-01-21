@@ -185,8 +185,7 @@ export async function getActiveTargetsWithProgress(
         and(
           eq(userTargets.userId, userId),
           eq(userTargets.active, true),
-          lte(userTargets.startDate, todayMalaysiaEnd),   // Target starts on or before today
-          gte(userTargets.endDate, todayMalaysiaStart)    // Target ends on or after today
+          gte(userTargets.endDate, todayMalaysiaStart)    // Target hasn't ended yet (includes future targets)
         )
       )
       .orderBy(desc(userTargets.createdAt));
@@ -221,7 +220,12 @@ async function calculateTargetProgress(
 
   // Filter daily summaries within target period
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(
       and(
@@ -286,10 +290,22 @@ async function calculateTargetProgress(
     const hasEnoughData = totalTrades >= minTrades;
 
     if (!hasEnoughData) {
-      // Insufficient data - consider at risk
-      isWinRateOnTrack = false;
-      isSopRateOnTrack = false;
-      isProfitOnTrack = profitProgress !== null ? false : null;
+      // Insufficient data - consider on track if just started
+      // Use either 25% of duration OR first 2 days, whichever is longer
+      const timeElapsedPercent = daysTotal > 0 ? (daysElapsed / daysTotal) * 100 : 0;
+      const justStarted = timeElapsedPercent <= 25 || daysElapsed <= 2;
+      
+      if (justStarted) {
+        // Just started, not enough data yet - on track
+        isWinRateOnTrack = true;
+        isSopRateOnTrack = true;
+        isProfitOnTrack = profitProgress !== null ? true : null;
+      } else {
+        // Past initial period but still insufficient data - at risk
+        isWinRateOnTrack = false;
+        isSopRateOnTrack = false;
+        isProfitOnTrack = profitProgress !== null ? false : null;
+      }
     } else {
       // On track if within 5% of target (95% threshold)
       isWinRateOnTrack = currentWinRate >= target.targetWinRate * 0.95;
@@ -423,7 +439,12 @@ export async function getTargetSuggestions(
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(
       and(
@@ -478,4 +499,42 @@ export async function getTargetSuggestions(
     suggestedProfitUsd: Math.max(suggestedProfitUsd, 100),
     reasoning: `Based on your last 30 days (${safeWinRate.toFixed(1)}% win rate, ${safeSopRate.toFixed(1)}% SOP), targeting 5-10% improvement`,
   };
+}
+
+/**
+ * Mark a target as completed manually
+ * Deactivates the target and sets completedAt timestamp
+ */
+export async function completeTarget(
+  userId: string,
+  targetId: string
+): Promise<boolean> {
+  // Verify target belongs to user and is active
+  const [target] = await db
+    .select()
+    .from(userTargets)
+    .where(
+      and(
+        eq(userTargets.id, targetId),
+        eq(userTargets.userId, userId),
+        eq(userTargets.active, true)
+      )
+    )
+    .limit(1);
+
+  if (!target) {
+    return false;
+  }
+
+  // Mark as completed
+  await db
+    .update(userTargets)
+    .set({ 
+      active: false,
+      completedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(userTargets.id, targetId));
+
+  return true;
 }

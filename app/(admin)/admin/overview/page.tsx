@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 import { getAdminDashboardStats, getAllUsersStats } from '@/lib/services/adminStatsService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -12,7 +13,12 @@ import {
   TrendingDown,
   Zap
 } from 'lucide-react';
-import { UserComparisonChart } from '@/components/charts/UserComparisonChart';
+import ChartSkeleton from '@/components/charts/ChartSkeleton';
+
+// Dynamic import for chart component (lazy loading)
+const UserComparisonChart = dynamic(() => import('@/components/charts/UserComparisonChart').then(mod => ({ default: mod.UserComparisonChart })), {
+  loading: () => <ChartSkeleton />
+});
 
 export default async function AdminDashboardPage() {
   const stats = await getAdminDashboardStats();
