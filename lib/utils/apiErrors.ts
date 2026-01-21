@@ -5,7 +5,6 @@
 
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export interface ApiError {
   code: string;
@@ -74,65 +73,52 @@ export function handleApiError(error: unknown, context?: string): NextResponse<A
     );
   }
 
-  // Prisma known errors
-  if (error instanceof PrismaClientKnownRequestError) {
-    // Unique constraint violation
-    if (error.code === 'P2002') {
+  // LibSQL/Drizzle database errors
+  // Check for common database error patterns
+  if (error && typeof error === 'object' && 'code' in error) {
+    const dbError = error as { code?: string; message?: string };
+    
+    // UNIQUE constraint violation
+    if (dbError.code === 'SQLITE_CONSTRAINT_UNIQUE' || dbError.message?.includes('UNIQUE constraint')) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: ErrorCodes.DUPLICATE,
             message: 'A record with this information already exists',
-            details: { prismaCode: error.code },
           },
         },
         { status: 409 }
       );
     }
 
-    // Foreign key constraint violation
-    if (error.code === 'P2003') {
+    // FOREIGN KEY constraint violation
+    if (dbError.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || dbError.message?.includes('FOREIGN KEY constraint')) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: ErrorCodes.CONSTRAINT_VIOLATION,
             message: 'Invalid reference to related record',
-            details: { prismaCode: error.code },
           },
         },
         { status: 400 }
       );
     }
 
-    // Record not found
-    if (error.code === 'P2025') {
+    // Generic database error
+    if (dbError.code?.startsWith('SQLITE_') || dbError.message?.toLowerCase().includes('sql')) {
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: ErrorCodes.NOT_FOUND,
-            message: 'Record not found',
-            details: { prismaCode: error.code },
+            code: ErrorCodes.DATABASE_ERROR,
+            message: 'Database operation failed',
           },
         },
-        { status: 404 }
+        { status: 500 }
       );
     }
-
-    // Generic Prisma error
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: ErrorCodes.DATABASE_ERROR,
-          message: 'Database operation failed',
-          details: process.env.NODE_ENV === 'development' ? { prismaCode: error.code } : undefined,
-        },
-      },
-      { status: 500 }
-    );
   }
 
   // Generic Error objects
