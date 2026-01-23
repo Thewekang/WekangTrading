@@ -1,6 +1,15 @@
 /**
  * CSV Trade Import Script
+ * 
  * Usage: npm run db:import-csv
+ * 
+ * Features:
+ * - Imports trades from CSV data
+ * - Creates missing SOP types automatically
+ * - Auto-calculates market sessions from UTC timestamps
+ * - Recalculates user stats and streaks
+ * - Awards eligible badges automatically
+ * 
  * Environment variables loaded via tsx -r dotenv/config
  */
 
@@ -213,11 +222,35 @@ async function importTrades() {
     await db.insert(individualTrades).values(tradesToInsert);
     console.log(`✅ Successfully inserted ${parsedTrades.length} trades!\n`);
     
+    // Auto-calculate user stats and award badges
+    console.log('📊 Recalculating user stats and badges...');
+    const { initializeUserStats, updateUserStatsFromTrades, checkAndAwardBadges } = await import('../lib/services/badgeService');
+    
+    await initializeUserStats(wtrader.id);
+    console.log('   ✓ Stats initialized');
+    
+    await updateUserStatsFromTrades(wtrader.id);
+    console.log('   ✓ Stats updated from trades');
+    
+    const badges = await checkAndAwardBadges(wtrader.id, 'MANUAL');
+    console.log(`   ✓ Awarded ${badges.length} badge(s)`);
+    
+    if (badges.length > 0) {
+      badges.forEach(badge => {
+        console.log(`      - ${badge.icon} ${badge.name} (${badge.tier}, ${badge.points} pts)`);
+      });
+    }
+    console.log('');
+    
     console.log('🎉 Import complete!');
-    console.log('\n📝 Next steps:');
-    console.log('   1. Run daily summary recalculation: npm run recalculate-summaries');
-    console.log('   2. Check the trades in the app: /trades');
-    console.log('   3. View dashboard: /dashboard');
+    console.log('\n📝 Summary:');
+    console.log(`   ✅ Inserted ${parsedTrades.length} trades`);
+    console.log(`   ✅ Updated user stats`);
+    console.log(`   ✅ Awarded ${badges.length} badge(s)`);
+    console.log('\n📱 View results:');
+    console.log('   • Trades: /trades');
+    console.log('   • Dashboard: /dashboard');
+    console.log('   • Achievements: /dashboard (scroll down)');
     
   } catch (error) {
     console.error('❌ Error inserting trades:', error);
