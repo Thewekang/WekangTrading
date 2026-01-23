@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+(No unreleased changes yet)
+
+---
+
+## [1.2.1] - 2026-01-24
+
+### Added
+
 **Performance Optimization Project** (January 20-21, 2026):
 - ✅ **Phase 1: React Optimizations**
   - 13 components with React.memo(), useMemo(), useCallback()

@@ -1,9 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Compiler optimizations
-  swcMinify: true, // Use SWC minifier (faster than Terser)
-  
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

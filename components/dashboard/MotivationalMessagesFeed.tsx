@@ -94,12 +94,14 @@ export const MotivationalMessagesFeed = memo(({ limit = 5 }: MessageFeedProps) =
               {unreadCount} new
             </span>
           )}
+          {/* TODO: Create /dashboard/notifications page
           <Link
             href="/dashboard/notifications"
             className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
           >
             View All →
           </Link>
+          */}
         </div>
       </div>
       
