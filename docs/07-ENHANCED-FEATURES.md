@@ -1,9 +1,9 @@
 # Enhanced Features Documentation
 
-**Document Version**: 2.0  
-**Last Updated**: January 12, 2026  
-**Status**: ✅ Production (v0.4.0+)  
-**Phase Coverage**: 5B & 5C (Security, User Management, Feature Enhancements)
+**Document Version**: 2.1  
+**Last Updated**: January 18, 2026  
+**Status**: ✅ Production (v1.2.0)  
+**Phase Coverage**: Phases 5-7 (Security, User Management, Gamification, Economic Calendar)
 
 ---
 
@@ -1020,9 +1020,285 @@ Type "RESET MY ACCOUNT" to confirm:
 
 ---
 
+## Economic Calendar
+
+### 12. Economic Calendar Integration ✅ COMPLETE (v1.2.0)
+
+**Status**: ✅ Production  
+**Purpose**: Track high-impact economic events that affect trading decisions
+
+#### Overview
+
+The economic calendar provides traders with visibility into scheduled economic events (e.g., Non-Farm Payrolls, FOMC meetings, GDP releases) that can cause significant market volatility.
+
+#### Data Source
+
+**Provider**: RapidAPI - Economic Calendar API  
+**Endpoint**: `https://economic-calendar.p.rapidapi.com/events`  
+**Update Frequency**: Daily sync at 00:00 UTC via cron job
+
+#### Database Schema
+
+**Table**: `economic_events`
+```typescript
+{
+  id: string              // UUID
+  title: string           // Event name
+  country: string         // 2-letter country code (US, GB, EU)
+  date: string            // YYYY-MM-DD
+  time: string            // HH:MM (24-hour UTC)
+  impact: enum            // HIGH, MEDIUM, LOW
+  forecast: string?       // Expected value
+  previous: string?       // Previous value
+  actual: string?         // Actual value (after release)
+  currency: string?       // Affected currency pair
+  createdAt: timestamp
+  updatedAt: timestamp
+}
+```
+
+#### Features
+
+**User Features**:
+- View upcoming high-impact events (7-day window)
+- Filter by impact level (HIGH/MEDIUM/LOW)
+- Filter by country/currency
+- Event details with forecast/previous/actual values
+- Visual impact indicators (🔴 HIGH, 🟡 MEDIUM, 🟢 LOW)
+
+**Admin Features**:
+- Manual sync from RapidAPI
+- Import events from CSV file
+- View sync history and logs
+- Cron job status monitoring
+- Event count statistics
+
+#### API Endpoints
+
+**User Endpoints**:
+- `GET /api/economic-calendar/events?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&impact=HIGH`
+
+**Admin Endpoints**:
+- `POST /api/admin/economic-calendar/sync` - Manual sync
+- `POST /api/admin/economic-calendar/import` - CSV import
+- `GET /api/admin/economic-calendar/cron-logs` - View logs
+
+#### Cron Job
+
+**Schedule**: Daily at 00:00 UTC  
+**Function**: `syncEconomicCalendar()`  
+**Location**: `app/api/cron/sync-calendar/route.ts`
+
+**Process**:
+1. Fetch events for next 7 days from RapidAPI
+2. Compare with existing events in database
+3. Insert new events
+4. Update changed events (actual values)
+5. Log execution to `cron_logs` table
+6. Return summary (synced, updated, skipped)
+
+**Error Handling**:
+- Retry on API failure (max 3 attempts)
+- Log errors to `cron_logs`
+- Send alert if consecutive failures (future)
+
+#### CSV Import Format
+
+```csv
+title,country,date,time,impact,forecast,previous,currency
+Non-Farm Payrolls,US,2026-01-17,13:30,HIGH,200K,195K,USD
+GDP Growth Rate,GB,2026-01-18,09:30,MEDIUM,0.4%,0.3%,GBP
+```
+
+**Validation Rules**:
+- Date format: YYYY-MM-DD
+- Time format: HH:MM (24-hour)
+- Impact: HIGH, MEDIUM, or LOW
+- Country: Valid 2-letter code
+- No duplicate events (title + date + time)
+
+#### UI Components
+
+**User Dashboard** (`/dashboard`):
+- "Upcoming Events" card showing next 3 high-impact events
+- Click to view full calendar
+
+**Calendar Page** (`/calendar`):
+- Full calendar view with all events
+- Filter controls (impact, country, date range)
+- Search by event title
+- Mobile-responsive card layout
+
+**Admin Page** (`/admin/economic-calendar`):
+- Event management table
+- Manual sync button with loading state
+- CSV import with drag-and-drop
+- Sync history logs
+- Last sync timestamp display
+
+---
+
+## Admin Navigation Enhancements
+
+### 13. Admin Settings Dropdown ✅ COMPLETE (v1.2.0)
+
+**Status**: ✅ Production  
+**Purpose**: Improved admin navigation with settings access
+
+#### Features
+
+**Navigation Bar**:
+- Settings dropdown in top-right corner (next to Sign Out)
+- Contains links to:
+  - Profile Settings
+  - Cron Job Monitoring
+  - System Settings (future)
+
+**Profile Settings** (`/admin/settings/profile`):
+- View current admin name and email
+- Edit name
+- Edit email (with validation)
+- Change password
+- Success/error toast notifications
+
+**Cron Monitoring** (`/admin/settings/cron-monitoring`):
+- View recent cron job executions
+- Filter by job name
+- Filter by status (SUCCESS/ERROR)
+- View execution details (duration, records processed)
+- Error message display for failed jobs
+
+#### Implementation
+
+**Component**: `AdminNavbar.tsx`
+```tsx
+<DropdownMenu>
+  <DropdownMenuTrigger>
+    <Settings className="h-4 w-4" />
+  </DropdownMenuTrigger>
+  <DropdownMenuContent>
+    <DropdownMenuItem>
+      <Link href="/admin/settings/profile">Profile</Link>
+    </DropdownMenuItem>
+    <DropdownMenuItem>
+      <Link href="/admin/settings/cron-monitoring">Cron Jobs</Link>
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+#### API Endpoints
+
+- `GET /api/admin/settings/profile` - Get admin profile
+- `PATCH /api/admin/settings/profile` - Update name/email
+- `PATCH /api/admin/settings/password` - Change password
+- `GET /api/admin/settings/cron-logs` - Get cron execution logs
+
+---
+
+## Cron Monitoring
+
+### 14. Cron Job Monitoring Dashboard ✅ COMPLETE (v1.2.0)
+
+**Status**: ✅ Production  
+**Purpose**: Monitor scheduled task execution and troubleshoot failures
+
+#### Features
+
+**Cron Logs Table**:
+- Job name (sync-calendar, daily-summary-update, etc.)
+- Status (SUCCESS, ERROR, IN_PROGRESS)
+- Start time
+- End time
+- Duration (milliseconds)
+- Records processed
+- Error message (if failed)
+
+**Filtering**:
+- Filter by job name
+- Filter by status
+- Filter by date range
+- Sort by start time (desc)
+
+**Statistics Cards**:
+- Total executions (24 hours)
+- Success rate (%)
+- Average duration
+- Last run timestamp
+
+#### Database Schema
+
+**Table**: `cron_logs`
+```typescript
+{
+  id: string                    // UUID
+  jobName: string               // "sync-calendar", "recalc-summaries"
+  status: enum                  // SUCCESS, ERROR, IN_PROGRESS
+  startedAt: timestamp
+  completedAt: timestamp?
+  duration: number?             // milliseconds
+  recordsProcessed: number?
+  errorMessage: string?
+  createdAt: timestamp
+}
+```
+
+#### Service Layer
+
+**File**: `lib/services/cronLogService.ts`
+
+**Functions**:
+- `createCronLog(jobName)` - Start logging
+- `completeCronLog(id, recordsProcessed)` - Mark success
+- `failCronLog(id, errorMessage)` - Mark failure
+- `getCronLogs(filters)` - Retrieve logs
+- `getCronStats()` - Calculate statistics
+
+#### Usage Pattern
+
+```typescript
+// In cron job route
+export async function GET() {
+  const logId = await createCronLog('sync-calendar');
+  
+  try {
+    const result = await syncEconomicCalendar();
+    await completeCronLog(logId, result.synced);
+    
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    await failCronLog(logId, error.message);
+    
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+```
+
+#### UI Components
+
+**Cron Monitoring Page** (`/admin/settings/cron-monitoring`):
+- Recent logs table (last 50 executions)
+- Filter controls
+- Status badge colors:
+  - 🟢 Green: SUCCESS
+  - 🔴 Red: ERROR
+  - 🟡 Yellow: IN_PROGRESS
+- Expandable row for error details
+- Refresh button
+
+**Alert System** (Future):
+- Email notification on consecutive failures
+- Slack/Discord webhook integration
+- Threshold-based alerting (e.g., duration > 10s)
+
+---
+
 ## Implementation Status
 
-### ✅ Completed Features (11 total)
+### ✅ Completed Features (14 total)
 
 1. ✅ Invite-Only Registration
 2. ✅ Password Management
@@ -1038,11 +1314,12 @@ Type "RESET MY ACCOUNT" to confirm:
 
 ### Production Deployment
 
-**Version**: v0.4.0+  
+**Version**: v1.2.0  
 **Status**: All features deployed and tested  
-**Build**: 56 pages generated successfully  
-**Database**: All migrations applied  
+**Build**: 70+ pages generated successfully  
+**Database**: All migrations applied (including gamification & economic calendar)  
 **API**: All endpoints functional  
+**External Services**: RapidAPI integration active  
 
 ---
 
@@ -1154,6 +1431,6 @@ Type "RESET MY ACCOUNT" to confirm:
 
 ---
 
-**Last Updated**: January 12, 2026  
-**Document Version**: 2.0  
-**Status**: ✅ Production Ready
+**Last Updated**: January 18, 2026  
+**Document Version**: 2.1  
+**Status**: ✅ Production (v1.2.0)

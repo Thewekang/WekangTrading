@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Card } from '@/components/ui/card';
 
 interface BestSopData {
@@ -16,7 +17,7 @@ interface BestSopCardProps {
   period: 'week' | 'month' | 'year' | 'all';
 }
 
-export function BestSopCard({ data, period }: BestSopCardProps) {
+export const BestSopCard = memo(({ data, period }: BestSopCardProps) => {
   const periodLabels = {
     week: 'This Week',
     month: 'This Month',
@@ -107,4 +108,6 @@ export function BestSopCard({ data, period }: BestSopCardProps) {
       </div>
     </Card>
   );
-}
+});
+
+BestSopCard.displayName = 'BestSopCard';

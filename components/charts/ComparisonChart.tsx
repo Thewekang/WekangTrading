@@ -5,6 +5,7 @@
 
 'use client';
 
+import { memo, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ComparisonChartProps {
@@ -28,18 +29,18 @@ interface ComparisonChartProps {
   tooltipFormatter?: (value: number) => string;
 }
 
-export default function ComparisonChart({
+const ComparisonChart = memo(({
   current,
   previous,
   metric,
   metricLabel,
   yAxisFormatter = (value) => value.toFixed(1),
   tooltipFormatter = (value) => value.toFixed(2),
-}: ComparisonChartProps) {
-  const data = [
+}: ComparisonChartProps) => {
+  const data = useMemo(() => [
     { name: previous.period, value: previous[metric] },
     { name: current.period, value: current[metric] },
-  ];
+  ], [previous, current, metric]);
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -77,4 +78,7 @@ export default function ComparisonChart({
       </BarChart>
     </ResponsiveContainer>
   );
-}
+});
+
+ComparisonChart.displayName = 'ComparisonChart';
+export default ComparisonChart;

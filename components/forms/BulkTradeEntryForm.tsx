@@ -7,9 +7,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
   id: string;
@@ -22,6 +25,7 @@ interface BulkTradeRow {
   result: 'WIN' | 'LOSS' | '';
   sopFollowed: boolean | null;
   sopTypeId: string;
+  symbol: string;
   amount: string;
   notes: string;
 }
@@ -32,13 +36,26 @@ export function BulkTradeEntryForm() {
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [rows, setRows] = useState<BulkTradeRow[]>([
-    { id: '1', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
-    { id: '2', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
-    { id: '3', time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' },
+    { id: '1', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '2', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '3', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  // Debounced validation for amount inputs (300ms delay)
+  const debouncedAmountValidation = useDebouncedCallback(
+    (rowId: string, value: string) => {
+      // Clear error if value is being entered
+      if (value && parseFloat(value) > 0) {
+        setErrorMessage('');
+      }
+    },
+    300
+  );
 
   // Fetch SOP types
   useEffect(() => {
@@ -67,7 +84,7 @@ export function BulkTradeEntryForm() {
       return;
     }
     const newId = (Math.max(...rows.map(r => parseInt(r.id))) + 1).toString();
-    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, sopTypeId: '', amount: '', notes: '' }]);
+    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' }]);
   };
 
   // Remove row
@@ -136,6 +153,7 @@ export function BulkTradeEntryForm() {
         result: row.result,
         sopFollowed: row.sopFollowed,
         sopTypeId: row.sopTypeId || null,
+        symbol: row.symbol || undefined,
         profitLossUsd: profitLoss,
         notes: row.notes || undefined,
       };
@@ -163,6 +181,17 @@ export function BulkTradeEntryForm() {
       if (!response.ok || !result.success) {
         setErrorMessage(result.error?.message || 'Failed to create trades');
         return;
+      }
+      
+      // Check if badges were earned
+      if (result.badges && result.badges.length > 0) {
+        setEarnedBadges(result.badges);
+        setShowCelebration(true);
+        // Set flag to refresh achievements page
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+      } else {
+        // Still set flag for achievements page to refresh progress
+        localStorage.setItem('badgesUpdated', Date.now().toString());
       }
 
       setSuccessMessage(`✅ ${filledRows.length} trades recorded successfully!`);
@@ -218,6 +247,7 @@ export function BulkTradeEntryForm() {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount (USD) *</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Actions</th>
@@ -274,11 +304,24 @@ export function BulkTradeEntryForm() {
                   </td>
                   <td className="px-3 py-3">
                     <input
+                      type="text"
+                      value={row.symbol}
+                      onChange={(e) => handleUpdateRow(row.id, 'symbol', e.target.value.toUpperCase())}
+                      placeholder="e.g. EURUSD"
+                      maxLength={10}
+                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-3 py-3">
+                    <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={row.amount}
-                      onChange={(e) => handleUpdateRow(row.id, 'amount', e.target.value)}
+                      onChange={(e) => {
+                        handleUpdateRow(row.id, 'amount', e.target.value);
+                        debouncedAmountValidation(row.id, e.target.value);
+                      }}
                       placeholder="50.00"
                       className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
@@ -357,6 +400,16 @@ export function BulkTradeEntryForm() {
           <li>• Use Tab key to navigate between fields quickly</li>
         </ul>
       </div>
+      
+      {/* Badge Celebration Animation */}
+      <BadgeCelebration 
+        badges={earnedBadges}
+        isOpen={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          setEarnedBadges([]);
+        }}
+      />
     </div>
   );
 }

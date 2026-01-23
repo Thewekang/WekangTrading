@@ -82,17 +82,23 @@ export async function getPersonalStats(
   }
 
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalLosses: dailySummaries.totalLosses,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(and(...conditions))
     .orderBy(dailySummaries.tradeDate);
 
   // Aggregate across days
-  const totalTrades = summaries.reduce((sum: number, s: DailySummary) => sum + s.totalTrades, 0);
-  const totalWins = summaries.reduce((sum: number, s: DailySummary) => sum + s.totalWins, 0);
-  const totalLosses = summaries.reduce((sum: number, s: DailySummary) => sum + s.totalLosses, 0);
-  const totalSopFollowed = summaries.reduce((sum: number, s: DailySummary) => sum + s.totalSopFollowed, 0);
-  const totalProfitLossUsd = summaries.reduce((sum: number, s: DailySummary) => sum + s.totalProfitLossUsd, 0);
+  const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
+  const totalWins = summaries.reduce((sum, s) => sum + s.totalWins, 0);
+  const totalLosses = summaries.reduce((sum, s) => sum + s.totalLosses, 0);
+  const totalSopFollowed = summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0);
+  const totalProfitLossUsd = summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0);
 
   const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
@@ -110,7 +116,10 @@ export async function getPersonalStats(
 
   // Query individual_trades for accurate session breakdown
   const tradesForPeriod = await db
-    .select()
+    .select({
+      marketSession: individualTrades.marketSession,
+      result: individualTrades.result,
+    })
     .from(individualTrades)
     .where(
       startDate
@@ -279,7 +288,11 @@ export async function getDailyTrends(
 
   // Query daily_summaries
   const summaries = await db
-    .select()
+    .select({
+      tradeDate: dailySummaries.tradeDate,
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+    })
     .from(dailySummaries)
     .where(
       and(
@@ -291,7 +304,7 @@ export async function getDailyTrends(
     .limit(limit);
 
   // Map to trend data
-  return summaries.map((s: DailySummary) => {
+  return summaries.map((s) => {
     const winRate = s.totalTrades > 0 ? Math.round((s.totalWins / s.totalTrades) * 100 * 10) / 10 : 0;
     const date = s.tradeDate; // Already a Date object
     

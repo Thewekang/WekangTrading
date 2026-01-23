@@ -4,6 +4,7 @@
  */
 'use client';
 
+import { memo, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 interface SessionData {
@@ -34,15 +35,15 @@ const SESSION_LABELS: Record<string, string> = {
   EUROPE_US_OVERLAP: 'Europe-US Overlap',
 };
 
-export default function SessionComparisonChart({ data, bestSession }: SessionComparisonChartProps) {
+const SessionComparisonChart = memo(({ data, bestSession }: SessionComparisonChartProps) => {
   // Transform data for chart
-  const chartData = data.map(item => ({
+  const chartData = useMemo(() => data.map(item => ({
     name: SESSION_LABELS[item.session] || item.session,
     session: item.session,
     'Win Rate': item.winRate,
     'Total Trades': item.totalTrades,
     wins: item.totalWins,
-  }));
+  })), [data]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -116,4 +117,7 @@ export default function SessionComparisonChart({ data, bestSession }: SessionCom
       </div>
     </div>
   );
-}
+});
+
+SessionComparisonChart.displayName = 'SessionComparisonChart';
+export default SessionComparisonChart;

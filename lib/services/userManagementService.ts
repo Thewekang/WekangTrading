@@ -124,37 +124,29 @@ export async function deleteUserByAdmin(userId: string, currentAdminId: string) 
   }
 
   // Manual cascade deletion (SQLite doesn't have foreign key constraints defined)
-  console.log(`[Delete User] Starting deletion for user ${userId}...`);
 
   // 1. Delete individual trades
   const tradesResult = await db
     .delete(individualTrades)
     .where(eq(individualTrades.userId, userId));
-  console.log(`[Delete User] Deleted individual trades`);
 
   // 2. Delete daily summaries
   const summariesResult = await db
     .delete(dailySummaries)
     .where(eq(dailySummaries.userId, userId));
-  console.log(`[Delete User] Deleted daily summaries`);
 
   // 3. Delete user targets
   const targetsResult = await db
     .delete(userTargets)
     .where(eq(userTargets.userId, userId));
-  console.log(`[Delete User] Deleted user targets`);
 
   // 4. Delete user sessions
   const sessionsResult = await db
     .delete(sessions)
     .where(eq(sessions.userId, userId));
-  console.log(`[Delete User] Deleted user sessions`);
 
   // 5. Delete user account
   await db.delete(users).where(eq(users.id, userId));
-  console.log(`[Delete User] Deleted user account`);
-
-  console.log(`[Delete User] Completed deletion for user ${userId}`);
 }
 
 /**

@@ -8,6 +8,7 @@ import { individualTrades, sopTypes } from '../db/schema';
 import { eq, and, desc, gte, lte, inArray, count } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { updateDailySummary } from './dailySummaryService';
+import { updateUserStatsFromTrades } from './badgeService';
 import { VALIDATION, PAGINATION } from '../constants';
 
 interface CreateTradeInput {
@@ -16,6 +17,7 @@ interface CreateTradeInput {
   result: 'WIN' | 'LOSS';
   sopFollowed: boolean;
   sopTypeId?: string | null;
+  symbol?: string;
   profitLossUsd: number;
   notes?: string;
 }
@@ -25,6 +27,7 @@ interface UpdateTradeInput {
   result?: 'WIN' | 'LOSS';
   sopFollowed?: boolean;
   sopTypeId?: string | null;
+  symbol?: string;
   profitLossUsd?: number;
   notes?: string;
 }
@@ -75,6 +78,7 @@ export async function createTrade(input: CreateTradeInput) {
       result: input.result,
       sopFollowed: input.sopFollowed,
       sopTypeId: input.sopTypeId || null,
+      symbol: input.symbol || null,
       profitLossUsd: input.profitLossUsd,
       marketSession,
       notes: input.notes || null,
@@ -83,6 +87,10 @@ export async function createTrade(input: CreateTradeInput) {
 
   // Update daily summary for this date
   await updateDailySummary(input.userId, input.tradeTimestamp);
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(input.userId);
 
   return trade;
 }
@@ -112,6 +120,7 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
     result: trade.result,
     sopFollowed: trade.sopFollowed,
     sopTypeId: trade.sopTypeId || null,
+    symbol: trade.symbol || null,
     profitLossUsd: trade.profitLossUsd,
     marketSession: calculateMarketSession(trade.tradeTimestamp),
     notes: trade.notes || null,
@@ -125,8 +134,13 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   // Update daily summaries for all affected dates
   const uniqueDates = new Set(trades.map(t => t.tradeTimestamp.toISOString().split('T')[0]));
   for (const dateStr of uniqueDates) {
-    await updateDailySummary(userId, new Date(dateStr));
+    const date = new Date(dateStr);
+    await updateDailySummary(userId, date);
   }
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(userId);
 
   return { count: trades.length };
 }
@@ -196,6 +210,7 @@ export async function getTrades(filters: GetTradesFilters) {
         tradeTimestamp: individualTrades.tradeTimestamp,
         result: individualTrades.result,
         sopFollowed: individualTrades.sopFollowed,
+        symbol: individualTrades.symbol,
         profitLossUsd: individualTrades.profitLossUsd,
         marketSession: individualTrades.marketSession,
         notes: individualTrades.notes,
@@ -319,6 +334,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
     updateData.sopTypeId = input.sopTypeId || null;
   }
 
+  if (input.symbol !== undefined) {
+    updateData.symbol = input.symbol || null;
+  }
+
   // Update trade
   const [updatedTrade] = await db
     .update(individualTrades)
@@ -331,6 +350,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   if (input.tradeTimestamp && input.tradeTimestamp.toDateString() !== existingTrade.tradeTimestamp.toDateString()) {
     await updateDailySummary(userId, input.tradeTimestamp);
   }
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(userId);
 
   return updatedTrade;
 }
@@ -359,6 +382,10 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
 
   // Update daily summary for this date
   await updateDailySummary(userId, trade.tradeTimestamp);
+  
+  // Update user stats (for badge progress calculation)
+  // This recalculates ALL streaks (win, log, SOP) from all trades
+  await updateUserStatsFromTrades(userId);
 
   return { success: true };
 }

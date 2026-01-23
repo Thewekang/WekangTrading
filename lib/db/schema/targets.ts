@@ -16,6 +16,7 @@ export const userTargets = sqliteTable('user_targets', {
   endDate: integer('end_date', { mode: 'timestamp' }).notNull(),
   notes: text('notes'),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({

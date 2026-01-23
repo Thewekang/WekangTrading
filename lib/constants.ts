@@ -52,3 +52,74 @@ export const DATE_FORMATS = {
   API_DATE: 'yyyy-MM-dd',
   API_DATETIME: 'yyyy-MM-dd\'T\'HH:mm:ss\'Z\'',
 } as const;
+
+// Badge Categories
+export const BADGE_CATEGORIES = {
+  VOLUME: 'VOLUME',
+  STREAK: 'STREAK',
+  PROFIT: 'PROFIT',
+  CONSISTENCY: 'CONSISTENCY',
+  SOP: 'SOP',
+  PERFORMANCE: 'PERFORMANCE',
+  SPECIAL: 'SPECIAL',
+} as const;
+
+// Badge Tiers
+export const BADGE_TIERS = {
+  BRONZE: 'BRONZE',
+  SILVER: 'SILVER',
+  GOLD: 'GOLD',
+  PLATINUM: 'PLATINUM',
+} as const;
+
+// Streak Types
+export const STREAK_TYPES = {
+  WIN_STREAK: 'WIN_STREAK',
+  LOG_STREAK: 'LOG_STREAK',
+  SOP_STREAK: 'SOP_STREAK',
+} as const;
+
+// Message Types
+export const MESSAGE_TYPES = {
+  ACHIEVEMENT: 'ACHIEVEMENT',
+  STREAK: 'STREAK',
+  MILESTONE: 'MILESTONE',
+  ENCOURAGEMENT: 'ENCOURAGEMENT',
+  PERFORMANCE: 'PERFORMANCE',
+  CELEBRATION: 'CELEBRATION',
+  REMINDER: 'REMINDER',
+} as const;
+
+// Badge Colors (Tailwind classes)
+export const BADGE_COLORS = {
+  BRONZE: {
+    bg: 'bg-amber-100',
+    border: 'border-amber-500',
+    text: 'text-amber-700',
+    glow: 'shadow-amber-200',
+  },
+  SILVER: {
+    bg: 'bg-slate-100',
+    border: 'border-slate-400',
+    text: 'text-slate-700',
+    glow: 'shadow-slate-200',
+  },
+  GOLD: {
+    bg: 'bg-yellow-100',
+    border: 'border-yellow-500',
+    text: 'text-yellow-700',
+    glow: 'shadow-yellow-200',
+  },
+  PLATINUM: {
+    bg: 'bg-gradient-to-br from-purple-100 to-pink-100',
+    border: 'border-purple-500',
+    text: 'text-purple-700',
+    glow: 'shadow-purple-300',
+  },
+  LOCKED: {
+    bg: 'bg-gray-100',
+    border: 'border-gray-300',
+    text: 'text-gray-400',
+    opacity: 'opacity-50',
+  },
+} as const;

@@ -65,7 +65,13 @@ export async function getDailyTrends(
   endDate: Date
 ): Promise<DailyTrend[]> {
   const summaries = await db
-    .select()
+    .select({
+      tradeDate: dailySummaries.tradeDate,
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(
       and(
@@ -167,7 +173,12 @@ export async function getMonthlyComparison(userId: string): Promise<ComparisonDa
  */
 async function getPeriodStats(userId: string, startDate: Date, endDate: Date) {
   const summaries = await db
-    .select()
+    .select({
+      totalTrades: dailySummaries.totalTrades,
+      totalWins: dailySummaries.totalWins,
+      totalSopFollowed: dailySummaries.totalSopFollowed,
+      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+    })
     .from(dailySummaries)
     .where(
       and(

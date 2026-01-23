@@ -34,7 +34,7 @@ export async function createInviteCode(
   // Ensure code is unique
   while (!isUnique && attempts < 10) {
     const [existing] = await db
-      .select()
+      .select({ id: inviteCodes.id })
       .from(inviteCodes)
       .where(eq(inviteCodes.code, code))
       .limit(1);

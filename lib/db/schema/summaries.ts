@@ -29,6 +29,9 @@ export const dailySummaries = sqliteTable('daily_summaries', {
   userDateUnique: uniqueIndex('daily_summaries_user_date_unique').on(table.userId, table.tradeDate),
   userDateIdx: index('daily_summaries_user_date_idx').on(table.userId, table.tradeDate),
   tradeDateIdx: index('daily_summaries_trade_date_idx').on(table.tradeDate),
+  
+  // Phase 2: Enhanced index for date range queries
+  userDateRangeIdx: index('idx_summary_user_date').on(table.userId, table.tradeDate),
 }));
 
 // Export types

@@ -20,10 +20,8 @@ export default function Error({
   }, [error]);
 
   return (
-    <html>
-      <body>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="text-6xl mb-4">❌</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Something went wrong!
@@ -61,7 +59,6 @@ export default function Error({
             </div>
           </div>
         </div>
-      </body>
-    </html>
+
   );
 }
