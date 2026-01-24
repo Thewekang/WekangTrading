@@ -4,12 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { individualTrades, sopTypes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { calculateMarketSession } from '@/lib/utils/marketSessions';
 import { updateDailySummary } from '@/lib/services/dailySummaryService';
+import { initializeUserStats, updateUserStatsFromTrades, checkAndAwardBadges } from '@/lib/services/badgeService';
 
 interface ImportTradeInput {
   tradeTimestamp: string; // ISO string
@@ -182,11 +184,28 @@ export async function POST(request: NextRequest) {
       await updateDailySummary(session.user.id, new Date(dateStr));
     }
 
+    // Recalculate user stats from all trades (needed for badge evaluation)
+    console.log(`[CSV Import] Recalculating user stats for user ${session.user.id}`);
+    await initializeUserStats(session.user.id);
+    await updateUserStatsFromTrades(session.user.id);
+    
+    // Check and award badges after stats update
+    console.log(`[CSV Import] Checking and awarding badges for user ${session.user.id}`);
+    const newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+    console.log(`[CSV Import] Awarded ${newBadges.length} badge(s)`);
+
+    // Revalidate paths to update UI with new notifications
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/achievements');
+    revalidatePath('/notifications');
+    revalidatePath('/', 'layout'); // Revalidate layout to update notification count in navbar
+
     return NextResponse.json(
       {
         success: true,
         imported: tradesToInsert.length,
         datesAffected: uniqueDates.length,
+        badges: newBadges, // Return full badge objects for celebration modal
         message: `Successfully imported ${tradesToInsert.length} trades`,
       },
       { status: 201 }

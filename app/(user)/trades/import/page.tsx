@@ -10,21 +10,30 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Download, Upload, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { parseCSVFile, downloadCSVTemplate, type ParsedTrade, type ValidationError } from '@/lib/utils/csvParser';
 import { showToast } from '@/components/ui/Toast';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { COMMON_TIMEZONES } from '@/lib/utils/timezones';
+import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import type { Badge } from '@/lib/db/schema';
 
 export default function ImportTradesPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { timezone: userTimezone } = useTimezone();
   
   const [file, setFile] = useState<File | null>(null);
+  const [importTimezone, setImportTimezone] = useState(userTimezone);
   const [parsedTrades, setParsedTrades] = useState<ParsedTrade[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -47,7 +56,7 @@ export default function ImportTradesPage() {
     setImportSuccess(false);
 
     try {
-      const result = await parseCSVFile(selectedFile);
+      const result = await parseCSVFile(selectedFile, importTimezone);
       
       // Check max trades limit
       if (result.trades.length > 500) {
@@ -105,12 +114,33 @@ export default function ImportTradesPage() {
       }
 
       setImportSuccess(true);
-      showToast(`Successfully imported ${data.imported} trades!`, 'success');
-
-      // Reset form after successful import
-      setTimeout(() => {
-        router.push('/trades');
-      }, 2000);
+      
+      // Check if badges were earned
+      if (data.badges && data.badges.length > 0) {
+        setEarnedBadges(data.badges);
+        setShowCelebration(true);
+        // Set flag to refresh achievements page
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+        
+        const successMessage = `Successfully imported ${data.imported} trades and earned ${data.badges.length} badge${data.badges.length !== 1 ? 's' : ''}! 🎉`;
+        showToast(successMessage, 'success');
+        
+        // Refresh after celebration closes
+        setTimeout(() => {
+          router.refresh();
+        }, 500);
+      } else {
+        showToast(`Successfully imported ${data.imported} trades!`, 'success');
+        
+        // Set flag for achievements page to refresh progress
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+        
+        // Reset form after successful import
+        setTimeout(() => {
+          router.refresh();
+          router.push('/trades');
+        }, 2000);
+      }
     } catch (error: any) {
       // Only log unexpected errors (not validation errors)
       console.error('Unexpected import error:', error);
@@ -170,6 +200,38 @@ export default function ImportTradesPage() {
               <Download className="mr-2 h-4 w-4" />
               Download CSV Template
             </Button>
+          </div>
+
+          {/* Step 1.5: Select Timezone */}
+          <div className="border-b pb-6">
+            <div className="flex items-center mb-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold mr-3">
+                🌍
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Select Import Timezone</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-3 ml-11">
+              Choose the timezone of the timestamps in your CSV file.
+            </p>
+            <div className="ml-11 space-y-2">
+              <Label htmlFor="importTimezone">Import Timezone</Label>
+              <select
+                id="importTimezone"
+                value={importTimezone}
+                onChange={(e) => setImportTimezone(e.target.value)}
+                disabled={isParsing || isImporting || importSuccess}
+                className="w-full max-w-md rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label} {tz.value === userTimezone && '(Your Setting)'}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500">
+                CSV timestamps will be interpreted as {importTimezone} and converted to UTC
+              </p>
+            </div>
           </div>
 
           {/* Step 2: Upload File */}
@@ -361,6 +423,17 @@ export default function ImportTradesPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Badge Celebration Animation */}
+      <BadgeCelebration 
+        badges={earnedBadges}
+        isOpen={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          // Redirect to achievements page to see new badges
+          router.push('/dashboard/achievements');
+        }}
+      />
     </div>
   );
 }

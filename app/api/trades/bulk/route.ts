@@ -4,11 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { createTradesBulk } from '@/lib/services/individualTradeService';
 import { bulkTradeEntrySchema } from '@/lib/validations';
 import { ZodError } from 'zod';
-import { checkAndAwardBadges } from '@/lib/services/badgeService';
+import { initializeUserStats, updateUserStatsFromTrades, checkAndAwardBadges } from '@/lib/services/badgeService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,16 +26,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = bulkTradeEntrySchema.parse(body);
 
-    // Validate all trades are on the same date (use local date comparison to avoid timezone issues)
+    // Validate all trades are on the same date (compare UTC dates)
     const tradeDateStr = validatedData.tradeDate.toISOString().split('T')[0];
     const allSameDate = validatedData.trades.every(trade => {
       const timestamp = new Date(trade.tradeTimestamp);
-      // Extract date in local timezone to match user's input
-      const year = timestamp.getFullYear();
-      const month = String(timestamp.getMonth() + 1).padStart(2, '0');
-      const day = String(timestamp.getDate()).padStart(2, '0');
-      const localDateStr = `${year}-${month}-${day}`;
-      return localDateStr === tradeDateStr;
+      // Extract date in UTC timezone to match database storage
+      const utcDateStr = timestamp.toISOString().split('T')[0];
+      return utcDateStr === tradeDateStr;
     });
 
     if (!allSameDate) {
@@ -69,14 +67,27 @@ export async function POST(request: NextRequest) {
     // Bulk create trades
     const result = await createTradesBulk(trades);
     
-    // Check and award badges after bulk trade creation
+    // Recalculate user stats from all trades (needed for badge evaluation)
+    console.log(`[Bulk Trade] Recalculating user stats for user ${session.user.id}`);
+    await initializeUserStats(session.user.id);
+    await updateUserStatsFromTrades(session.user.id);
+    
+    // Check and award badges after stats update
+    console.log(`[Bulk Trade] Checking and awarding badges for user ${session.user.id}`);
     let newBadges: any[] = [];
     try {
       newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+      console.log(`[Bulk Trade] Awarded ${newBadges.length} badge(s)`);
     } catch (badgeError) {
       // Don't fail trade creation if badge check fails
       console.error('Badge check error (non-fatal):', badgeError);
     }
+
+    // Revalidate paths to update UI with new notifications
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/achievements');
+    revalidatePath('/notifications');
+    revalidatePath('/', 'layout'); // Revalidate layout to update notification count in navbar
 
     return NextResponse.json(
       { 

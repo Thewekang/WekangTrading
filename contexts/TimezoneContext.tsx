@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import { formatDateInTimezone, getCurrentTimeInTimezone, toDatetimeLocal } from '@/lib/utils/timezones';
+import { formatDateInTimezone, getCurrentTimeInTimezone, toDatetimeLocal, datetimeLocalToUTC } from '@/lib/utils/timezones';
 
 // ============================================
 // TIMEZONE CONTEXT
@@ -12,6 +12,7 @@ interface TimezoneContextType {
   formatDate: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   getCurrentTime: () => string;
   toDatetimeLocal: (date: Date) => string;
+  datetimeLocalToUTC: (datetimeLocalValue: string) => Date;
 }
 
 const TimezoneContext = createContext<TimezoneContextType | null>(null);
@@ -31,6 +32,7 @@ export function TimezoneProvider({ children, userTimezone }: TimezoneProviderPro
     formatDate: (date, options) => formatDateInTimezone(date, userTimezone, options),
     getCurrentTime: () => getCurrentTimeInTimezone(userTimezone),
     toDatetimeLocal: (date) => toDatetimeLocal(date, userTimezone),
+    datetimeLocalToUTC: (datetimeLocalValue) => datetimeLocalToUTC(datetimeLocalValue, userTimezone),
   };
 
   return (
