@@ -231,14 +231,23 @@ function validateAndTransformRow(
     });
   }
 
+  // Ensure tradeDate was successfully parsed
+  if (!tradeDate) {
+    errors.push({
+      row: rowNumber,
+      field: 'Date & time',
+      message: 'Failed to parse date',
+    });
+  }
+
   // If there are errors, return them
   if (errors.length > 0) {
     return { trade: null, errors };
   }
 
-  // Transform to ParsedTrade
+  // Transform to ParsedTrade (tradeDate is guaranteed to be non-null here)
   const trade: ParsedTrade = {
-    tradeTimestamp: tradeDate.toISOString(),
+    tradeTimestamp: tradeDate!.toISOString(),
     result: result as 'WIN' | 'LOSS',
     sopFollowed: sop === 'YES',
     sopTypeName: sopTypeName || '',
