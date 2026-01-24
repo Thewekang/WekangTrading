@@ -30,7 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Badge System Fixes**
 - ✅ Fixed badges not triggering after CSV import (production badges table was empty)
 - ✅ Seeded 34 badges into production database
-- ✅ CSV import script now automatically recalculates user stats and awards badges
+- ✅ CSV import web UI now recalculates user stats before checking badges
+- ✅ Bulk trade entry now recalculates user stats before checking badges
+- ✅ CSV import script already had proper badge recalculation
+- ✅ All three entry methods (real-time, bulk, CSV) now award badges consistently
+- ✅ Badge celebration modal now appears after CSV import (with confetti animation)
+- ✅ Notification bell count updates immediately after badge awards
 - ✅ No manual recalculation needed after imports
 
 **Security & Environment**
@@ -49,6 +54,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Use case: Import historical data from different timezones/brokers without manual conversion
 - ✅ CSV imports via web: Select timezone in wizard before uploading file
 - ✅ CSV imports via script: Change IMPORT_TIMEZONE constant at top of file
+
+**Badge Celebration Enhancements**
+- ✅ CSV import now shows `BadgeCelebration` modal with confetti when badges earned
+- ✅ Success toast shows badge count: "Successfully imported X trades and earned Y badges! 🎉"
+- ✅ Auto-redirects to achievements page after celebration closes
+- ✅ Cache revalidation updates notification count immediately in navbar
+- ✅ Consistent celebration experience across all entry methods
+
+### Technical Improvements
+
+**API Response Enhancements**
+- ✅ CSV import API now returns full badge objects (not just count)
+- ✅ Added `revalidatePath()` calls to refresh notification count and cached pages
+- ✅ Both bulk and CSV import APIs call `updateUserStatsFromTrades()` before badge checks
+- ✅ Proper error handling with TypeScript null checks in CSV parser
+
+**Code Consistency**
+- ✅ All trade entry methods follow same pattern:
+  1. Create trades
+  2. `initializeUserStats()`
+  3. `updateUserStatsFromTrades()` 
+  4. `checkAndAwardBadges()`
+  5. `revalidatePath()` for UI updates
 
 ---
 
