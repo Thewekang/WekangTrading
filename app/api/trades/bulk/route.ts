@@ -4,11 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { createTradesBulk } from '@/lib/services/individualTradeService';
 import { bulkTradeEntrySchema } from '@/lib/validations';
 import { ZodError } from 'zod';
-import { checkAndAwardBadges } from '@/lib/services/badgeService';
+import { initializeUserStats, updateUserStatsFromTrades, checkAndAwardBadges } from '@/lib/services/badgeService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,14 +67,27 @@ export async function POST(request: NextRequest) {
     // Bulk create trades
     const result = await createTradesBulk(trades);
     
-    // Check and award badges after bulk trade creation
+    // Recalculate user stats from all trades (needed for badge evaluation)
+    console.log(`[Bulk Trade] Recalculating user stats for user ${session.user.id}`);
+    await initializeUserStats(session.user.id);
+    await updateUserStatsFromTrades(session.user.id);
+    
+    // Check and award badges after stats update
+    console.log(`[Bulk Trade] Checking and awarding badges for user ${session.user.id}`);
     let newBadges: any[] = [];
     try {
       newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
+      console.log(`[Bulk Trade] Awarded ${newBadges.length} badge(s)`);
     } catch (badgeError) {
       // Don't fail trade creation if badge check fails
       console.error('Badge check error (non-fatal):', badgeError);
     }
+
+    // Revalidate paths to update UI with new notifications
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/achievements');
+    revalidatePath('/notifications');
+    revalidatePath('/', 'layout'); // Revalidate layout to update notification count in navbar
 
     return NextResponse.json(
       { 
