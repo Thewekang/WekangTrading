@@ -12,8 +12,11 @@ export const sopTypes = sqliteTable('sop_types', {
   sortOrder: integer('sort_order').notNull().default(0),
   
   // SOP Detail Fields (Feature 5: Rich text strategy documentation)
-  detailContent: text('detail_content'), // HTML content with base64 images
-  detailEnabled: integer('detail_enabled', { mode: 'boolean' }).notNull().default(false),
+  // Separate content for SHORT and LONG entry strategies
+  detailContentShort: text('detail_content_short'), // HTML for short entry strategy
+  detailContentLong: text('detail_content_long'), // HTML for long entry strategy
+  detailEnabledShort: integer('detail_enabled_short', { mode: 'boolean' }).notNull().default(false),
+  detailEnabledLong: integer('detail_enabled_long', { mode: 'boolean' }).notNull().default(false),
   detailUpdatedAt: integer('detail_updated_at', { mode: 'timestamp' }),
   detailUpdatedBy: text('detail_updated_by').references(() => users.id),
   
@@ -21,7 +24,8 @@ export const sopTypes = sqliteTable('sop_types', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({
   activeSortIdx: index('sop_types_active_sort_idx').on(table.active, table.sortOrder),
-  detailEnabledIdx: index('sop_types_detail_enabled_idx').on(table.detailEnabled),
+  detailEnabledShortIdx: index('sop_types_detail_enabled_short_idx').on(table.detailEnabledShort),
+  detailEnabledLongIdx: index('sop_types_detail_enabled_long_idx').on(table.detailEnabledLong),
 }));
 
 // Export types

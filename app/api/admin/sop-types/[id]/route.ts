@@ -30,7 +30,16 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { name, description, sortOrder, active, detailContent, detailEnabled } = body;
+    const { 
+      name, 
+      description, 
+      sortOrder, 
+      active, 
+      detailContentShort, 
+      detailContentLong,
+      detailEnabledShort,
+      detailEnabledLong
+    } = body;
 
     // Handle basic field updates
     const basicUpdates: any = {};
@@ -47,11 +56,16 @@ export async function PATCH(
     }
 
     // Handle detail fields separately (includes HTML sanitization)
-    if (detailContent !== undefined || detailEnabled !== undefined) {
-      // Validate image sizes in detail content if provided
-      if (detailContent) {
+    if (
+      detailContentShort !== undefined || 
+      detailContentLong !== undefined ||
+      detailEnabledShort !== undefined ||
+      detailEnabledLong !== undefined
+    ) {
+      // Validate image sizes in short entry content if provided
+      if (detailContentShort) {
         const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
-        const matches = detailContent.matchAll(base64Regex);
+        const matches = detailContentShort.matchAll(base64Regex);
         
         for (const match of matches) {
           const validation = validateImageSize(match[0]);
@@ -61,7 +75,29 @@ export async function PATCH(
                 success: false, 
                 error: { 
                   code: 'IMAGE_TOO_LARGE', 
-                  message: `Image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                  message: `Short entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                } 
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+
+      // Validate image sizes in long entry content if provided
+      if (detailContentLong) {
+        const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
+        const matches = detailContentLong.matchAll(base64Regex);
+        
+        for (const match of matches) {
+          const validation = validateImageSize(match[0]);
+          if (!validation.valid) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: { 
+                  code: 'IMAGE_TOO_LARGE', 
+                  message: `Long entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
                 } 
               },
               { status: 400 }
@@ -73,8 +109,10 @@ export async function PATCH(
       sopType = await updateSopDetail(
         id,
         {
-          detailContent: detailContent !== undefined ? detailContent : undefined,
-          detailEnabled: detailEnabled !== undefined ? detailEnabled : undefined,
+          detailContentShort: detailContentShort !== undefined ? detailContentShort : undefined,
+          detailContentLong: detailContentLong !== undefined ? detailContentLong : undefined,
+          detailEnabledShort: detailEnabledShort !== undefined ? detailEnabledShort : undefined,
+          detailEnabledLong: detailEnabledLong !== undefined ? detailEnabledLong : undefined,
         },
         session.user.id
       );

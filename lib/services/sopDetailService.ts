@@ -1,11 +1,12 @@
 import { db } from '@/lib/db';
 import { sopTypes } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Get SOP types with details (only those with detailEnabled = true)
  * Used by users to view strategy guides
+ * Returns both short and long entry strategies if enabled
  */
 export async function getSopTypesWithDetails() {
   return await db
@@ -13,7 +14,10 @@ export async function getSopTypesWithDetails() {
       id: sopTypes.id,
       name: sopTypes.name,
       description: sopTypes.description,
-      detailContent: sopTypes.detailContent,
+      detailContentShort: sopTypes.detailContentShort,
+      detailContentLong: sopTypes.detailContentLong,
+      detailEnabledShort: sopTypes.detailEnabledShort,
+      detailEnabledLong: sopTypes.detailEnabledLong,
       detailUpdatedAt: sopTypes.detailUpdatedAt,
       sortOrder: sopTypes.sortOrder,
     })
@@ -21,7 +25,8 @@ export async function getSopTypesWithDetails() {
     .where(
       and(
         eq(sopTypes.active, true),
-        eq(sopTypes.detailEnabled, true)
+        // Return if either short or long is enabled
+        sql`(${sopTypes.detailEnabledShort} = 1 OR ${sopTypes.detailEnabledLong} = 1)`
       )
     )
     .orderBy(sopTypes.sortOrder, sopTypes.name);
@@ -41,20 +46,36 @@ export async function getSopTypeWithDetail(id: string) {
 }
 
 /**
- * Update SOP detail content
+ * Update SOP detail content (Short and/or Long entry strategies)
  */
 export async function updateSopDetail(
   id: string,
   data: {
-    detailContent?: string;
-    detailEnabled?: boolean;
+    detailContentShort?: string;
+    detailContentLong?: string;
+    detailEnabledShort?: boolean;
+    detailEnabledLong?: boolean;
   },
   updatedBy: string
 ) {
   // Sanitize HTML content if provided
-  let sanitizedContent = data.detailContent;
-  if (data.detailContent) {
-    sanitizedContent = DOMPurify.sanitize(data.detailContent, {
+  let sanitizedContentShort = data.detailContentShort;
+  let sanitizedContentLong = data.detailContentLong;
+  
+  if (data.detailContentShort) {
+    sanitizedContentShort = DOMPurify.sanitize(data.detailContentShort, {
+      ALLOWED_TAGS: [
+        'h2', 'h3', 'h4', 'p', 'strong', 'em', 'u', 's',
+        'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+        'a', 'br', 'hr', 'img'
+      ],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
+      ALLOW_DATA_ATTR: false,
+    });
+  }
+
+  if (data.detailContentLong) {
+    sanitizedContentLong = DOMPurify.sanitize(data.detailContentLong, {
       ALLOWED_TAGS: [
         'h2', 'h3', 'h4', 'p', 'strong', 'em', 'u', 's',
         'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
@@ -68,8 +89,10 @@ export async function updateSopDetail(
   const [updated] = await db
     .update(sopTypes)
     .set({
-      ...(sanitizedContent !== undefined && { detailContent: sanitizedContent }),
-      ...(data.detailEnabled !== undefined && { detailEnabled: data.detailEnabled }),
+      ...(sanitizedContentShort !== undefined && { detailContentShort: sanitizedContentShort }),
+      ...(sanitizedContentLong !== undefined && { detailContentLong: sanitizedContentLong }),
+      ...(data.detailEnabledShort !== undefined && { detailEnabledShort: data.detailEnabledShort }),
+      ...(data.detailEnabledLong !== undefined && { detailEnabledLong: data.detailEnabledLong }),
       detailUpdatedAt: new Date(),
       detailUpdatedBy: updatedBy,
       updatedAt: new Date()
@@ -85,14 +108,16 @@ export async function updateSopDetail(
 }
 
 /**
- * Clear SOP detail content
+ * Clear SOP detail content (both short and long)
  */
 export async function clearSopDetail(id: string) {
   const [updated] = await db
     .update(sopTypes)
     .set({
-      detailContent: null,
-      detailEnabled: false,
+      detailContentShort: null,
+      detailContentLong: null,
+      detailEnabledShort: false,
+      detailEnabledLong: false,
       detailUpdatedAt: new Date(),
       updatedAt: new Date()
     })

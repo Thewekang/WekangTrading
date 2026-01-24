@@ -18,11 +18,14 @@ async function verifyPhase1() {
     const schemaContent = fs.readFileSync(schemaFile, 'utf-8');
     
     const requiredFields = [
-      'detailContent:',
-      'detailEnabled:',
+      'detailContentShort:',
+      'detailContentLong:',
+      'detailEnabledShort:',
+      'detailEnabledLong:',
       'detailUpdatedAt:',
       'detailUpdatedBy:',
-      'sop_types_detail_enabled_idx'
+      'sop_types_detail_enabled_short_idx',
+      'sop_types_detail_enabled_long_idx'
     ];
     
     const allFieldsPresent = requiredFields.every(field => schemaContent.includes(field));
@@ -41,26 +44,36 @@ async function verifyPhase1() {
     console.log('');
 
     // 2. Check migration was generated
-    console.log('2️⃣ Migration File:');
-    const migrationFile = path.join(process.cwd(), 'drizzle', 'migrations', '0004_many_unus.sql');
-    if (fs.existsSync(migrationFile)) {
-      console.log('✅ Migration file exists: 0004_many_unus.sql');
-      const migrationContent = fs.readFileSync(migrationFile, 'utf-8');
-      console.log('   Contains:');
+    console.log('2️⃣ Migration Files:');
+    const migrations = ['0004_many_unus.sql', '0005_superb_thaddeus_ross.sql'];
+    
+    migrations.forEach((migrationName, index) => {
+      const migrationFile = path.join(process.cwd(), 'drizzle', 'migrations', migrationName);
+      if (fs.existsSync(migrationFile)) {
+        console.log(`✅ Migration ${index + 4} exists: ${migrationName}`);
+      } else {
+        console.log(`❌ Migration ${index + 4} not found: ${migrationName}`);
+        allChecks = false;
+      }
+    });
+    
+    // Check latest migration content (0005)
+    const latestMigration = path.join(process.cwd(), 'drizzle', 'migrations', '0005_superb_thaddeus_ross.sql');
+    if (fs.existsSync(latestMigration)) {
+      const migrationContent = fs.readFileSync(latestMigration, 'utf-8');
+      console.log('   Migration 0005 contains:');
       const checks = [
-        ['detail_content', migrationContent.includes('detail_content')],
-        ['detail_enabled', migrationContent.includes('detail_enabled')],
-        ['detail_updated_at', migrationContent.includes('detail_updated_at')],
-        ['detail_updated_by', migrationContent.includes('detail_updated_by')],
-        ['sop_types_detail_enabled_idx', migrationContent.includes('sop_types_detail_enabled_idx')]
+        ['detail_content_short', migrationContent.includes('detail_content_short')],
+        ['detail_content_long', migrationContent.includes('detail_content_long')],
+        ['detail_enabled_short', migrationContent.includes('detail_enabled_short')],
+        ['detail_enabled_long', migrationContent.includes('detail_enabled_long')],
+        ['DROP detail_content', migrationContent.includes('DROP COLUMN `detail_content`')],
+        ['DROP detail_enabled', migrationContent.includes('DROP COLUMN `detail_enabled`')]
       ];
       checks.forEach(([name, present]) => {
         console.log(`   ${present ? '✅' : '❌'} ${name}`);
         if (!present) allChecks = false;
       });
-    } else {
-      console.log('❌ Migration file not found');
-      allChecks = false;
     }
     console.log('');
 
@@ -97,7 +110,7 @@ async function verifyPhase1() {
     // 4. Check API endpoints
     console.log('4️⃣ API Endpoints:');
     const apiFiles = [
-      { path: 'app/api/admin/sop-types/[id]/route.ts', checks: ['detailContent', 'detailEnabled', 'updateSopDetail'] },
+      { path: 'app/api/admin/sop-types/[id]/route.ts', checks: ['detailContentShort', 'detailContentLong', 'detailEnabledShort', 'detailEnabledLong', 'updateSopDetail'] },
       { path: 'app/api/sop-types/with-details/route.ts', checks: ['getSopTypesWithDetails'] }
     ];
     
@@ -146,15 +159,22 @@ async function verifyPhase1() {
     console.log('═══════════════════════════════════════');
     
     if (allChecks) {
-      console.log('✅ Schema updated with 4 new columns');
-      console.log('✅ Migration file generated (0004)');
-      console.log('✅ Migration applied to database');
-      console.log('✅ SOP detail service created');
-      console.log('✅ API endpoints updated');
+      console.log('✅ Schema updated with SHORT/LONG entry fields');
+      console.log('✅ Migration 0004 generated (initial detail fields)');
+      console.log('✅ Migration 0005 generated (short/long categories)');
+      console.log('✅ Migrations applied to database');
+      console.log('✅ SOP detail service updated for entry categories');
+      console.log('✅ API endpoints updated for entry categories');
       console.log('✅ DOMPurify installed');
       console.log('✅ HTML sanitization implemented');
       console.log('');
       console.log('🎉 Phase 1 Complete - All Checks Passed!');
+      console.log('');
+      console.log('📝 Entry Categories Implemented:');
+      console.log('   • SHORT Entry - For bearish/sell strategies');
+      console.log('   • LONG Entry - For bullish/buy strategies');
+      console.log('   • Each SOP can have separate strategy docs');
+      console.log('   • Admins can enable/disable each independently');
     } else {
       console.log('⚠️ Some checks failed - review output above');
     }

@@ -16,7 +16,7 @@ if (!databaseUrl || !authToken) {
 }
 
 async function main() {
-  console.log('🚀 Applying migration 0004 (SOP details) to Turso database...');
+  console.log('🚀 Applying migration 0005 (Short/Long entry categories) to Turso database...');
   
   const client = createClient({
     url: databaseUrl,
@@ -26,8 +26,8 @@ async function main() {
   const db = drizzle(client);
 
   try {
-    // Read the specific migration file
-    const migrationPath = path.join(process.cwd(), 'drizzle', 'migrations', '0004_many_unus.sql');
+    // Read the specific migration file - CHANGE THIS for each new migration
+    const migrationPath = path.join(process.cwd(), 'drizzle', 'migrations', '0005_superb_thaddeus_ross.sql');
     const sqlContent = fs.readFileSync(migrationPath, 'utf-8');
     
     console.log('📝 Migration content:');
@@ -44,7 +44,7 @@ async function main() {
       }
     }
     
-    console.log('✅ Migration 0004 applied successfully!');
+    console.log('✅ Migration 0005 applied successfully!');
   } catch (error) {
     console.error('❌ Migration failed:', error);
     process.exit(1);
