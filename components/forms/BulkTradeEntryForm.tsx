@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
@@ -33,8 +34,9 @@ interface BulkTradeRow {
 
 export function BulkTradeEntryForm() {
   const router = useRouter();
-  const { timezone, datetimeLocalToUTC } = useTimezone();
+  const { timezone: userTimezone } = useTimezone();
   const [tradeDate, setTradeDate] = useState('');
+  const [importTimezone, setImportTimezone] = useState(userTimezone); // Timezone for this import
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [rows, setRows] = useState<BulkTradeRow[]>([
@@ -138,9 +140,9 @@ export function BulkTradeEntryForm() {
         errors.push(`Row ${rowNum}: Amount must be non-zero`);
       }
 
-      // Parse date and time in user's timezone, then convert to UTC
+      // Parse date and time in selected import timezone, then convert to UTC
       const datetimeString = `${tradeDate}T${row.time}`;
-      const tradeTimestamp = datetimeLocalToUTC(datetimeString);
+      const tradeTimestamp = convertToUTC(datetimeString, importTimezone);
 
       // Calculate profit/loss based on result
       let profitLoss = parseFloat(row.amount);
@@ -212,20 +214,38 @@ export function BulkTradeEntryForm() {
 
   return (
     <div className="space-y-6">
-      {/* Trade Date Selection */}
-      <div className="bg-white rounded-lg shadow-md p-6 border">
-        <Label htmlFor="tradeDate">Trade Date *</Label>
-        <Input
-          id="tradeDate"
-          type="date"
-          value={tradeDate}
-          onChange={(e) => setTradeDate(e.target.value)}
-          max={new Date().toISOString().split('T')[0]}
-          className="mt-1 w-full sm:w-64"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          All trades must be on the same date. Times will be interpreted as <strong>{timezone}</strong>.
-        </p>
+      {/* Trade Date and Timezone Selection */}
+      <div className="bg-white rounded-lg shadow-md p-6 border space-y-4">
+        <div>
+          <Label htmlFor="tradeDate">Trade Date *</Label>
+          <Input
+            id="tradeDate"
+            type="date"
+            value={tradeDate}
+            onChange={(e) => setTradeDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="mt-1 w-full sm:w-64"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="importTimezone">Import Timezone</Label>
+          <select
+            id="importTimezone"
+            value={importTimezone}
+            onChange={(e) => setImportTimezone(e.target.value)}
+            className="mt-1 w-full sm:w-96 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label} {tz.value === userTimezone && '(Your Setting)'}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            All trade times will be interpreted as <strong>{importTimezone}</strong> and converted to UTC for storage.
+          </p>
+        </div>
       </div>
 
       {/* Success/Error Messages */}
