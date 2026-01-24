@@ -17,6 +17,8 @@ import { parseCSVFile, downloadCSVTemplate, type ParsedTrade, type ValidationErr
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { COMMON_TIMEZONES } from '@/lib/utils/timezones';
+import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import type { Badge } from '@/lib/db/schema';
 
 export default function ImportTradesPage() {
   const router = useRouter();
@@ -30,6 +32,8 @@ export default function ImportTradesPage() {
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState<Badge[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -110,21 +114,27 @@ export default function ImportTradesPage() {
       }
 
       setImportSuccess(true);
-      const badgesAwarded = data.badgesAwarded || 0;
-      const successMessage = badgesAwarded > 0 
-        ? `Successfully imported ${data.imported} trades and earned ${badgesAwarded} badge${badgesAwarded !== 1 ? 's' : ''}! 🎉`
-        : `Successfully imported ${data.imported} trades!`;
       
-      showToast(successMessage, 'success');
-
-      // Show celebration modal if badges were awarded
-      if (badgesAwarded > 0) {
+      // Check if badges were earned
+      if (data.badges && data.badges.length > 0) {
+        setEarnedBadges(data.badges);
+        setShowCelebration(true);
+        // Set flag to refresh achievements page
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+        
+        const successMessage = `Successfully imported ${data.imported} trades and earned ${data.badges.length} badge${data.badges.length !== 1 ? 's' : ''}! 🎉`;
+        showToast(successMessage, 'success');
+        
+        // Refresh after celebration closes
         setTimeout(() => {
-          // Refresh to update notification count, then redirect
           router.refresh();
-          router.push('/dashboard/achievements');
-        }, 2500);
+        }, 500);
       } else {
+        showToast(`Successfully imported ${data.imported} trades!`, 'success');
+        
+        // Set flag for achievements page to refresh progress
+        localStorage.setItem('badgesUpdated', Date.now().toString());
+        
         // Reset form after successful import
         setTimeout(() => {
           router.refresh();
@@ -413,6 +423,17 @@ export default function ImportTradesPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Badge Celebration Animation */}
+      <BadgeCelebration 
+        badges={earnedBadges}
+        isOpen={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          // Redirect to achievements page to see new badges
+          router.push('/dashboard/achievements');
+        }}
+      />
     </div>
   );
 }

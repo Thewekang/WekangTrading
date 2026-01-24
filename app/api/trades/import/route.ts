@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
         success: true,
         imported: tradesToInsert.length,
         datesAffected: uniqueDates.length,
-        badgesAwarded: newBadges.length,
+        badges: newBadges, // Return full badge objects for celebration modal
         message: `Successfully imported ${tradesToInsert.length} trades`,
       },
       { status: 201 }
