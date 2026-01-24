@@ -137,3 +137,49 @@ export function getTimezoneOffset(timezone: string): string {
   const offsetPart = parts.find(p => p.type === 'timeZoneName');
   return offsetPart?.value || 'UTC';
 }
+/**
+ * Convert datetime-local input value to UTC Date
+ * Interprets the input as being in the specified timezone
+ * 
+ * @param datetimeLocalValue - "2026-01-24T14:30" format from datetime-local input
+ * @param timezone - IANA timezone (e.g., "Asia/Kuala_Lumpur")
+ * @returns Date object in UTC
+ */
+export function datetimeLocalToUTC(datetimeLocalValue: string, timezone: string): Date {
+  // Parse the input value
+  const [datePart, timePart] = datetimeLocalValue.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours, minutes] = timePart.split(':').map(Number);
+  
+  // Create an ISO string that represents this time in the target timezone
+  // We'll use Intl to format a known UTC time in the target timezone,
+  // then calculate the offset
+  const testDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  
+  // Format the test date in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(testDate);
+  const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+  const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+  const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+  const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+  const tzMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+  
+  // Calculate the offset between what we want and what UTC gives us
+  const wantedDate = new Date(year, month - 1, day, hours, minutes);
+  const tzDate = new Date(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute);
+  const offset = wantedDate.getTime() - tzDate.getTime();
+  
+  // Apply the offset to get the correct UTC time
+  return new Date(testDate.getTime() + offset);
+}

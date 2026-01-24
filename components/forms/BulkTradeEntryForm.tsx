@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
@@ -32,6 +33,7 @@ interface BulkTradeRow {
 
 export function BulkTradeEntryForm() {
   const router = useRouter();
+  const { timezone, datetimeLocalToUTC } = useTimezone();
   const [tradeDate, setTradeDate] = useState('');
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
@@ -136,8 +138,9 @@ export function BulkTradeEntryForm() {
         errors.push(`Row ${rowNum}: Amount must be non-zero`);
       }
 
-      // Combine date and time
-      const tradeTimestamp = new Date(`${tradeDate}T${row.time}`);
+      // Parse date and time in user's timezone, then convert to UTC
+      const datetimeString = `${tradeDate}T${row.time}`;
+      const tradeTimestamp = datetimeLocalToUTC(datetimeString);
 
       // Calculate profit/loss based on result
       let profitLoss = parseFloat(row.amount);
@@ -220,7 +223,9 @@ export function BulkTradeEntryForm() {
           max={new Date().toISOString().split('T')[0]}
           className="mt-1 w-full sm:w-64"
         />
-        <p className="mt-1 text-xs text-gray-500">All trades must be on the same date</p>
+        <p className="mt-1 text-xs text-gray-500">
+          All trades must be on the same date. Times will be interpreted as <strong>{timezone}</strong>.
+        </p>
       </div>
 
       {/* Success/Error Messages */}

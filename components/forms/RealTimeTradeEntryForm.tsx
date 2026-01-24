@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import { useTimezone } from '@/contexts/TimezoneContext';
 import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
@@ -35,6 +36,7 @@ function formatDateForInput(date: Date): string {
 
 export function RealTimeTradeEntryForm() {
   const router = useRouter();
+  const { timezone, toDatetimeLocal, datetimeLocalToUTC } = useTimezone();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -117,8 +119,19 @@ export function RealTimeTradeEntryForm() {
         profitLoss = Math.abs(profitLoss);
       }
       
+      // Convert datetime-local input to UTC considering user's timezone
+      let utcTimestamp: Date;
+      if (data.tradeTimestamp instanceof Date) {
+        utcTimestamp = data.tradeTimestamp;
+      } else if (typeof data.tradeTimestamp === 'string') {
+        // If it's a datetime-local string format, convert using timezone
+        utcTimestamp = datetimeLocalToUTC(data.tradeTimestamp);
+      } else {
+        utcTimestamp = new Date(data.tradeTimestamp);
+      }
+      
       const submitData = {
-        tradeTimestamp: data.tradeTimestamp instanceof Date ? data.tradeTimestamp.toISOString() : new Date(data.tradeTimestamp).toISOString(),
+        tradeTimestamp: utcTimestamp.toISOString(),
         result: data.result,
         sopFollowed: data.sopFollowed,
         sopTypeId: data.sopTypeId || null,
