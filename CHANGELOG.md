@@ -40,9 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Import Timezone Selector**
 - ✅ Bulk trade entry form now includes timezone dropdown
+- ✅ CSV import script now has configurable IMPORT_TIMEZONE constant
 - ✅ Select different timezone per import session without changing account settings
 - ✅ 11 common timezones available (Malaysia, Singapore, UTC, EST, PST, London, Tokyo, etc.)
 - ✅ Use case: Import historical data from different timezones/brokers without manual conversion
+- ✅ CSV imports: Simply change IMPORT_TIMEZONE constant at top of script
 
 ---
 
