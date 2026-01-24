@@ -1,8 +1,8 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 2.6
-- **Status**: ACTIVE - v1.2.1 DEPLOYED TO PRODUCTION ✅  
+- **Version**: 2.7
+- **Status**: ACTIVE - v1.2.2 HOTFIXES DEPLOYED ✅  
 - **Last Updated**: January 24, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
@@ -13,13 +13,13 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.2.1 DEPLOYED TO PRODUCTION - Performance Optimized ✅  
+**Project Status**: 🚀 v1.2.2 DEPLOYED TO PRODUCTION - Critical Hotfixes Applied ✅  
 **Start Date**: January 8, 2026  
-**Production Release**: January 24, 2026  
+**Latest Release**: January 24, 2026 (v1.2.2 - Hotfix Release)  
 **Current Phase**: Monitoring & Enhancements
 
 ```
-Overall Progress: ████████████████████ 100% Complete (v1.2.1)
+Overall Progress: ████████████████████ 100% Complete (v1.2.2)
 
 Phase Breakdown:
 ├─ Phase 0: Setup & Foundation       [100%] ██████████ ✅
@@ -28,8 +28,26 @@ Phase Breakdown:
 ├─ Phase 3: Dashboard & Analytics    [100%] ██████████ ✅
 ├─ Phase 4: Advanced Features        [100%] ██████████ ✅
 ├─ Phase 5: Polish & Deployment      [100%] ██████████ ✅
-└─ Phase 6: Performance Optimization [100%] ██████████ ✅
+├─ Phase 6: Performance Optimization [100%] ██████████ ✅
+└─ Hotfix v1.2.2: Critical Fixes     [100%] ██████████ ✅
 ```
+
+---
+
+## 1.2 Recent Release Summary
+
+### v1.2.2 - January 24, 2026 (Hotfix Release)
+
+**Critical Fixes Applied**:
+- 🔧 **Timezone Conversion Bug**: Fixed forms using browser timezone instead of user's selected timezone
+- 🎯 **Badge System**: Fixed badges not triggering after CSV imports (seeded production database)
+- 🔐 **Security**: Added environment files to .gitignore, fixed missing RAPIDAPI_KEY in production
+- ✨ **Enhancement**: Added timezone selector to bulk import form for flexible data imports
+
+**Impact**:
+- **Timezone Fix**: All new trades now correctly store UTC timestamps based on user's timezone preference
+- **Badge System**: CSV imports now automatically award achievements
+- **Import Flexibility**: Users can import data from different timezones without manual conversion
 
 ---
 

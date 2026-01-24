@@ -15,6 +15,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.2] - 2026-01-24
+
+### Fixed
+
+**CRITICAL: Timezone Conversion Fix**
+- ✅ Fixed bulk trade form ignoring user timezone preference (used browser timezone instead)
+- ✅ Fixed real-time trade form timezone handling
+- ✅ Added `datetimeLocalToUTC()` utility function for proper timezone conversion
+- ✅ Trade times now correctly interpreted according to user's selected timezone setting
+- ✅ Example: User in Malaysia (UTC+8) with app timezone set to New York (UTC-5) entering 14:00 now correctly saves as 19:00 UTC (not 06:00 UTC)
+
+**Badge System Fixes**
+- ✅ Fixed badges not triggering after CSV import (production badges table was empty)
+- ✅ Seeded 34 badges into production database
+- ✅ CSV import script now automatically recalculates user stats and awards badges
+- ✅ No manual recalculation needed after imports
+
+**Security & Environment**
+- ✅ Added missing `RAPIDAPI_KEY` environment variable to production (economic calendar cron fix)
+- ✅ Added `.env.vercel` and `.env.preview` to `.gitignore` (prevent accidental credential commits)
+
+### Added
+
+**Import Timezone Selector**
+- ✅ Bulk trade entry form now includes timezone dropdown
+- ✅ Select different timezone per import session without changing account settings
+- ✅ 11 common timezones available (Malaysia, Singapore, UTC, EST, PST, London, Tokyo, etc.)
+- ✅ Use case: Import historical data from different timezones/brokers without manual conversion
+
+---
+
 ## [1.2.1] - 2026-01-24
 
 ### Added
