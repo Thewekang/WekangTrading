@@ -9,6 +9,12 @@
  * - Auto-calculates market sessions from UTC timestamps
  * - Recalculates user stats and streaks
  * - Awards eligible badges automatically
+ * - Configurable timezone for timestamp interpretation
+ * 
+ * Configuration:
+ * - IMPORT_TIMEZONE: Set the timezone for interpreting CSV timestamps
+ *   Default: 'Asia/Kuala_Lumpur' (Malaysia timezone)
+ *   Examples: 'America/New_York', 'Europe/London', 'Asia/Singapore', 'UTC'
  * 
  * Environment variables loaded via tsx -r dotenv/config
  */
@@ -16,6 +22,35 @@
 import { db } from '@/lib/db';
 import { users, sopTypes, individualTrades } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { datetimeLocalToUTC } from '@/lib/utils/timezones';
+
+// ============================================
+// CONFIGURATION
+// ============================================
+
+/**
+ * Timezone for CSV timestamp interpretation
+ * 
+ * Set this to match the timezone where the trades were recorded.
+ * All timestamps in the CSV will be interpreted as being in this timezone
+ * before being converted to UTC for storage.
+ * 
+ * Common timezones:
+ * - 'Asia/Kuala_Lumpur' (Malaysia, UTC+8)
+ * - 'Asia/Singapore' (Singapore, UTC+8)
+ * - 'America/New_York' (Eastern Time, UTC-5/-4)
+ * - 'America/Chicago' (Central Time, UTC-6/-5)
+ * - 'America/Los_Angeles' (Pacific Time, UTC-8/-7)
+ * - 'Europe/London' (GMT/BST, UTC+0/+1)
+ * - 'Europe/Paris' (CET/CEST, UTC+1/+2)
+ * - 'Asia/Tokyo' (JST, UTC+9)
+ * - 'UTC' (Coordinated Universal Time)
+ */
+const IMPORT_TIMEZONE = 'Asia/Kuala_Lumpur';
+
+// ============================================
+// CSV DATA
+// ============================================
 
 // CSV data from trading propfirm.csv
 const csvData = `Date & time;Result;SOP;SOP Type;Amount;;
@@ -79,7 +114,7 @@ interface ParsedTrade {
   amount: number;
 }
 
-function parseCSV(csvContent: string): ParsedTrade[] {
+function parseCSV(csvContent: string, timezone: string): ParsedTrade[] {
   const lines = csvContent.trim().split('\n');
   const trades: ParsedTrade[] = [];
 
@@ -98,7 +133,16 @@ function parseCSV(csvContent: string): ParsedTrade[] {
     const [month, day, year] = datePart.split('/').map(Number);
     const [hours, minutes] = timePart.split(':').map(Number);
     
-    const dateTime = new Date(year, month - 1, day, hours, minutes);
+    // Create datetime-local format string
+    const yearStr = year.toString();
+    const monthStr = month.toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    const hoursStr = hours.toString().padStart(2, '0');
+    const minutesStr = minutes.toString().padStart(2, '0');
+    const datetimeLocalStr = `${yearStr}-${monthStr}-${dayStr}T${hoursStr}:${minutesStr}`;
+    
+    // Convert to UTC using the specified timezone
+    const dateTime = datetimeLocalToUTC(datetimeLocalStr, timezone);
 
     // Parse other fields
     const parsedResult = result.trim() as 'WIN' | 'LOSS';
@@ -119,6 +163,11 @@ function parseCSV(csvContent: string): ParsedTrade[] {
 
 async function importTrades() {
   console.log('🚀 Starting CSV trade import...\n');
+  
+  // Display timezone configuration
+  console.log('⚙️  Import Configuration:');
+  console.log(`   Timezone: ${IMPORT_TIMEZONE}`);
+  console.log('   All CSV timestamps will be interpreted in this timezone\n');
 
   // 1. Find wtrader user
   console.log('📋 Looking for wtrader user...');
@@ -147,7 +196,7 @@ async function importTrades() {
   console.log('');
 
   // 3. Check if we need to create new SOP types
-  const parsedTrades = parseCSV(csvData);
+  const parsedTrades = parseCSV(csvData, IMPORT_TIMEZONE);
   const uniqueSopTypes = new Set(parsedTrades.map(t => t.sopTypeName));
   
   console.log('📋 Checking for missing SOP types...');
