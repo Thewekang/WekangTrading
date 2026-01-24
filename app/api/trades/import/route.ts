@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { individualTrades, sopTypes } from '@/lib/db/schema';
@@ -192,6 +193,12 @@ export async function POST(request: NextRequest) {
     console.log(`[CSV Import] Checking and awarding badges for user ${session.user.id}`);
     const newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
     console.log(`[CSV Import] Awarded ${newBadges.length} badge(s)`);
+
+    // Revalidate paths to update UI with new notifications
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/achievements');
+    revalidatePath('/notifications');
+    revalidatePath('/', 'layout'); // Revalidate layout to update notification count in navbar
 
     return NextResponse.json(
       {

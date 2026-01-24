@@ -110,12 +110,27 @@ export default function ImportTradesPage() {
       }
 
       setImportSuccess(true);
-      showToast(`Successfully imported ${data.imported} trades!`, 'success');
+      const badgesAwarded = data.badgesAwarded || 0;
+      const successMessage = badgesAwarded > 0 
+        ? `Successfully imported ${data.imported} trades and earned ${badgesAwarded} badge${badgesAwarded !== 1 ? 's' : ''}! 🎉`
+        : `Successfully imported ${data.imported} trades!`;
+      
+      showToast(successMessage, 'success');
 
-      // Reset form after successful import
-      setTimeout(() => {
-        router.push('/trades');
-      }, 2000);
+      // Show celebration modal if badges were awarded
+      if (badgesAwarded > 0) {
+        setTimeout(() => {
+          // Refresh to update notification count, then redirect
+          router.refresh();
+          router.push('/dashboard/achievements');
+        }, 2500);
+      } else {
+        // Reset form after successful import
+        setTimeout(() => {
+          router.refresh();
+          router.push('/trades');
+        }, 2000);
+      }
     } catch (error: any) {
       // Only log unexpected errors (not validation errors)
       console.error('Unexpected import error:', error);
