@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **CRITICAL: Timezone Conversion Fix**
 - ✅ Fixed bulk trade form ignoring user timezone preference (used browser timezone instead)
 - ✅ Fixed real-time trade form timezone handling
+- ✅ Fixed bulk trade date validation error (was using local timezone instead of UTC)
 - ✅ Added `datetimeLocalToUTC()` utility function for proper timezone conversion
 - ✅ Trade times now correctly interpreted according to user's selected timezone setting
 - ✅ Example: User in Malaysia (UTC+8) with app timezone set to New York (UTC-5) entering 14:00 now correctly saves as 19:00 UTC (not 06:00 UTC)
@@ -40,11 +41,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Import Timezone Selector**
 - ✅ Bulk trade entry form now includes timezone dropdown
-- ✅ CSV import script now has configurable IMPORT_TIMEZONE constant
+- ✅ CSV import wizard UI now has timezone selector dropdown
+- ✅ CSV import script has configurable IMPORT_TIMEZONE constant
+- ✅ CSV parser accepts timezone parameter for proper timestamp conversion
 - ✅ Select different timezone per import session without changing account settings
 - ✅ 11 common timezones available (Malaysia, Singapore, UTC, EST, PST, London, Tokyo, etc.)
 - ✅ Use case: Import historical data from different timezones/brokers without manual conversion
-- ✅ CSV imports: Simply change IMPORT_TIMEZONE constant at top of script
+- ✅ CSV imports via web: Select timezone in wizard before uploading file
+- ✅ CSV imports via script: Change IMPORT_TIMEZONE constant at top of file
 
 ---
 
