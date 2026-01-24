@@ -4,6 +4,7 @@
  */
 
 import Papa from 'papaparse';
+import { datetimeLocalToUTC } from './timezones';
 
 export interface CSVTradeRow {
   'Date & time': string;
@@ -39,8 +40,10 @@ export interface ParseResult {
 
 /**
  * Parse CSV file and validate data
+ * @param file CSV file to parse
+ * @param timezone Timezone to interpret timestamps in (e.g., 'Asia/Kuala_Lumpur')
  */
-export function parseCSVFile(file: File): Promise<ParseResult> {
+export function parseCSVFile(file: File, timezone: string): Promise<ParseResult> {
   return new Promise((resolve, reject) => {
     Papa.parse<CSVTradeRow>(file, {
       header: true,
@@ -51,7 +54,7 @@ export function parseCSVFile(file: File): Promise<ParseResult> {
 
         results.data.forEach((row, index) => {
           const rowNumber = index + 2; // +1 for header, +1 for 1-based indexing
-          const validation = validateAndTransformRow(row, rowNumber);
+          const validation = validateAndTransformRow(row, rowNumber, timezone);
 
           if (validation.errors.length > 0) {
             errors.push(...validation.errors);
@@ -75,10 +78,12 @@ export function parseCSVFile(file: File): Promise<ParseResult> {
 
 /**
  * Validate and transform a single CSV row
+ * @param timezone Timezone to interpret timestamps in
  */
 function validateAndTransformRow(
   row: CSVTradeRow,
-  rowNumber: number
+  rowNumber: number,
+  timezone: string
 ): { trade: ParsedTrade | null; errors: ValidationError[] } {
   const errors: ValidationError[] = [];
 
@@ -92,17 +97,43 @@ function validateAndTransformRow(
     });
   }
 
-  const tradeDate = new Date(dateTimeStr);
-  if (isNaN(tradeDate.getTime())) {
+  // Parse MM/DD/YYYY HH:MM format and convert to datetime-local format
+  let tradeDate: Date | null = null;
+  try {
+    // Expected format: MM/DD/YYYY HH:MM
+    const parts = dateTimeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+    if (!parts) {
+      errors.push({
+        row: rowNumber,
+        field: 'Date & time',
+        message: `Invalid date format: "${dateTimeStr}". Expected: MM/DD/YYYY HH:MM`,
+      });
+    } else {
+      const [, month, day, year, hours, minutes] = parts;
+      // Convert to datetime-local format: YYYY-MM-DDTHH:MM
+      const datetimeLocalStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes}`;
+      
+      // Convert to UTC using selected timezone
+      tradeDate = datetimeLocalToUTC(datetimeLocalStr, timezone);
+      
+      if (isNaN(tradeDate.getTime())) {
+        errors.push({
+          row: rowNumber,
+          field: 'Date & time',
+          message: `Invalid date: "${dateTimeStr}"`,
+        });
+      }
+    }
+  } catch (error) {
     errors.push({
       row: rowNumber,
       field: 'Date & time',
-      message: `Invalid date format: "${dateTimeStr}". Expected: MM/DD/YYYY HH:MM`,
+      message: `Failed to parse date: "${dateTimeStr}"`,
     });
   }
 
-  // Check if date is in future
-  if (tradeDate > new Date()) {
+  // Check if date is in future (using UTC)
+  if (tradeDate && tradeDate > new Date()) {
     errors.push({
       row: rowNumber,
       field: 'Date & time',
