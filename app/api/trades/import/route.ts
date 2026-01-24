@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
 
     // Recalculate and award badges after import
     console.log(`[CSV Import] Recalculating badges for user ${session.user.id}`);
-    await checkAndAwardBadges(session.user.id);
+    await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
 
     return NextResponse.json(
       {
