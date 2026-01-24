@@ -10,6 +10,7 @@ import { individualTrades, sopTypes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { calculateMarketSession } from '@/lib/utils/marketSessions';
 import { updateDailySummary } from '@/lib/services/dailySummaryService';
+import { checkAndAwardBadges } from '@/lib/services/badgeService';
 
 interface ImportTradeInput {
   tradeTimestamp: string; // ISO string
@@ -181,6 +182,10 @@ export async function POST(request: NextRequest) {
     for (const dateStr of uniqueDates) {
       await updateDailySummary(session.user.id, new Date(dateStr));
     }
+
+    // Recalculate and award badges after import
+    console.log(`[CSV Import] Recalculating badges for user ${session.user.id}`);
+    await checkAndAwardBadges(session.user.id);
 
     return NextResponse.json(
       {
