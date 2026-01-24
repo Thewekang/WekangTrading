@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
+import { updateSopDetail, validateImageSize } from '@/lib/services/sopDetailService';
 
 /**
  * PATCH /api/admin/sop-types/[id]
  * Update SOP type (admin only)
+ * Now supports detail fields: detailContent, detailEnabled
  */
 export async function PATCH(
   req: NextRequest,
@@ -28,15 +30,55 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { name, description, sortOrder, active } = body;
+    const { name, description, sortOrder, active, detailContent, detailEnabled } = body;
 
-    const updates: any = {};
-    if (name !== undefined) updates.name = name.trim();
-    if (description !== undefined) updates.description = description?.trim();
-    if (sortOrder !== undefined) updates.sortOrder = sortOrder;
-    if (active !== undefined) updates.active = active;
+    // Handle basic field updates
+    const basicUpdates: any = {};
+    if (name !== undefined) basicUpdates.name = name.trim();
+    if (description !== undefined) basicUpdates.description = description?.trim();
+    if (sortOrder !== undefined) basicUpdates.sortOrder = sortOrder;
+    if (active !== undefined) basicUpdates.active = active;
 
-    const sopType = await updateSopType(id, updates);
+    let sopType;
+
+    // Update basic fields if any
+    if (Object.keys(basicUpdates).length > 0) {
+      sopType = await updateSopType(id, basicUpdates);
+    }
+
+    // Handle detail fields separately (includes HTML sanitization)
+    if (detailContent !== undefined || detailEnabled !== undefined) {
+      // Validate image sizes in detail content if provided
+      if (detailContent) {
+        const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
+        const matches = detailContent.matchAll(base64Regex);
+        
+        for (const match of matches) {
+          const validation = validateImageSize(match[0]);
+          if (!validation.valid) {
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: { 
+                  code: 'IMAGE_TOO_LARGE', 
+                  message: `Image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                } 
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+
+      sopType = await updateSopDetail(
+        id,
+        {
+          detailContent: detailContent !== undefined ? detailContent : undefined,
+          detailEnabled: detailEnabled !== undefined ? detailEnabled : undefined,
+        },
+        session.user.id
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -49,6 +91,13 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: { code: 'DUPLICATE', message: error.message } },
         { status: 409 }
+      );
+    }
+
+    if (error.message.includes('not found')) {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: error.message } },
+        { status: 404 }
       );
     }
 
