@@ -80,8 +80,12 @@ export async function updateSopDetail(
   const [updated] = await db
     .update(sopTypes)
     .set({
-      ...(sanitizedContentShort !== undefined && { detailContentShort: sanitizedContentShort }),
-      ...(sanitizedContentLong !== undefined && { detailContentLong: sanitizedContentLong }),
+      ...(sanitizedContentShort !== undefined && { 
+        detailContentShort: sanitizedContentShort.trim() === '' ? null : sanitizedContentShort 
+      }),
+      ...(sanitizedContentLong !== undefined && { 
+        detailContentLong: sanitizedContentLong.trim() === '' ? null : sanitizedContentLong 
+      }),
       ...(data.detailImagesShort !== undefined && { 
         detailImagesShort: data.detailImagesShort.length > 0 ? JSON.stringify(data.detailImagesShort) : null 
       }),

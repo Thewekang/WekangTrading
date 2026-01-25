@@ -194,10 +194,11 @@ export default function AdminSopTypesPage() {
     if (!selectedSopType || !clearTarget) return;
     
     try {
-      // Prepare clear data based on target
+      // Prepare clear data - send empty JSON structure that API will parse
       const clearData: any = {};
       
       if (clearTarget === 'short') {
+        // Send empty structure so API can extract and clear all fields
         clearData.detailContentShort = JSON.stringify({
           content: '',
           images: [],
@@ -239,7 +240,7 @@ export default function AdminSopTypesPage() {
         throw new Error(result.error?.message || 'Failed to clear strategy');
       }
       
-      // Update local form state
+      // Update local form state if in edit modal
       if (clearTarget === 'short') {
         setFormData({
           ...formData,
@@ -248,9 +249,21 @@ export default function AdminSopTypesPage() {
           detailImageNotesShort: '',
           detailEnabledShort: false
         });
-      } else {
+      } else if (clearTarget === 'long') {
         setFormData({
           ...formData,
+          detailContentLong: '',
+          detailImagesLong: [],
+          detailImageNotesLong: '',
+          detailEnabledLong: false
+        });
+      } else if (clearTarget === 'both') {
+        setFormData({
+          ...formData,
+          detailContentShort: '',
+          detailImagesShort: [],
+          detailImageNotesShort: '',
+          detailEnabledShort: false,
           detailContentLong: '',
           detailImagesLong: [],
           detailImageNotesLong: '',
@@ -266,9 +279,12 @@ export default function AdminSopTypesPage() {
       );
       setShowClearConfirmModal(false);
       setClearTarget(null);
-      fetchSopTypes(); // Refresh the list
+      
+      // Refresh the list to update Detail Status badges
+      await fetchSopTypes();
     } catch (error: any) {
       showToast(error.message || 'Failed to clear strategy', 'error');
+    } finally {
       setShowClearConfirmModal(false);
       setClearTarget(null);
     }
@@ -419,16 +435,17 @@ export default function AdminSopTypesPage() {
                           >
                             {sopType.active ? 'Deactivate' : 'Activate'}
                           </Button>
-                          {(detailStatus.text !== 'None') && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-orange-600 hover:bg-orange-50 border-orange-300"
-                              onClick={() => handleClearDetailFromList(sopType)}
-                            >
-                              Clear Detail
-                            </Button>
-                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className={detailStatus.text === 'None' 
+                              ? 'text-gray-400 cursor-not-allowed' 
+                              : 'text-orange-600 hover:bg-orange-50 border-orange-300'}
+                            onClick={() => handleClearDetailFromList(sopType)}
+                            disabled={detailStatus.text === 'None'}
+                          >
+                            Clear Detail
+                          </Button>
                           <Button 
                             size="sm" 
                             variant="destructive"
