@@ -30,6 +30,8 @@ export default function AdminSopTypesPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [clearTarget, setClearTarget] = useState<'short' | 'long' | null>(null);
   const [selectedSopType, setSelectedSopType] = useState<SopType | null>(null);
   
   const [formData, setFormData] = useState({
@@ -181,6 +183,71 @@ export default function AdminSopTypesPage() {
       fetchSopTypes();
     } catch (error: any) {
       showToast(error.message, 'error');
+    }
+  };
+
+  const handleClearStrategy = async () => {
+    if (!selectedSopType || !clearTarget) return;
+    
+    try {
+      // Prepare clear data based on target
+      const clearData: any = {};
+      
+      if (clearTarget === 'short') {
+        clearData.detailContentShort = JSON.stringify({
+          content: '',
+          images: [],
+          notes: ''
+        });
+        clearData.detailEnabledShort = false;
+      } else {
+        clearData.detailContentLong = JSON.stringify({
+          content: '',
+          images: [],
+          notes: ''
+        });
+        clearData.detailEnabledLong = false;
+      }
+      
+      const response = await fetch(`/api/admin/sop-types/${selectedSopType.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clearData)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Failed to clear strategy');
+      }
+      
+      // Update local form state
+      if (clearTarget === 'short') {
+        setFormData({
+          ...formData,
+          detailContentShort: '',
+          detailImagesShort: [],
+          detailImageNotesShort: '',
+          detailEnabledShort: false
+        });
+      } else {
+        setFormData({
+          ...formData,
+          detailContentLong: '',
+          detailImagesLong: [],
+          detailImageNotesLong: '',
+          detailEnabledLong: false
+        });
+      }
+      
+      showToast(`${clearTarget.toUpperCase()} strategy cleared successfully`, 'success');
+      setShowClearConfirmModal(false);
+      setClearTarget(null);
+      fetchSopTypes(); // Refresh the list
+    } catch (error: any) {
+      showToast(error.message || 'Failed to clear strategy', 'error');
+      setShowClearConfirmModal(false);
+      setClearTarget(null);
     }
   };
 
@@ -480,15 +547,8 @@ export default function AdminSopTypesPage() {
                           variant="outline"
                           className="text-red-600 hover:bg-red-50 border-red-300"
                           onClick={() => {
-                            if (confirm('Clear all SHORT strategy content, images, and notes? This cannot be undone.')) {
-                              setFormData({ 
-                                ...formData, 
-                                detailContentShort: '',
-                                detailImagesShort: [],
-                                detailImageNotesShort: ''
-                              });
-                              showToast('SHORT strategy cleared', 'success');
-                            }
+                            setClearTarget('short');
+                            setShowClearConfirmModal(true);
                           }}
                         >
                           🗑️ Clear
@@ -533,15 +593,8 @@ export default function AdminSopTypesPage() {
                           variant="outline"
                           className="text-red-600 hover:bg-red-50 border-red-300"
                           onClick={() => {
-                            if (confirm('Clear all LONG strategy content, images, and notes? This cannot be undone.')) {
-                              setFormData({ 
-                                ...formData, 
-                                detailContentLong: '',
-                                detailImagesLong: [],
-                                detailImageNotesLong: ''
-                              });
-                              showToast('LONG strategy cleared', 'success');
-                            }
+                            setClearTarget('long');
+                            setShowClearConfirmModal(true);
                           }}
                         >
                           🗑️ Clear
@@ -597,6 +650,49 @@ export default function AdminSopTypesPage() {
                     setSelectedSopType(null);
                     setActiveTab('basic');
                   }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Clear Strategy Confirmation Modal */}
+        {showClearConfirmModal && clearTarget && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-2xl font-bold mb-4 text-red-600">
+                Clear {clearTarget === 'short' ? '📉 SHORT' : '📈 LONG'} Strategy
+              </h2>
+              <p className="mb-4">
+                Are you sure you want to clear the <strong>{clearTarget.toUpperCase()}</strong> strategy?
+              </p>
+              <p className="text-sm text-gray-600 mb-6">This will permanently delete:</p>
+              <ul className="list-disc list-inside text-sm text-gray-600 mb-6">
+                <li>Strategy content (HTML text)</li>
+                <li>All uploaded images</li>
+                <li>Chart notes and annotations</li>
+                <li>Visibility toggle (will be disabled)</li>
+              </ul>
+              <p className="text-sm font-bold text-red-600 mb-6">
+                ⚠️ This action cannot be undone and will be saved immediately to the database.
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="destructive" 
+                  onClick={handleClearStrategy} 
+                  className="flex-1"
+                >
+                  Clear Strategy
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowClearConfirmModal(false);
+                    setClearTarget(null);
+                  }} 
                   className="flex-1"
                 >
                   Cancel
