@@ -259,62 +259,16 @@ export default function AdminSopTypesPage() {
     setSelectedSopType(sopType);
     
     // Parse SHORT strategy data
-    let shortContent = '';
-    let shortImages: string[] = [];
-    let shortNotes = '';
-    
-    // Check if new database structure exists (Migration 0006)
-    if (sopType.detailImagesShort !== null || sopType.detailImageNotesShort !== null) {
-      // New structure: separate columns
-      shortContent = sopType.detailContentShort || '';
-      shortImages = sopType.detailImagesShort ? JSON.parse(sopType.detailImagesShort) : [];
-      shortNotes = sopType.detailImageNotesShort || '';
-    } else {
-      // Legacy structure: JSON in content field
-      try {
-        const shortData = JSON.parse(sopType.detailContentShort || '{}');
-        if (shortData.content !== undefined) {
-          shortContent = shortData.content;
-          shortImages = shortData.images || [];
-          shortNotes = shortData.notes || '';
-        } else {
-          // Very old format - plain text
-          shortContent = sopType.detailContentShort || '';
-        }
-      } catch {
-        // Not JSON, use as plain text
-        shortContent = sopType.detailContentShort || '';
-      }
-    }
+    // After Migration 0006, always use separate columns
+    const shortContent = sopType.detailContentShort || '';
+    const shortImages = sopType.detailImagesShort ? JSON.parse(sopType.detailImagesShort) : [];
+    const shortNotes = sopType.detailImageNotesShort || '';
     
     // Parse LONG strategy data
-    let longContent = '';
-    let longImages: string[] = [];
-    let longNotes = '';
-    
-    // Check if new database structure exists (Migration 0006)
-    if (sopType.detailImagesLong !== null || sopType.detailImageNotesLong !== null) {
-      // New structure: separate columns
-      longContent = sopType.detailContentLong || '';
-      longImages = sopType.detailImagesLong ? JSON.parse(sopType.detailImagesLong) : [];
-      longNotes = sopType.detailImageNotesLong || '';
-    } else {
-      // Legacy structure: JSON in content field
-      try {
-        const longData = JSON.parse(sopType.detailContentLong || '{}');
-        if (longData.content !== undefined) {
-          longContent = longData.content;
-          longImages = longData.images || [];
-          longNotes = longData.notes || '';
-        } else {
-          // Very old format - plain text
-          longContent = sopType.detailContentLong || '';
-        }
-      } catch {
-        // Not JSON, use as plain text
-        longContent = sopType.detailContentLong || '';
-      }
-    }
+    // After Migration 0006, always use separate columns
+    const longContent = sopType.detailContentLong || '';
+    const longImages = sopType.detailImagesLong ? JSON.parse(sopType.detailImagesLong) : [];
+    const longNotes = sopType.detailImageNotesLong || '';
     
     setFormData({
       name: sopType.name,
