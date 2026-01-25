@@ -18,6 +18,10 @@ interface SopType {
   sortOrder: number;
   detailContentShort: string | null;
   detailContentLong: string | null;
+  detailImagesShort: string | null; // Migration 0006: JSON array
+  detailImagesLong: string | null; // Migration 0006: JSON array
+  detailImageNotesShort: string | null; // Migration 0006: Plain text
+  detailImageNotesLong: string | null; // Migration 0006: Plain text
   detailEnabledShort: boolean;
   detailEnabledLong: boolean;
   detailUpdatedAt: string | null;
@@ -254,43 +258,62 @@ export default function AdminSopTypesPage() {
   const openEditModal = (sopType: SopType) => {
     setSelectedSopType(sopType);
     
-    // Try to parse stored content with metadata
+    // Parse SHORT strategy data
     let shortContent = '';
     let shortImages: string[] = [];
     let shortNotes = '';
     
-    try {
-      const shortData = JSON.parse(sopType.detailContentShort || '{}');
-      if (shortData.content !== undefined) {
-        shortContent = shortData.content;
-        shortImages = shortData.images || [];
-        shortNotes = shortData.notes || '';
-      } else {
-        // Legacy format - plain text
+    // Check if new database structure exists (Migration 0006)
+    if (sopType.detailImagesShort !== null || sopType.detailImageNotesShort !== null) {
+      // New structure: separate columns
+      shortContent = sopType.detailContentShort || '';
+      shortImages = sopType.detailImagesShort ? JSON.parse(sopType.detailImagesShort) : [];
+      shortNotes = sopType.detailImageNotesShort || '';
+    } else {
+      // Legacy structure: JSON in content field
+      try {
+        const shortData = JSON.parse(sopType.detailContentShort || '{}');
+        if (shortData.content !== undefined) {
+          shortContent = shortData.content;
+          shortImages = shortData.images || [];
+          shortNotes = shortData.notes || '';
+        } else {
+          // Very old format - plain text
+          shortContent = sopType.detailContentShort || '';
+        }
+      } catch {
+        // Not JSON, use as plain text
         shortContent = sopType.detailContentShort || '';
       }
-    } catch {
-      // Not JSON, use as plain text
-      shortContent = sopType.detailContentShort || '';
     }
     
+    // Parse LONG strategy data
     let longContent = '';
     let longImages: string[] = [];
     let longNotes = '';
     
-    try {
-      const longData = JSON.parse(sopType.detailContentLong || '{}');
-      if (longData.content !== undefined) {
-        longContent = longData.content;
-        longImages = longData.images || [];
-        longNotes = longData.notes || '';
-      } else {
-        // Legacy format - plain text
+    // Check if new database structure exists (Migration 0006)
+    if (sopType.detailImagesLong !== null || sopType.detailImageNotesLong !== null) {
+      // New structure: separate columns
+      longContent = sopType.detailContentLong || '';
+      longImages = sopType.detailImagesLong ? JSON.parse(sopType.detailImagesLong) : [];
+      longNotes = sopType.detailImageNotesLong || '';
+    } else {
+      // Legacy structure: JSON in content field
+      try {
+        const longData = JSON.parse(sopType.detailContentLong || '{}');
+        if (longData.content !== undefined) {
+          longContent = longData.content;
+          longImages = longData.images || [];
+          longNotes = longData.notes || '';
+        } else {
+          // Very old format - plain text
+          longContent = sopType.detailContentLong || '';
+        }
+      } catch {
+        // Not JSON, use as plain text
         longContent = sopType.detailContentLong || '';
       }
-    } catch {
-      // Not JSON, use as plain text
-      longContent = sopType.detailContentLong || '';
     }
     
     setFormData({
@@ -313,8 +336,11 @@ export default function AdminSopTypesPage() {
   const getDetailStatus = (sopType: SopType) => {
     const shortEnabled = sopType.detailEnabledShort;
     const longEnabled = sopType.detailEnabledLong;
-    const hasShort = !!sopType.detailContentShort;
-    const hasLong = !!sopType.detailContentLong;
+    
+    // Check if SHORT has actual content (not empty string)
+    const hasShort = !!(sopType.detailContentShort && sopType.detailContentShort.trim() !== '' && sopType.detailContentShort !== '{}');
+    // Check if LONG has actual content (not empty string)
+    const hasLong = !!(sopType.detailContentLong && sopType.detailContentLong.trim() !== '' && sopType.detailContentLong !== '{}');
     
     if (shortEnabled && longEnabled) {
       return { icon: '✅', text: 'Both', color: 'bg-green-100 text-green-800' };
