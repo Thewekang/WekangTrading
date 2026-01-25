@@ -62,55 +62,73 @@ export async function PATCH(
       detailEnabledShort !== undefined ||
       detailEnabledLong !== undefined
     ) {
-      // Validate image sizes in short entry content if provided
+      // Parse JSON structure to extract and validate images
+      let shortContent = detailContentShort;
+      let longContent = detailContentLong;
+      
+      // Validate image sizes in short entry if provided
       if (detailContentShort) {
-        const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
-        const matches = detailContentShort.matchAll(base64Regex);
-        
-        for (const match of matches) {
-          const validation = validateImageSize(match[0]);
-          if (!validation.valid) {
-            return NextResponse.json(
-              { 
-                success: false, 
-                error: { 
-                  code: 'IMAGE_TOO_LARGE', 
-                  message: `Short entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
-                } 
-              },
-              { status: 400 }
-            );
+        try {
+          const parsed = JSON.parse(detailContentShort);
+          if (parsed.images && Array.isArray(parsed.images)) {
+            for (const image of parsed.images) {
+              const validation = validateImageSize(image);
+              if (!validation.valid) {
+                return NextResponse.json(
+                  { 
+                    success: false, 
+                    error: { 
+                      code: 'IMAGE_TOO_LARGE', 
+                      message: `Short entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                    } 
+                  },
+                  { status: 400 }
+                );
+              }
+            }
           }
+          // Keep as JSON string for storage
+          shortContent = detailContentShort;
+        } catch {
+          // Not JSON, treat as legacy plain text
+          shortContent = detailContentShort;
         }
       }
 
-      // Validate image sizes in long entry content if provided
+      // Validate image sizes in long entry if provided
       if (detailContentLong) {
-        const base64Regex = /data:image\/[^;]+;base64,([^"]+)/g;
-        const matches = detailContentLong.matchAll(base64Regex);
-        
-        for (const match of matches) {
-          const validation = validateImageSize(match[0]);
-          if (!validation.valid) {
-            return NextResponse.json(
-              { 
-                success: false, 
-                error: { 
-                  code: 'IMAGE_TOO_LARGE', 
-                  message: `Long entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
-                } 
-              },
-              { status: 400 }
-            );
+        try {
+          const parsed = JSON.parse(detailContentLong);
+          if (parsed.images && Array.isArray(parsed.images)) {
+            for (const image of parsed.images) {
+              const validation = validateImageSize(image);
+              if (!validation.valid) {
+                return NextResponse.json(
+                  { 
+                    success: false, 
+                    error: { 
+                      code: 'IMAGE_TOO_LARGE', 
+                      message: `Long entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                    } 
+                  },
+                  { status: 400 }
+                );
+              }
+            }
           }
+          // Keep as JSON string for storage
+          longContent = detailContentLong;
+        } catch {
+          // Not JSON, treat as legacy plain text
+          longContent = detailContentLong;
         }
       }
 
       sopType = await updateSopDetail(
         id,
         {
-          detailContentShort: detailContentShort !== undefined ? detailContentShort : undefined,
-          detailContentLong: detailContentLong !== undefined ? detailContentLong : undefined,
+          detailContentShort: shortContent,
+          detailContentLong: longContent,
           detailEnabledShort: detailEnabledShort !== undefined ? detailEnabledShort : undefined,
           detailEnabledLong: detailEnabledLong !== undefined ? detailEnabledLong : undefined,
         },

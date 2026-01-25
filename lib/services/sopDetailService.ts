@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
 import { sopTypes } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import DOMPurify from 'isomorphic-dompurify';
+import { validateImageSize } from '@/lib/utils/imageValidation';
+import { sanitizeHtml } from '@/lib/utils/sanitize';
 
 /**
  * Get SOP types with details (only those with detailEnabled = true)
@@ -58,32 +59,42 @@ export async function updateSopDetail(
   },
   updatedBy: string
 ) {
-  // Sanitize HTML content if provided
+  // Parse JSON structure, sanitize HTML content, then re-wrap
   let sanitizedContentShort = data.detailContentShort;
   let sanitizedContentLong = data.detailContentLong;
   
   if (data.detailContentShort) {
-    sanitizedContentShort = DOMPurify.sanitize(data.detailContentShort, {
-      ALLOWED_TAGS: [
-        'h2', 'h3', 'h4', 'p', 'strong', 'em', 'u', 's',
-        'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
-        'a', 'br', 'hr', 'img'
-      ],
-      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
-      ALLOW_DATA_ATTR: false,
-    });
+    try {
+      const parsed = JSON.parse(data.detailContentShort);
+      if (parsed.content !== undefined) {
+        // Sanitize only the HTML content part
+        parsed.content = sanitizeHtml(parsed.content);
+        sanitizedContentShort = JSON.stringify(parsed);
+      } else {
+        // Legacy plain text - sanitize directly
+        sanitizedContentShort = sanitizeHtml(data.detailContentShort);
+      }
+    } catch {
+      // Not JSON - sanitize as plain text
+      sanitizedContentShort = sanitizeHtml(data.detailContentShort);
+    }
   }
 
   if (data.detailContentLong) {
-    sanitizedContentLong = DOMPurify.sanitize(data.detailContentLong, {
-      ALLOWED_TAGS: [
-        'h2', 'h3', 'h4', 'p', 'strong', 'em', 'u', 's',
-        'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
-        'a', 'br', 'hr', 'img'
-      ],
-      ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
-      ALLOW_DATA_ATTR: false,
-    });
+    try {
+      const parsed = JSON.parse(data.detailContentLong);
+      if (parsed.content !== undefined) {
+        // Sanitize only the HTML content part
+        parsed.content = sanitizeHtml(parsed.content);
+        sanitizedContentLong = JSON.stringify(parsed);
+      } else {
+        // Legacy plain text - sanitize directly
+        sanitizedContentLong = sanitizeHtml(data.detailContentLong);
+      }
+    } catch {
+      // Not JSON - sanitize as plain text
+      sanitizedContentLong = sanitizeHtml(data.detailContentLong);
+    }
   }
 
   const [updated] = await db
@@ -131,37 +142,4 @@ export async function clearSopDetail(id: string) {
   return updated;
 }
 
-/**
- * Sanitize HTML content (can be called separately for validation)
- */
-export function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'h2', 'h3', 'h4', 'p', 'strong', 'em', 'u', 's',
-      'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
-      'a', 'br', 'hr', 'img'
-    ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'class'],
-    ALLOW_DATA_ATTR: false,
-  });
-}
 
-/**
- * Validate base64 image size
- * Returns true if image is within size limit (500KB)
- */
-export function validateImageSize(base64String: string): { valid: boolean; sizeKB: number } {
-  // Remove data URL prefix if present
-  const base64Data = base64String.replace(/^data:image\/\w+;base64,/, '');
-  
-  // Calculate size in bytes (base64 is ~33% larger than original)
-  const sizeBytes = (base64Data.length * 3) / 4;
-  const sizeKB = sizeBytes / 1024;
-  
-  const maxSizeKB = 500;
-  
-  return {
-    valid: sizeKB <= maxSizeKB,
-    sizeKB: Math.round(sizeKB)
-  };
-}

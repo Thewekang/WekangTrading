@@ -28,24 +28,24 @@ export default async function TradesPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">📊 My Trades</h1>
             <p className="text-gray-600">View and manage all your trading history</p>
           </div>
-          <div className="mt-4 sm:mt-0 flex gap-3">
-            <Link href="/trades/new">
-              <Button size="lg" className="min-h-[44px]">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link href="/trades/new" className="flex-1 sm:flex-initial">
+              <Button size="lg" className="min-h-[44px] w-full sm:w-auto">
                 ➕ New Trade
               </Button>
             </Link>
-            <Link href="/trades/bulk">
-              <Button size="lg" variant="outline" className="min-h-[44px]">
+            <Link href="/trades/bulk" className="flex-1 sm:flex-initial">
+              <Button size="lg" variant="outline" className="min-h-[44px] w-full sm:w-auto">
                 📋 Bulk Entry
               </Button>
             </Link>
-            <Link href="/trades/import">
-              <Button size="lg" variant="outline" className="min-h-[44px]">
+            <Link href="/trades/import" className="flex-1 sm:flex-initial">
+              <Button size="lg" variant="outline" className="min-h-[44px] w-full sm:w-auto">
                 📁 Import CSV
               </Button>
             </Link>
