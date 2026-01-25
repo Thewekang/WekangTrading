@@ -194,36 +194,26 @@ export default function AdminSopTypesPage() {
     if (!selectedSopType || !clearTarget) return;
     
     try {
-      // Prepare clear data - send empty JSON structure that API will parse
+      // Prepare clear data - send proper JSON structure that API will parse
+      const emptyDetailJson = JSON.stringify({
+        content: '',
+        images: [],
+        notes: ''
+      });
+      
       const clearData: any = {};
       
       if (clearTarget === 'short') {
-        // Send empty structure so API can extract and clear all fields
-        clearData.detailContentShort = JSON.stringify({
-          content: '',
-          images: [],
-          notes: ''
-        });
+        // Send JSON string so API can parse and extract components
+        clearData.detailContentShort = emptyDetailJson;
         clearData.detailEnabledShort = false;
       } else if (clearTarget === 'long') {
-        clearData.detailContentLong = JSON.stringify({
-          content: '',
-          images: [],
-          notes: ''
-        });
+        clearData.detailContentLong = emptyDetailJson;
         clearData.detailEnabledLong = false;
       } else if (clearTarget === 'both') {
         // Clear both SHORT and LONG
-        clearData.detailContentShort = JSON.stringify({
-          content: '',
-          images: [],
-          notes: ''
-        });
-        clearData.detailContentLong = JSON.stringify({
-          content: '',
-          images: [],
-          notes: ''
-        });
+        clearData.detailContentShort = emptyDetailJson;
+        clearData.detailContentLong = emptyDetailJson;
         clearData.detailEnabledShort = false;
         clearData.detailEnabledLong = false;
       }
