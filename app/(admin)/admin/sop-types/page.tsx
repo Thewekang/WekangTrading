@@ -289,6 +289,29 @@ export default function AdminSopTypesPage() {
     setShowClearConfirmModal(true);
   };
 
+  // Clear form fields only (inside edit modal) - doesn't save to DB
+  const handleClearFormFields = (target: 'short' | 'long') => {
+    if (target === 'short') {
+      setFormData({
+        ...formData,
+        detailContentShort: '',
+        detailImagesShort: [],
+        detailImageNotesShort: ''
+        // Keep detailEnabledShort as is - don't disable
+      });
+      showToast('SHORT form fields cleared (not saved yet)', 'success');
+    } else if (target === 'long') {
+      setFormData({
+        ...formData,
+        detailContentLong: '',
+        detailImagesLong: [],
+        detailImageNotesLong: ''
+        // Keep detailEnabledLong as is - don't disable
+      });
+      showToast('LONG form fields cleared (not saved yet)', 'success');
+    }
+  };
+
   const openEditModal = (sopType: SopType) => {
     setSelectedSopType(sopType);
     
@@ -571,10 +594,7 @@ export default function AdminSopTypesPage() {
                           size="sm"
                           variant="outline"
                           className="text-red-600 hover:bg-red-50 border-red-300"
-                          onClick={() => {
-                            setClearTarget('short');
-                            setShowClearConfirmModal(true);
-                          }}
+                          onClick={() => handleClearFormFields('short')}
                         >
                           🗑️ Clear
                         </Button>
@@ -617,10 +637,7 @@ export default function AdminSopTypesPage() {
                           size="sm"
                           variant="outline"
                           className="text-red-600 hover:bg-red-50 border-red-300"
-                          onClick={() => {
-                            setClearTarget('long');
-                            setShowClearConfirmModal(true);
-                          }}
+                          onClick={() => handleClearFormFields('long')}
                         >
                           🗑️ Clear
                         </Button>
