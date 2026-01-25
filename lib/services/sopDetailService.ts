@@ -69,11 +69,12 @@ export async function updateSopDetail(
   updatedBy: string
 ) {
   // Sanitize HTML content if provided
-  const sanitizedContentShort = data.detailContentShort 
+  // Use explicit !== undefined check to handle empty strings correctly
+  const sanitizedContentShort = data.detailContentShort !== undefined
     ? sanitizeHtml(data.detailContentShort)
     : undefined;
     
-  const sanitizedContentLong = data.detailContentLong
+  const sanitizedContentLong = data.detailContentLong !== undefined
     ? sanitizeHtml(data.detailContentLong)
     : undefined;
 
