@@ -218,6 +218,8 @@ export default function AdminSopTypesPage() {
         clearData.detailEnabledLong = false;
       }
       
+      console.log('🔍 [Frontend] Sending clear request:', clearData);
+      
       const response = await fetch(`/api/admin/sop-types/${selectedSopType.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
