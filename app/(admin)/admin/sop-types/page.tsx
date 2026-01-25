@@ -35,7 +35,7 @@ export default function AdminSopTypesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
-  const [clearTarget, setClearTarget] = useState<'short' | 'long' | null>(null);
+  const [clearTarget, setClearTarget] = useState<'short' | 'long' | 'both' | null>(null);
   const [selectedSopType, setSelectedSopType] = useState<SopType | null>(null);
   
   const [formData, setFormData] = useState({
@@ -204,12 +204,26 @@ export default function AdminSopTypesPage() {
           notes: ''
         });
         clearData.detailEnabledShort = false;
-      } else {
+      } else if (clearTarget === 'long') {
         clearData.detailContentLong = JSON.stringify({
           content: '',
           images: [],
           notes: ''
         });
+        clearData.detailEnabledLong = false;
+      } else if (clearTarget === 'both') {
+        // Clear both SHORT and LONG
+        clearData.detailContentShort = JSON.stringify({
+          content: '',
+          images: [],
+          notes: ''
+        });
+        clearData.detailContentLong = JSON.stringify({
+          content: '',
+          images: [],
+          notes: ''
+        });
+        clearData.detailEnabledShort = false;
         clearData.detailEnabledLong = false;
       }
       
@@ -244,7 +258,12 @@ export default function AdminSopTypesPage() {
         });
       }
       
-      showToast(`${clearTarget.toUpperCase()} strategy cleared successfully`, 'success');
+      showToast(
+        clearTarget === 'both' 
+          ? 'All strategy details cleared successfully' 
+          : `${clearTarget.toUpperCase()} strategy cleared successfully`,
+        'success'
+      );
       setShowClearConfirmModal(false);
       setClearTarget(null);
       fetchSopTypes(); // Refresh the list
@@ -253,6 +272,13 @@ export default function AdminSopTypesPage() {
       setShowClearConfirmModal(false);
       setClearTarget(null);
     }
+  };
+
+  const handleClearDetailFromList = async (sopType: SopType) => {
+    // Set selected SOP for confirmation modal
+    setSelectedSopType(sopType);
+    setClearTarget('both');
+    setShowClearConfirmModal(true);
   };
 
   const openEditModal = (sopType: SopType) => {
@@ -378,7 +404,7 @@ export default function AdminSopTypesPage() {
                         </span>
                       </td>
                       <td className="p-4">
-                        <div className="flex gap-2 justify-center">
+                        <div className="flex gap-2 justify-center flex-wrap">
                           <Button 
                             size="sm" 
                             variant="outline" 
@@ -393,6 +419,16 @@ export default function AdminSopTypesPage() {
                           >
                             {sopType.active ? 'Deactivate' : 'Activate'}
                           </Button>
+                          {(detailStatus.text !== 'None') && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-orange-600 hover:bg-orange-50 border-orange-300"
+                              onClick={() => handleClearDetailFromList(sopType)}
+                            >
+                              Clear Detail
+                            </Button>
+                          )}
                           <Button 
                             size="sm" 
                             variant="destructive"
@@ -644,17 +680,21 @@ export default function AdminSopTypesPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-md p-6">
               <h2 className="text-2xl font-bold mb-4 text-red-600">
-                Clear {clearTarget === 'short' ? '📉 SHORT' : '📈 LONG'} Strategy
+                {clearTarget === 'both' 
+                  ? '🗑️ Clear All Strategy Details' 
+                  : `Clear ${clearTarget === 'short' ? '📉 SHORT' : '📈 LONG'} Strategy`}
               </h2>
               <p className="mb-4">
-                Are you sure you want to clear the <strong>{clearTarget.toUpperCase()}</strong> strategy?
+                {clearTarget === 'both' 
+                  ? 'Are you sure you want to clear ALL strategy details (both SHORT and LONG)?' 
+                  : `Are you sure you want to clear the ${clearTarget.toUpperCase()} strategy?`}
               </p>
               <p className="text-sm text-gray-600 mb-6">This will permanently delete:</p>
               <ul className="list-disc list-inside text-sm text-gray-600 mb-6">
-                <li>Strategy content (HTML text)</li>
+                <li>{clearTarget === 'both' ? 'All strategy content (SHORT & LONG)' : 'Strategy content (HTML text)'}</li>
                 <li>All uploaded images</li>
                 <li>Chart notes and annotations</li>
-                <li>Visibility toggle (will be disabled)</li>
+                <li>{clearTarget === 'both' ? 'Both visibility toggles (will be disabled)' : 'Visibility toggle (will be disabled)'}</li>
               </ul>
               <p className="text-sm font-bold text-red-600 mb-6">
                 ⚠️ This action cannot be undone and will be saved immediately to the database.
@@ -665,7 +705,7 @@ export default function AdminSopTypesPage() {
                   onClick={handleClearStrategy} 
                   className="flex-1"
                 >
-                  Clear Strategy
+                  {clearTarget === 'both' ? 'Clear All Details' : 'Clear Strategy'}
                 </Button>
                 <Button 
                   variant="outline" 
