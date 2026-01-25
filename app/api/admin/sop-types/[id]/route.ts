@@ -72,16 +72,13 @@ export async function PATCH(
       
       // Process SHORT entry data
       if (detailContentShort !== undefined) {
-        console.log('🔍 [API] Received detailContentShort:', detailContentShort);
         try {
           const parsed = JSON.parse(detailContentShort);
-          console.log('🔍 [API] Parsed SHORT JSON:', parsed);
           if (parsed.content !== undefined) {
             // New JSON format with separate fields
             shortContent = parsed.content;
             shortImages = parsed.images || [];
             shortNotes = parsed.notes || '';
-            console.log('🔍 [API] Extracted SHORT - content:', shortContent, 'images count:', shortImages.length, 'notes:', shortNotes);
             
             // Validate image sizes
             for (const image of shortImages) {
@@ -102,12 +99,10 @@ export async function PATCH(
           } else {
             // Legacy plain text format
             shortContent = detailContentShort;
-            console.log('🔍 [API] Using legacy format for SHORT');
           }
-        } catch (e) {
+        } catch {
           // Not JSON, treat as legacy plain text
           shortContent = detailContentShort;
-          console.log('🔍 [API] Parse failed for SHORT, using as plain text:', e);
         }
       }
 
@@ -161,14 +156,6 @@ export async function PATCH(
         },
         session.user.id
       );
-      console.log('🔍 [API] Called updateSopDetail with:', {
-        shortContent,
-        shortImages: shortImages?.length,
-        shortNotes,
-        longContent,
-        longImages: longImages?.length,
-        longNotes
-      });
     }
 
     return NextResponse.json({

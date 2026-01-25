@@ -78,15 +78,6 @@ export async function updateSopDetail(
     ? sanitizeHtml(data.detailContentLong)
     : undefined;
 
-  console.log('🔍 [Service] updateSopDetail called with:', {
-    contentShort: sanitizedContentShort,
-    imagesShort: data.detailImagesShort?.length,
-    notesShort: data.detailImageNotesShort,
-    contentLong: sanitizedContentLong,
-    imagesLong: data.detailImagesLong?.length,
-    notesLong: data.detailImageNotesLong
-  });
-
   const [updated] = await db
     .update(sopTypes)
     .set({
