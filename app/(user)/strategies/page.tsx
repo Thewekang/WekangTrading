@@ -21,6 +21,10 @@ interface SopType {
   description: string;
   detailContentShort: string | null;
   detailContentLong: string | null;
+  detailImagesShort: string | null; // Migration 0006: JSON array of base64 images
+  detailImagesLong: string | null; // Migration 0006: JSON array of base64 images
+  detailImageNotesShort: string | null; // Migration 0006: Plain text notes
+  detailImageNotesLong: string | null; // Migration 0006: Plain text notes
   detailEnabledShort: boolean;
   detailEnabledLong: boolean;
   detailUpdatedAt: string | null;
@@ -55,7 +59,21 @@ export default function StrategiesPage() {
     }
   };
 
-  const parseDetailContent = (content: string | null): StrategyDetail => {
+  const parseDetailContent = (
+    content: string | null,
+    images: string | null,
+    notes: string | null
+  ): StrategyDetail => {
+    // New database structure (Migration 0006) - separate columns
+    if (images !== null || notes !== null) {
+      return {
+        content: content || '',
+        images: images ? JSON.parse(images) : [],
+        notes: notes || '',
+      };
+    }
+
+    // Legacy format - JSON in content field
     if (!content) {
       return { content: '', images: [], notes: '' };
     }
@@ -69,7 +87,7 @@ export default function StrategiesPage() {
           notes: parsed.notes || '',
         };
       } else {
-        // Legacy format - plain text
+        // Very old format - plain text
         return { content, images: [], notes: '' };
       }
     } catch {
@@ -133,10 +151,10 @@ export default function StrategiesPage() {
         <Accordion type="single" collapsible className="space-y-4">
           {filteredSopTypes.map((sop) => {
             const shortDetail = sop.detailEnabledShort
-              ? parseDetailContent(sop.detailContentShort)
+              ? parseDetailContent(sop.detailContentShort, sop.detailImagesShort, sop.detailImageNotesShort)
               : null;
             const longDetail = sop.detailEnabledLong
-              ? parseDetailContent(sop.detailContentLong)
+              ? parseDetailContent(sop.detailContentLong, sop.detailImagesLong, sop.detailImageNotesLong)
               : null;
 
             return (

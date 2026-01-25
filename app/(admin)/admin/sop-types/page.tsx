@@ -473,15 +473,36 @@ export default function AdminSopTypesPage() {
                         </h3>
                         <p className="text-sm text-gray-600">For bearish/sell strategies</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enable-short">Show to users</Label>
-                        <Switch
-                          id="enable-short"
-                          checked={formData.detailEnabledShort}
-                          onCheckedChange={(checked) => 
-                            setFormData({ ...formData, detailEnabledShort: checked })
-                          }
-                        />
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:bg-red-50 border-red-300"
+                          onClick={() => {
+                            if (confirm('Clear all SHORT strategy content, images, and notes? This cannot be undone.')) {
+                              setFormData({ 
+                                ...formData, 
+                                detailContentShort: '',
+                                detailImagesShort: [],
+                                detailImageNotesShort: ''
+                              });
+                              showToast('SHORT strategy cleared', 'success');
+                            }
+                          }}
+                        >
+                          🗑️ Clear
+                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="enable-short">Show to users</Label>
+                          <Switch
+                            id="enable-short"
+                            checked={formData.detailEnabledShort}
+                            onCheckedChange={(checked) => 
+                              setFormData({ ...formData, detailEnabledShort: checked })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                     <TiptapEditor
@@ -505,15 +526,36 @@ export default function AdminSopTypesPage() {
                         </h3>
                         <p className="text-sm text-gray-600">For bullish/buy strategies</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enable-long">Show to users</Label>
-                        <Switch
-                          id="enable-long"
-                          checked={formData.detailEnabledLong}
-                          onCheckedChange={(checked) => 
-                            setFormData({ ...formData, detailEnabledLong: checked })
-                          }
-                        />
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:bg-red-50 border-red-300"
+                          onClick={() => {
+                            if (confirm('Clear all LONG strategy content, images, and notes? This cannot be undone.')) {
+                              setFormData({ 
+                                ...formData, 
+                                detailContentLong: '',
+                                detailImagesLong: [],
+                                detailImageNotesLong: ''
+                              });
+                              showToast('LONG strategy cleared', 'success');
+                            }
+                          }}
+                        >
+                          🗑️ Clear
+                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="enable-long">Show to users</Label>
+                          <Switch
+                            id="enable-long"
+                            checked={formData.detailEnabledLong}
+                            onCheckedChange={(checked) => 
+                              setFormData({ ...formData, detailEnabledLong: checked })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                     <TiptapEditor

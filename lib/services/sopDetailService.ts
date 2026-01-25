@@ -17,6 +17,10 @@ export async function getSopTypesWithDetails() {
       description: sopTypes.description,
       detailContentShort: sopTypes.detailContentShort,
       detailContentLong: sopTypes.detailContentLong,
+      detailImagesShort: sopTypes.detailImagesShort,
+      detailImagesLong: sopTypes.detailImagesLong,
+      detailImageNotesShort: sopTypes.detailImageNotesShort,
+      detailImageNotesLong: sopTypes.detailImageNotesLong,
       detailEnabledShort: sopTypes.detailEnabledShort,
       detailEnabledLong: sopTypes.detailEnabledLong,
       detailUpdatedAt: sopTypes.detailUpdatedAt,
@@ -48,60 +52,44 @@ export async function getSopTypeWithDetail(id: string) {
 
 /**
  * Update SOP detail content (Short and/or Long entry strategies)
+ * Now stores images and notes in dedicated columns (Migration 0006)
  */
 export async function updateSopDetail(
   id: string,
   data: {
     detailContentShort?: string;
     detailContentLong?: string;
+    detailImagesShort?: string[]; // Array of base64 images
+    detailImagesLong?: string[]; // Array of base64 images
+    detailImageNotesShort?: string;
+    detailImageNotesLong?: string;
     detailEnabledShort?: boolean;
     detailEnabledLong?: boolean;
   },
   updatedBy: string
 ) {
-  // Parse JSON structure, sanitize HTML content, then re-wrap
-  let sanitizedContentShort = data.detailContentShort;
-  let sanitizedContentLong = data.detailContentLong;
-  
-  if (data.detailContentShort) {
-    try {
-      const parsed = JSON.parse(data.detailContentShort);
-      if (parsed.content !== undefined) {
-        // Sanitize only the HTML content part
-        parsed.content = sanitizeHtml(parsed.content);
-        sanitizedContentShort = JSON.stringify(parsed);
-      } else {
-        // Legacy plain text - sanitize directly
-        sanitizedContentShort = sanitizeHtml(data.detailContentShort);
-      }
-    } catch {
-      // Not JSON - sanitize as plain text
-      sanitizedContentShort = sanitizeHtml(data.detailContentShort);
-    }
-  }
-
-  if (data.detailContentLong) {
-    try {
-      const parsed = JSON.parse(data.detailContentLong);
-      if (parsed.content !== undefined) {
-        // Sanitize only the HTML content part
-        parsed.content = sanitizeHtml(parsed.content);
-        sanitizedContentLong = JSON.stringify(parsed);
-      } else {
-        // Legacy plain text - sanitize directly
-        sanitizedContentLong = sanitizeHtml(data.detailContentLong);
-      }
-    } catch {
-      // Not JSON - sanitize as plain text
-      sanitizedContentLong = sanitizeHtml(data.detailContentLong);
-    }
-  }
+  // Sanitize HTML content if provided
+  const sanitizedContentShort = data.detailContentShort 
+    ? sanitizeHtml(data.detailContentShort)
+    : undefined;
+    
+  const sanitizedContentLong = data.detailContentLong
+    ? sanitizeHtml(data.detailContentLong)
+    : undefined;
 
   const [updated] = await db
     .update(sopTypes)
     .set({
       ...(sanitizedContentShort !== undefined && { detailContentShort: sanitizedContentShort }),
       ...(sanitizedContentLong !== undefined && { detailContentLong: sanitizedContentLong }),
+      ...(data.detailImagesShort !== undefined && { 
+        detailImagesShort: data.detailImagesShort.length > 0 ? JSON.stringify(data.detailImagesShort) : null 
+      }),
+      ...(data.detailImagesLong !== undefined && { 
+        detailImagesLong: data.detailImagesLong.length > 0 ? JSON.stringify(data.detailImagesLong) : null 
+      }),
+      ...(data.detailImageNotesShort !== undefined && { detailImageNotesShort: data.detailImageNotesShort || null }),
+      ...(data.detailImageNotesLong !== undefined && { detailImageNotesLong: data.detailImageNotesLong || null }),
       ...(data.detailEnabledShort !== undefined && { detailEnabledShort: data.detailEnabledShort }),
       ...(data.detailEnabledLong !== undefined && { detailEnabledLong: data.detailEnabledLong }),
       detailUpdatedAt: new Date(),

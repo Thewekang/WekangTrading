@@ -50,6 +50,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Breakpoints: sm (640px), md (768px), lg (1024px)
 
 **Phase 6: Testing & Polish**
+- ✅ End-to-end workflow testing (Admin edit → User view)
+- ✅ Image upload/paste validation
+- ✅ Mobile navigation functionality verified
+- ✅ Documentation updated (CHANGELOG, progress tracking)
+
+**Tech Debt Resolution** ✅
+- ✅ Migration 0006: Added dedicated database columns for images and notes
+  - Added `detail_images_short` and `detail_images_long` (JSON arrays)
+  - Added `detail_image_notes_short` and `detail_image_notes_long` (plain text)
+  - Migrated existing JSON data from content columns to new structure
+  - Improved database query performance and data organization
+- ✅ Refactored service layer to use separate columns
+  - Updated `getSopTypesWithDetails` to SELECT new columns
+  - Simplified `updateSopDetail` to accept separate content/images/notes fields
+  - Removed complex JSON parsing in service layer
+- ✅ Updated API endpoints to extract and validate components separately
+  - Backward compatible with legacy JSON format
+  - Validates image arrays directly before storage
+  - Cleaner error handling and validation logic
+- ✅ Frontend updates for new data structure
+  - Admin page: Extracts content/images/notes from stored data
+  - User strategies page: Handles both new columns and legacy JSON
+  - Parsing logic supports all formats (new columns, JSON, plain text)
+- ✅ Added "Clear Strategy" button for each entry type (SHORT/LONG)
+  - Confirmation dialog prevents accidental deletions
+  - Clears content, images, and notes in one action
+  - Visual feedback with toast notification
+
+**Phase 6: Testing & Polish**
 - ✅ Fixed JSON structure validation in API
 - ✅ Updated service layer to parse JSON, sanitize HTML, re-wrap
 - ✅ Fixed image validation to check separate images array

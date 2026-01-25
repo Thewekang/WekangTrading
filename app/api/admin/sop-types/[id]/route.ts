@@ -62,16 +62,26 @@ export async function PATCH(
       detailEnabledShort !== undefined ||
       detailEnabledLong !== undefined
     ) {
-      // Parse JSON structure to extract and validate images
-      let shortContent = detailContentShort;
-      let longContent = detailContentLong;
+      // Parse JSON structure to extract content, images, and notes
+      let shortContent: string | undefined;
+      let shortImages: string[] | undefined;
+      let shortNotes: string | undefined;
+      let longContent: string | undefined;
+      let longImages: string[] | undefined;
+      let longNotes: string | undefined;
       
-      // Validate image sizes in short entry if provided
-      if (detailContentShort) {
+      // Process SHORT entry data
+      if (detailContentShort !== undefined) {
         try {
           const parsed = JSON.parse(detailContentShort);
-          if (parsed.images && Array.isArray(parsed.images)) {
-            for (const image of parsed.images) {
+          if (parsed.content !== undefined) {
+            // New JSON format with separate fields
+            shortContent = parsed.content;
+            shortImages = parsed.images || [];
+            shortNotes = parsed.notes || '';
+            
+            // Validate image sizes
+            for (const image of shortImages) {
               const validation = validateImageSize(image);
               if (!validation.valid) {
                 return NextResponse.json(
@@ -86,21 +96,28 @@ export async function PATCH(
                 );
               }
             }
+          } else {
+            // Legacy plain text format
+            shortContent = detailContentShort;
           }
-          // Keep as JSON string for storage
-          shortContent = detailContentShort;
         } catch {
           // Not JSON, treat as legacy plain text
           shortContent = detailContentShort;
         }
       }
 
-      // Validate image sizes in long entry if provided
-      if (detailContentLong) {
+      // Process LONG entry data
+      if (detailContentLong !== undefined) {
         try {
           const parsed = JSON.parse(detailContentLong);
-          if (parsed.images && Array.isArray(parsed.images)) {
-            for (const image of parsed.images) {
+          if (parsed.content !== undefined) {
+            // New JSON format with separate fields
+            longContent = parsed.content;
+            longImages = parsed.images || [];
+            longNotes = parsed.notes || '';
+            
+            // Validate image sizes
+            for (const image of longImages) {
               const validation = validateImageSize(image);
               if (!validation.valid) {
                 return NextResponse.json(
@@ -115,9 +132,10 @@ export async function PATCH(
                 );
               }
             }
+          } else {
+            // Legacy plain text format
+            longContent = detailContentLong;
           }
-          // Keep as JSON string for storage
-          longContent = detailContentLong;
         } catch {
           // Not JSON, treat as legacy plain text
           longContent = detailContentLong;
@@ -129,6 +147,10 @@ export async function PATCH(
         {
           detailContentShort: shortContent,
           detailContentLong: longContent,
+          detailImagesShort: shortImages,
+          detailImagesLong: longImages,
+          detailImageNotesShort: shortNotes,
+          detailImageNotesLong: longNotes,
           detailEnabledShort: detailEnabledShort !== undefined ? detailEnabledShort : undefined,
           detailEnabledLong: detailEnabledLong !== undefined ? detailEnabledLong : undefined,
         },

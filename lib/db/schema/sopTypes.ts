@@ -17,6 +17,13 @@ export const sopTypes = sqliteTable('sop_types', {
   detailContentLong: text('detail_content_long'), // HTML for long entry strategy
   detailEnabledShort: integer('detail_enabled_short', { mode: 'boolean' }).notNull().default(false),
   detailEnabledLong: integer('detail_enabled_long', { mode: 'boolean' }).notNull().default(false),
+  
+  // Migration 0006: Dedicated columns for images and notes (better performance)
+  detailImagesShort: text('detail_images_short'), // JSON array of base64 images
+  detailImagesLong: text('detail_images_long'), // JSON array of base64 images
+  detailImageNotesShort: text('detail_image_notes_short'), // Chart notes plain text
+  detailImageNotesLong: text('detail_image_notes_long'), // Chart notes plain text
+  
   detailUpdatedAt: integer('detail_updated_at', { mode: 'timestamp' }),
   detailUpdatedBy: text('detail_updated_by').references(() => users.id),
   
