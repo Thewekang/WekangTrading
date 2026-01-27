@@ -49,6 +49,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Brand name shortens on small screens
 - ✅ Breakpoints: sm (640px), md (768px), lg (1024px)
 
+**Phase 6: Admin UX Enhancements - Drag-Drop & Pin Favorites** ✅
+- ✅ Drag-and-drop SOP reordering with @dnd-kit library
+- ✅ Visual grab handles (⋮⋮) for intuitive drag interaction
+- ✅ Auto-save order to database on drop
+- ✅ Removed manual sortOrder input field
+- ✅ Pin/favorite system (max 3 per user)
+- ✅ Star icons with fill state (⭐)
+- ✅ Pin counter badge in header (⭐ X/3 Pinned)
+- ✅ Client-side validation before pin
+- ✅ Disabled states when max pins reached
+- ✅ Helpful tooltips for user guidance
+- ✅ Migration 0007: user_pinned_sops table (composite PK)
+- ✅ User-specific pins with sorting (pinned first)
+- ✅ Fixed JSON content display bug (data migration cleanup)
+
 **Phase 6: Testing & Polish**
 - ✅ End-to-end workflow testing (Admin edit → User view)
 - ✅ Image upload/paste validation

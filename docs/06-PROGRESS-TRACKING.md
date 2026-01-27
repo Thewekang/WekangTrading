@@ -76,7 +76,7 @@ Phase Breakdown:
 - ✅ All bugs fixed (3 critical fixes)
 
 #### Feature 5: SOP Details & Mobile Enhancement ✅ COMPLETE
-**Branch**: feature/sop-details-mobile  
+**Branch**: feature/sop-details-mobile → merged to develop  
 **Database**: wekangtrading-staging  
 **Start Date**: January 24, 2026  
 **Completion Date**: January 25, 2026  
@@ -88,16 +88,22 @@ Phase Breakdown:
 - ✅ **Phase 3**: Admin UI Enhancement (tabbed interface, images, clipboard, persistence) - Complete
 - ✅ **Phase 4**: User Strategies Page (accordion layout, search, mobile-ready) - Complete
 - ✅ **Phase 5**: Mobile Responsiveness (navigation dropdowns, responsive layouts) - Complete
-- ✅ **Phase 6**: Testing & Polish (JSON validation fixes, all workflows tested) - Complete
+- ✅ **Phase 6**: Admin UX Enhancements (drag-drop sorting, pin favorites) - Complete
+- ✅ **Phase 7**: Testing & Polish (JSON validation fixes, all workflows tested) - Complete
 
 **Key Achievements**:
-- 📦 New packages: Tiptap v3.17.0, isomorphic-dompurify, Radix UI components
+- 📦 New packages: Tiptap v3.17.0, isomorphic-dompurify, Radix UI, @dnd-kit
 - 🗄️ Migration 0005 applied to staging (6 new columns in sop_types table)
+- 🗄️ Migration 0006 applied to staging (dedicated image columns for better separation)
+- 🗄️ Migration 0007 applied to staging (user_pinned_sops table for favorites)
 - 🎨 Two-column editor layout with image gallery and chart notes
 - 📋 Clipboard paste support for quick screenshot insertion
 - 💾 JSON-based data persistence with backward compatibility
 - 🔒 Server-side HTML sanitization for XSS protection
 - 📱 Full mobile responsiveness with dropdown navigation
+- 🎯 Drag-and-drop SOP reordering with visual grab handles
+- ⭐ Pin/favorite system (max 3 per user) with star icons
+- 🐛 Fixed JSON content display bug with database cleanup script
 - 🔍 Search functionality in strategies page
 - 🖼️ Full-screen image viewer with click-to-expand
 
