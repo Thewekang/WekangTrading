@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
-import { updateSopDetail, validateImageSize } from '@/lib/services/sopDetailService';
+import { updateSopDetail } from '@/lib/services/sopDetailService';
+import { validateImageSize } from '@/lib/utils/imageValidation';
 
 /**
  * PATCH /api/admin/sop-types/[id]
@@ -100,7 +101,7 @@ export async function PATCH(
             // Legacy plain text format
             shortContent = detailContentShort;
           }
-        } catch {
+        } catch (e) {
           // Not JSON, treat as legacy plain text
           shortContent = detailContentShort;
         }

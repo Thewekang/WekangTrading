@@ -43,6 +43,13 @@
       "when": 1769273467003,
       "tag": "0005_superb_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1769329515613,
+      "tag": "0006_hesitant_alex_power",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,24 @@ import { showToast } from '@/components/ui/Toast';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TiptapEditor } from '@/components/editors/TiptapEditor';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, Star } from 'lucide-react';
 
 interface SopType {
   id: string;
@@ -27,6 +45,141 @@ interface SopType {
   detailUpdatedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  isPinned?: boolean; // From joined query
+  pinnedAt?: string | null; // From joined query
+}
+
+// Sortable Row Component
+function SortableRow({ 
+  sopType, 
+  detailStatus,
+  onEdit, 
+  onToggleActive, 
+  onClearDetail, 
+  onDelete,
+  onTogglePin,
+  pinnedCount 
+}: { 
+  sopType: SopType;
+  detailStatus: { text: string; color: string; icon: string };
+  onEdit: () => void;
+  onToggleActive: () => void;
+  onClearDetail: () => void;
+  onDelete: () => void;
+  onTogglePin: () => void;
+  pinnedCount: number;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sopType.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef} 
+      style={style} 
+      className="border-b hover:bg-gray-50"
+    >
+      <td className="p-4">
+        <button
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={20} />
+        </button>
+      </td>
+      <td className="p-4 font-medium">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onTogglePin}
+            disabled={!sopType.isPinned && pinnedCount >= 3}
+            className={`p-1 rounded transition-colors ${
+              !sopType.isPinned && pinnedCount >= 3
+                ? 'cursor-not-allowed opacity-40'
+                : 'hover:bg-gray-100 cursor-pointer'
+            }`}
+            title={
+              sopType.isPinned 
+                ? 'Click to unpin' 
+                : pinnedCount >= 3 
+                ? 'Max 3 pins reached. Unpin one first.' 
+                : `Pin this SOP (${pinnedCount}/3 pinned)`
+            }
+          >
+            <Star 
+              size={18} 
+              className={sopType.isPinned ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+            />
+          </button>
+          {sopType.name}
+        </div>
+      </td>
+      <td className="p-4 text-sm text-gray-600">
+        {sopType.description || <span className="text-gray-400 italic">No description</span>}
+      </td>
+      <td className="text-center p-4">
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          sopType.active 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-gray-100 text-gray-600'
+        }`}>
+          {sopType.active ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td className="text-center p-4">
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${detailStatus.color}`}>
+          {detailStatus.icon} {detailStatus.text}
+        </span>
+      </td>
+      <td className="p-4">
+        <div className="flex gap-2 justify-center flex-wrap">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={onEdit}
+          >
+            Edit
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={onToggleActive}
+          >
+            {sopType.active ? 'Deactivate' : 'Activate'}
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline"
+            className={detailStatus.text === 'None' 
+              ? 'text-gray-400 cursor-not-allowed' 
+              : 'text-orange-600 hover:bg-orange-50 border-orange-300'}
+            onClick={onClearDetail}
+            disabled={detailStatus.text === 'None'}
+          >
+            Clear Detail
+          </Button>
+          <Button 
+            size="sm" 
+            variant="destructive"
+            onClick={onDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
 }
 
 export default function AdminSopTypesPage() {
@@ -38,10 +191,14 @@ export default function AdminSopTypesPage() {
   const [clearTarget, setClearTarget] = useState<'short' | 'long' | 'both' | null>(null);
   const [selectedSopType, setSelectedSopType] = useState<SopType | null>(null);
   
+  // Keys to force TipTap editor remount when clearing
+  const [editorKeyShort, setEditorKeyShort] = useState(0);
+  const [editorKeyLong, setEditorKeyLong] = useState(0);
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    sortOrder: 0,
+
     detailContentShort: '',
     detailContentLong: '',
     detailEnabledShort: false,
@@ -53,11 +210,51 @@ export default function AdminSopTypesPage() {
   });
   
   const [activeTab, setActiveTab] = useState<'basic' | 'details'>('basic');
+  const [pinnedCount, setPinnedCount] = useState(0);
 
   useEffect(() => {
     fetchSopTypes();
   }, []);
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sopTypes.findIndex((item) => item.id === active.id);
+      const newIndex = sopTypes.findIndex((item) => item.id === over.id);
+
+      const newOrder = arrayMove(sopTypes, oldIndex, newIndex);
+      setSopTypes(newOrder);
+
+      // Save new order to backend
+      try {
+        const response = await fetch('/api/admin/sop-types/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderedIds: newOrder.map((item) => item.id) })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error?.message || 'Failed to reorder SOP types');
+        }
+
+        showToast('Order saved successfully', 'success');
+      } catch (error: any) {
+        showToast(error.message, 'error');
+        // Revert on error
+        fetchSopTypes();
+      }
+    }
+  };
   const fetchSopTypes = async () => {
     try {
       setLoading(true);
@@ -66,6 +263,9 @@ export default function AdminSopTypesPage() {
       
       if (result.success) {
         setSopTypes(result.data);
+        // Count how many are pinned
+        const pinned = result.data.filter((sop: SopType) => sop.isPinned).length;
+        setPinnedCount(pinned);
       }
     } catch (error) {
       showToast('Failed to load SOP types', 'error');
@@ -92,7 +292,18 @@ export default function AdminSopTypesPage() {
       
       showToast('SOP type created successfully', 'success');
       setShowCreateModal(false);
-      setFormData({ name: '', description: '', sortOrder: 0 });
+      setFormData({ 
+        name: '', 
+        description: '',
+        detailContentShort: '',
+        detailContentLong: '',
+        detailEnabledShort: false,
+        detailEnabledLong: false,
+        detailImagesShort: [],
+        detailImagesLong: [],
+        detailImageNotesShort: '',
+        detailImageNotesLong: ''
+      });
       fetchSopTypes();
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -122,7 +333,6 @@ export default function AdminSopTypesPage() {
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
-          sortOrder: formData.sortOrder,
           detailContentShort: shortContentWithMeta,
           detailContentLong: longContentWithMeta,
           detailEnabledShort: formData.detailEnabledShort,
@@ -184,6 +394,40 @@ export default function AdminSopTypesPage() {
       }
       
       showToast('SOP type deleted successfully', 'success');
+      fetchSopTypes();
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    }
+  };
+
+  const handleTogglePin = async (sopType: SopType) => {
+    // Check if trying to pin when already at max
+    if (!sopType.isPinned && pinnedCount >= 3) {
+      showToast('Maximum 3 pinned SOP types reached. Please unpin one first.', 'error');
+      return;
+    }
+
+    try {
+      const method = sopType.isPinned ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/sop-types/${sopType.id}/pin`, {
+        method
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        if (result.error?.code === 'MAX_PINS_EXCEEDED') {
+          showToast('Maximum 3 pinned SOP types allowed. Unpin one first.', 'error');
+        } else {
+          throw new Error(result.error?.message || 'Failed to update pin status');
+        }
+        return;
+      }
+      
+      showToast(
+        sopType.isPinned ? 'SOP type unpinned' : 'SOP type pinned', 
+        'success'
+      );
       fetchSopTypes();
     } catch (error: any) {
       showToast(error.message, 'error');
@@ -297,6 +541,8 @@ export default function AdminSopTypesPage() {
         detailImageNotesShort: ''
         // Keep detailEnabledShort as is - don't disable
       });
+      // Force editor to remount with empty content
+      setEditorKeyShort(prev => prev + 1);
       showToast('SHORT form fields cleared (not saved yet)', 'success');
     } else if (target === 'long') {
       setFormData({
@@ -306,6 +552,8 @@ export default function AdminSopTypesPage() {
         detailImageNotesLong: ''
         // Keep detailEnabledLong as is - don't disable
       });
+      // Force editor to remount with empty content
+      setEditorKeyLong(prev => prev + 1);
       showToast('LONG form fields cleared (not saved yet)', 'success');
     }
   };
@@ -328,7 +576,6 @@ export default function AdminSopTypesPage() {
     setFormData({
       name: sopType.name,
       description: sopType.description || '',
-      sortOrder: sopType.sortOrder,
       detailContentShort: shortContent,
       detailContentLong: longContent,
       detailEnabledShort: sopType.detailEnabledShort,
@@ -376,9 +623,15 @@ export default function AdminSopTypesPage() {
             <h1 className="text-3xl font-bold mb-2">⚙️ SOP Types Management</h1>
             <p className="text-gray-600">Configure trading SOP types for traders to categorize their trades</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            ➕ Create SOP Type
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border">
+              <Star size={16} className="inline fill-yellow-400 text-yellow-400 mr-1" />
+              <span className="font-semibold">{pinnedCount}/3</span> Pinned
+            </div>
+            <Button onClick={() => setShowCreateModal(true)}>
+              ➕ Create SOP Type
+            </Button>
+          </div>
         </div>
 
         {sopTypes.length === 0 ? (
@@ -397,82 +650,49 @@ export default function AdminSopTypesPage() {
           </Card>
         ) : (
           <Card className="overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr className="border-b">
-                  <th className="text-left p-4 font-semibold">Name</th>
-                  <th className="text-left p-4 font-semibold">Description</th>
-                  <th className="text-center p-4 font-semibold">Sort Order</th>
-                  <th className="text-center p-4 font-semibold">Status</th>
-                  <th className="text-center p-4 font-semibold">Detail Status</th>
-                  <th className="text-center p-4 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sopTypes.map((sopType) => {
-                  const detailStatus = getDetailStatus(sopType);
-                  return (
-                    <tr key={sopType.id} className="border-b hover:bg-gray-50">
-                      <td className="p-4 font-medium">{sopType.name}</td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {sopType.description || <span className="text-gray-400 italic">No description</span>}
-                      </td>
-                      <td className="text-center p-4">{sopType.sortOrder}</td>
-                      <td className="text-center p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          sopType.active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {sopType.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="text-center p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${detailStatus.color}`}>
-                          {detailStatus.icon} {detailStatus.text}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2 justify-center flex-wrap">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => openEditModal(sopType)}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleToggleActive(sopType)}
-                          >
-                            {sopType.active ? 'Deactivate' : 'Activate'}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className={detailStatus.text === 'None' 
-                              ? 'text-gray-400 cursor-not-allowed' 
-                              : 'text-orange-600 hover:bg-orange-50 border-orange-300'}
-                            onClick={() => handleClearDetailFromList(sopType)}
-                            disabled={detailStatus.text === 'None'}
-                          >
-                            Clear Detail
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDelete(sopType.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr className="border-b">
+                    <th className="text-left p-4 font-semibold w-12">
+                      <span className="text-gray-400" title="Drag to reorder">⋮⋮</span>
+                    </th>
+                    <th className="text-left p-4 font-semibold">Name</th>
+                    <th className="text-left p-4 font-semibold">Description</th>
+                    <th className="text-center p-4 font-semibold">Status</th>
+                    <th className="text-center p-4 font-semibold">Detail Status</th>
+                    <th className="text-center p-4 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <SortableContext
+                  items={sopTypes.map((s) => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <tbody>
+                    {sopTypes.map((sopType) => {
+                      const detailStatus = getDetailStatus(sopType);
+                      return (
+                        <SortableRow
+                          key={sopType.id}
+                          sopType={sopType}
+                          detailStatus={detailStatus}
+                          onEdit={() => openEditModal(sopType)}
+                          onToggleActive={() => handleToggleActive(sopType)}
+                          onClearDetail={() => handleClearDetailFromList(sopType)}
+                          onDelete={() => handleDelete(sopType.id)}
+                          onTogglePin={() => handleTogglePin(sopType)}
+                          pinnedCount={pinnedCount}
+                        />
+                      );
+                    })}
+                  </tbody>
+                </SortableContext>
+              </table>
+            </DndContext>
           </Card>
         )}
 
@@ -501,16 +721,7 @@ export default function AdminSopTypesPage() {
                     placeholder="Optional description"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="sortOrder">Sort Order</Label>
-                  <Input
-                    id="sortOrder"
-                    type="number"
-                    value={formData.sortOrder}
-                    onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
-                </div>
+
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">Create</Button>
                   <Button 
@@ -518,7 +729,18 @@ export default function AdminSopTypesPage() {
                     variant="outline" 
                     onClick={() => {
                       setShowCreateModal(false);
-                      setFormData({ name: '', description: '', sortOrder: 0 });
+                      setFormData({ 
+                        name: '', 
+                        description: '',
+                        detailContentShort: '',
+                        detailContentLong: '',
+                        detailEnabledShort: false,
+                        detailEnabledLong: false,
+                        detailImagesShort: [],
+                        detailImagesLong: [],
+                        detailImageNotesShort: '',
+                        detailImageNotesLong: ''
+                      });
                     }}
                     className="flex-1"
                   >
@@ -609,6 +831,7 @@ export default function AdminSopTypesPage() {
                       </div>
                     </div>
                     <TiptapEditor
+                      key={`short-${editorKeyShort}`}
                       content={formData.detailContentShort}
                       onChange={(content) => setFormData({ ...formData, detailContentShort: content })}
                       placeholder="Describe the SHORT entry strategy..."
@@ -652,6 +875,7 @@ export default function AdminSopTypesPage() {
                       </div>
                     </div>
                     <TiptapEditor
+                      key={`long-${editorKeyLong}`}
                       content={formData.detailContentLong}
                       onChange={(content) => setFormData({ ...formData, detailContentLong: content })}
                       placeholder="Describe the LONG entry strategy..."
