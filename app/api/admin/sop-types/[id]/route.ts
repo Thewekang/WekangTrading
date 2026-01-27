@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
+import { updateSopDetail } from '@/lib/services/sopDetailService';
+import { validateImageSize } from '@/lib/utils/imageValidation';
 
 /**
  * PATCH /api/admin/sop-types/[id]
  * Update SOP type (admin only)
+ * Now supports detail fields: detailContent, detailEnabled
  */
 export async function PATCH(
   req: NextRequest,
@@ -28,15 +31,133 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { name, description, sortOrder, active } = body;
+    const { 
+      name, 
+      description, 
+      sortOrder, 
+      active, 
+      detailContentShort, 
+      detailContentLong,
+      detailEnabledShort,
+      detailEnabledLong
+    } = body;
 
-    const updates: any = {};
-    if (name !== undefined) updates.name = name.trim();
-    if (description !== undefined) updates.description = description?.trim();
-    if (sortOrder !== undefined) updates.sortOrder = sortOrder;
-    if (active !== undefined) updates.active = active;
+    // Handle basic field updates
+    const basicUpdates: any = {};
+    if (name !== undefined) basicUpdates.name = name.trim();
+    if (description !== undefined) basicUpdates.description = description?.trim();
+    if (sortOrder !== undefined) basicUpdates.sortOrder = sortOrder;
+    if (active !== undefined) basicUpdates.active = active;
 
-    const sopType = await updateSopType(id, updates);
+    let sopType;
+
+    // Update basic fields if any
+    if (Object.keys(basicUpdates).length > 0) {
+      sopType = await updateSopType(id, basicUpdates);
+    }
+
+    // Handle detail fields separately (includes HTML sanitization)
+    if (
+      detailContentShort !== undefined || 
+      detailContentLong !== undefined ||
+      detailEnabledShort !== undefined ||
+      detailEnabledLong !== undefined
+    ) {
+      // Parse JSON structure to extract content, images, and notes
+      let shortContent: string | undefined;
+      let shortImages: string[] | undefined;
+      let shortNotes: string | undefined;
+      let longContent: string | undefined;
+      let longImages: string[] | undefined;
+      let longNotes: string | undefined;
+      
+      // Process SHORT entry data
+      if (detailContentShort !== undefined) {
+        try {
+          const parsed = JSON.parse(detailContentShort);
+          if (parsed.content !== undefined) {
+            // New JSON format with separate fields
+            shortContent = parsed.content;
+            shortImages = parsed.images || [];
+            shortNotes = parsed.notes || '';
+            
+            // Validate image sizes
+            for (const image of shortImages) {
+              const validation = validateImageSize(image);
+              if (!validation.valid) {
+                return NextResponse.json(
+                  { 
+                    success: false, 
+                    error: { 
+                      code: 'IMAGE_TOO_LARGE', 
+                      message: `Short entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                    } 
+                  },
+                  { status: 400 }
+                );
+              }
+            }
+          } else {
+            // Legacy plain text format
+            shortContent = detailContentShort;
+          }
+        } catch (e) {
+          // Not JSON, treat as legacy plain text
+          shortContent = detailContentShort;
+        }
+      }
+
+      // Process LONG entry data
+      if (detailContentLong !== undefined) {
+        try {
+          const parsed = JSON.parse(detailContentLong);
+          if (parsed.content !== undefined) {
+            // New JSON format with separate fields
+            longContent = parsed.content;
+            longImages = parsed.images || [];
+            longNotes = parsed.notes || '';
+            
+            // Validate image sizes
+            for (const image of longImages) {
+              const validation = validateImageSize(image);
+              if (!validation.valid) {
+                return NextResponse.json(
+                  { 
+                    success: false, 
+                    error: { 
+                      code: 'IMAGE_TOO_LARGE', 
+                      message: `Long entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                    } 
+                  },
+                  { status: 400 }
+                );
+              }
+            }
+          } else {
+            // Legacy plain text format
+            longContent = detailContentLong;
+          }
+        } catch {
+          // Not JSON, treat as legacy plain text
+          longContent = detailContentLong;
+        }
+      }
+
+      sopType = await updateSopDetail(
+        id,
+        {
+          detailContentShort: shortContent,
+          detailContentLong: longContent,
+          detailImagesShort: shortImages,
+          detailImagesLong: longImages,
+          detailImageNotesShort: shortNotes,
+          detailImageNotesLong: longNotes,
+          detailEnabledShort: detailEnabledShort !== undefined ? detailEnabledShort : undefined,
+          detailEnabledLong: detailEnabledLong !== undefined ? detailEnabledLong : undefined,
+        },
+        session.user.id
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -49,6 +170,13 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: { code: 'DUPLICATE', message: error.message } },
         { status: 409 }
+      );
+    }
+
+    if (error.message.includes('not found')) {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: error.message } },
+        { status: 404 }
       );
     }
 

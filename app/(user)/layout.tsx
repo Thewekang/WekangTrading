@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { users, motivationalMessages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { Bell } from 'lucide-react';
+import { DesktopNav, MobileNav } from '@/components/navigation/NavMenu';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -46,33 +47,14 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
               <div className="flex items-center space-x-8">
                 <Link href="/dashboard" className="flex items-center space-x-2">
                   <span className="text-2xl">🏍️💰</span>
-                  <span className="font-bold text-xl">WekangTradingJournal</span>
+                  <span className="font-bold text-xl hidden sm:inline">WekangTradingJournal</span>
+                  <span className="font-bold text-lg sm:hidden">Wekang</span>
                 </Link>
-                <div className="hidden md:flex space-x-4">
-                  <Link href="/dashboard" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    Dashboard
-                  </Link>
-                  <Link href="/trades" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    Trades
-                  </Link>
-                  <Link href="/dashboard/achievements" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    🏆 Achievements
-                  </Link>
-                  <Link href="/calendar" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    📅 Calendar
-                  </Link>
-                  <Link href="/targets" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    🎯 Targets
-                  </Link>
-                  <Link href="/analytics/trends" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    📈 Analytics
-                  </Link>
-                  <Link href="/settings" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                    ⚙️ Settings
-                  </Link>
-                </div>
+                <DesktopNav />
               </div>
-              <div className="flex items-center space-x-4">                {/* Notification Bell */}
+              <div className="flex items-center space-x-3">
+                <MobileNav />
+                {/* Notification Bell */}
                 <Link href="/notifications" className="relative">
                   <Bell className="h-5 w-5 text-gray-600 hover:text-gray-900" />
                   {unreadCount > 0 && (
@@ -81,10 +63,10 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
                     </span>
                   )}
                 </Link>
-                                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 hidden sm:inline">
                   {session.user.name}
                 </span>
-                <Link href="/api/auth/signout" className="text-sm text-red-600 hover:text-red-800">
+                <Link href="/api/auth/signout" className="text-sm text-red-600 hover:text-red-800 hidden sm:inline">
                   Sign out
                 </Link>
               </div>

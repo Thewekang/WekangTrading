@@ -11,7 +11,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-(No unreleased changes yet)
+**Feature 5: SOP Details & Mobile Enhancement - COMPLETE** ✅
+
+**Phase 1-3: Admin SOP Management**
+- ✅ Enhanced admin SOP types page with tabbed interface (Basic Info | Details & Formatting)
+- ✅ Added Detail Status column with dynamic badges (Both/Short/Long/Draft/None)
+- ✅ Integrated Tiptap rich text editor with custom toolbar (Template, Bold, Italic, Headings, Lists, Code, Link)
+- ✅ Two-column layout: Visual content (images + chart notes) on left, strategy text editor on right
+- ✅ Image upload with validation (500KB max per image, base64 encoding)
+- ✅ Clipboard paste support (Ctrl+V) for quick image insertion
+- ✅ Chart Notes & Annotations textarea for documenting visual analysis
+- ✅ Enable/disable toggles for SHORT (bearish) and LONG (bullish) strategies independently
+- ✅ Data persistence using JSON serialization ({content, images, notes} structure)
+- ✅ Template insertion for consistent strategy documentation format
+- ✅ Server-side HTML sanitization with isomorphic-dompurify
+- ✅ Backward compatibility for legacy plain text content
+
+**Phase 4: User Strategies Page**
+- ✅ New `/strategies` page for viewing SOP strategy guides
+- ✅ Accordion layout for each SOP type with SHORT/LONG sections
+- ✅ Search functionality by name or description
+- ✅ Two-column display: Images+notes left, strategy content right
+- ✅ Image gallery with click-to-expand full-screen view
+- ✅ Chart notes display with proper formatting
+- ✅ Color-coded sections (Blue for SHORT, Purple for LONG)
+- ✅ Last updated timestamp display
+- ✅ Added "📖 Strategies" to navigation menu
+
+**Phase 5: Mobile Responsiveness & Navigation**
+- ✅ Reorganized navigation with dropdown menus (Performance 📊, Resources 📚)
+- ✅ Hamburger menu for mobile with categorized sections
+- ✅ Responsive accordion headers (stack badges on mobile)
+- ✅ Adaptive font sizes (xs/sm on mobile → sm/base on desktop)
+- ✅ Image galleries optimized (300px mobile → 400px desktop)
+- ✅ Touch-friendly spacing throughout
+- ✅ Trade buttons stack vertically on mobile
+- ✅ Brand name shortens on small screens
+- ✅ Breakpoints: sm (640px), md (768px), lg (1024px)
+
+**Phase 6: Testing & Polish**
+- ✅ End-to-end workflow testing (Admin edit → User view)
+- ✅ Image upload/paste validation
+- ✅ Mobile navigation functionality verified
+- ✅ Documentation updated (CHANGELOG, progress tracking)
+
+**Tech Debt Resolution** ✅
+- ✅ Migration 0006: Added dedicated database columns for images and notes
+  - Added `detail_images_short` and `detail_images_long` (JSON arrays)
+  - Added `detail_image_notes_short` and `detail_image_notes_long` (plain text)
+  - Migrated existing JSON data from content columns to new structure
+  - Improved database query performance and data organization
+- ✅ Refactored service layer to use separate columns
+  - Updated `getSopTypesWithDetails` to SELECT new columns
+  - Simplified `updateSopDetail` to accept separate content/images/notes fields
+  - Removed complex JSON parsing in service layer
+- ✅ Updated API endpoints to extract and validate components separately
+  - Backward compatible with legacy JSON format
+  - Validates image arrays directly before storage
+  - Cleaner error handling and validation logic
+- ✅ Frontend updates for new data structure
+  - Admin page: Extracts content/images/notes from stored data
+  - User strategies page: Handles both new columns and legacy JSON
+  - Parsing logic supports all formats (new columns, JSON, plain text)
+- ✅ Added "Clear Strategy" button for each entry type (SHORT/LONG)
+  - Confirmation dialog prevents accidental deletions
+  - Clears content, images, and notes in one action
+  - Visual feedback with toast notification
+
+**Phase 6: Testing & Polish**
+- ✅ Fixed JSON structure validation in API
+- ✅ Updated service layer to parse JSON, sanitize HTML, re-wrap
+- ✅ Fixed image validation to check separate images array
+- ✅ All phases tested and working on staging database
+
+**Database Changes**:
+- ✅ Migration 0005: Added 6 new columns to sop_types table
+  - `detailContentShort` (TEXT) - Stores SHORT strategy with JSON metadata
+  - `detailContentLong` (TEXT) - Stores LONG strategy with JSON metadata
+  - `detailEnabledShort` (BOOLEAN) - Toggle for SHORT visibility
+  - `detailEnabledLong` (BOOLEAN) - Toggle for LONG visibility
+  - `detailUpdatedAt` (TIMESTAMP) - Last update timestamp
+  - `detailUpdatedBy` (FK users.id) - Tracks who updated content
+- ✅ Indexes created on enabled flags for fast filtering
+
+**New Dependencies**:
+- 📦 @tiptap/react@3.17.0 - Rich text editor framework
+- 📦 @tiptap/starter-kit@3.17.0 - Basic editing features
+- 📦 @tiptap/extension-link@3.17.0 - Link support
+- 📦 isomorphic-dompurify@2.35.0 - XSS protection
+- 📦 @radix-ui/react-switch - Toggle switches
+
+**New Components**:
+- ✅ `components/editors/TiptapEditor.tsx` - WYSIWYG editor with image gallery
+- ✅ `components/editors/TiptapReadOnly.tsx` - Read-only display component
+- ✅ `components/navigation/NavMenu.tsx` - Responsive navigation with dropdowns
+- ✅ `components/ui/switch.tsx` - Toggle component (shadcn/ui)
+- ✅ `components/ui/accordion.tsx` - Collapsible sections (shadcn/ui)
+- ✅ `components/ui/dropdown-menu.tsx` - Dropdown menus (shadcn/ui)
+- ✅ `lib/utils/imageValidation.ts` - Client/server image validation
+- ✅ `lib/utils/sanitize.ts` - Client-safe HTML sanitization
+
+**API Updates**:
+- ✅ `app/api/admin/sop-types/[id]/route.ts` - Enhanced PATCH endpoint with JSON parsing
+- ✅ `app/api/sop-types/with-details/route.ts` - User-facing endpoint (pre-existing)
+- ✅ `lib/services/sopDetailService.ts` - Enhanced with JSON handling
+
+**Known Limitations** (tracked for future work):
+- 📝 TECH DEBT: Images stored as base64 JSON in TEXT columns (need dedicated schema migration)
+- 📝 FEATURE REQUEST: No clear/delete/reset button for strategy content
+- 📝 No version history for content changes
+- 📝 No preview mode before save
+- 📝 No preview mode before save
 
 ---
 
