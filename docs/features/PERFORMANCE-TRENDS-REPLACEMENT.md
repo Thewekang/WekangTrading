@@ -25,13 +25,15 @@ Replace the monthly performance chart in `/analytics/trends` with the comprehens
 - Duplicates functionality from dashboard charts
 
 ### Target State (Image 1)
-**Source**: Admin Dashboard "Performance" button view  
+**Source**: Admin Dashboard "Performance" button view (style reference)  
 **Features**:
-- Detailed performance metrics in tabular format
-- Comprehensive statistics (trades, win rate, SOP rate, P&L)
-- Multiplier indicator (0x in example)
-- Edit, Reset Password, Delete actions
-- Clean, professional layout
+- Clean, professional modal layout style
+- Monthly breakdown cards showing performance by month
+- Year/Month toggle for time period selection
+- Comprehensive statistics per month (Win Rate, SOP Rate, P&L)
+- Color-coded cards (orange for P&L, green for Win Rate, blue for SOP Rate, purple for Total Trades)
+- Summary metrics at the top (2026 P/L, Win Rate, SOP Rate, Total Trades)
+- Legend for chart metrics
 
 ---
 
@@ -46,12 +48,15 @@ Replace the monthly performance chart in `/analytics/trends` with the comprehens
 
 #### Modify
 1. **Page**: `app/(user)/analytics/trends/page.tsx`
-   - Replace monthly chart with performance table
-   - Use existing `TradesList` or create new `PerformanceTable` component
+   - Replace monthly chart with monthly performance card view
+   - Match style from admin performance modal
 
-2. **Component**: Create `components/analytics/PerformanceTable.tsx`
-   - Reuse design from admin performance view
-   - Adapt for single-user view (no user selection)
+2. **Component**: Create `components/analytics/MonthlyPerformanceView.tsx`
+   - Reuse card layout design from admin performance modal
+   - 4-column summary cards (P/L, Win Rate, SOP Rate, Total Trades)
+   - 4-column monthly grid showing all 12 months
+   - Year/Month toggle and year selector
+   - Color-coded cards (orange, green, blue, purple)
 
 ### Data Structure
 
@@ -62,24 +67,35 @@ Replace the monthly performance chart in `/analytics/trends` with the comprehens
 {
   success: true,
   data: {
-    totalTrades: 3,
-    winRate: 100.0,
-    sopRate: 100.0,
-    totalPnl: 41.22,
-    multiplier: 0,        // Calculated from target achievement
-    averageWin: 20.41,
-    averageLoss: 0.00,
-    largestWin: 25.00,
-    largestLoss: 0.00,
-    consecutiveWins: 3,
-    consecutiveLosses: 0,
-    bestSession: 'ASIA',
-    worstSession: null,
-    avgTradesPerDay: 1.5,
-    tradingDays: 2,
-    // Time period stats
-    periodStart: '2026-01-26',
-    periodEnd: '2026-01-28',
+    year: 2026,
+    overview: {
+      totalPnl: 41.22,
+      winRate: 100.0,
+      sopRate: 100.0,
+      totalTrades: 3,
+      winLossRecord: "W:3 L:0"
+    },
+    monthlyBreakdown: [
+      {
+        month: 'Jan',
+        monthNumber: 1,
+        winRate: 100.0,
+        sopRate: 100.0,
+        pnl: 41.22,
+        trades: 3,
+        hasData: true
+      },
+      {
+        month: 'Feb',
+        monthNumber: 2,
+        winRate: 0,
+        sopRate: 0,
+        pnl: 0,
+        trades: 0,
+        hasData: false
+      },
+      // ... other months
+    ]
   }
 }
 ```
@@ -92,79 +108,81 @@ Replace the monthly performance chart in `/analytics/trends` with the comprehens
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Performance Trends                                      │
-│  Comprehensive analysis of your trading performance     │
+│  User's Performance                                      │
+│  2026 Overview                                           │
+│                                      [Month] [Year] 2026▼│
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│  [Filter Options]                                        │
-│  Time Period: [Last 7 Days ▼] [Last 30 Days] [All Time]│
+│  Summary Cards (4-column grid)                           │
+│  ┌───────────┬───────────┬───────────┬───────────┐      │
+│  │ 2026 P/L  │ Win Rate  │ SOP Rate  │Total Trade│      │
+│  │  $+41.22  │  100.0%   │  100.0%   │     3     │      │
+│  │  (orange) │  (green)  │  (blue)   │ (purple)  │      │
+│  │           │ 3/3 trades│ 3/3 trades│ W:3 L:0   │      │
+│  └───────────┴───────────┴───────────┴───────────┘      │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│  Performance Summary                                     │
-│  ┌──────────┬────────┬────────┬───────┬─────────┐      │
-│  │ Trades   │ Win %  │ SOP %  │  P&L  │ Multi.. │      │
-│  ├──────────┼────────┼────────┼───────┼─────────┤      │
-│  │    3     │ 100.0% │ 100.0% │$41.22 │   0x    │      │
-│  └──────────┴────────┴────────┴───────┴─────────┘      │
+│  Legend: □ Win Rate  □ SOP Rate  □ P/L (USD)            │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│  Detailed Metrics                                        │
-│  ┌─────────────────────┬─────────────────────┐         │
-│  │ Average Win         │ $20.41              │         │
-│  │ Average Loss        │ $0.00               │         │
-│  │ Largest Win         │ $25.00              │         │
-│  │ Largest Loss        │ $0.00               │         │
-│  │ Consecutive Wins    │ 3 trades            │         │
-│  │ Consecutive Losses  │ 0 trades            │         │
-│  │ Best Session        │ ASIA                │         │
-│  │ Worst Session       │ N/A                 │         │
-│  │ Avg Trades/Day      │ 1.5                 │         │
-│  │ Trading Days        │ 2 days              │         │
-│  └─────────────────────┴─────────────────────┘         │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────┐
-│  Session Breakdown                                       │
-│  [Chart: Performance by market session]                 │
+│  Monthly Breakdown (4-column grid)                       │
+│  ┌─────────┬─────────┬─────────┬─────────┐             │
+│  │   Jan   │   Feb   │   Mar   │   Apr   │             │
+│  │ WR:100% │No trades│No trades│No trades│             │
+│  │ SOP:100%│         │         │         │             │
+│  │ P/L:+41 │         │         │         │             │
+│  ├─────────┼─────────┼─────────┼─────────┤             │
+│  │   May   │   Jun   │   Jul   │   Aug   │             │
+│  │No trades│No trades│No trades│No trades│             │
+│  │         │         │         │         │             │
+│  │         │         │         │         │             │
+│  ├─────────┼─────────┼─────────┼─────────┤             │
+│  │   Sep   │   Oct   │   Nov   │   Dec   │             │
+│  │No trades│No trades│No trades│No trades│             │
+│  │         │         │         │         │             │
+│  │         │         │         │         │             │
+│  └─────────┴─────────┴─────────┴─────────┘             │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### Component Code Example
 
 ```tsx
-// components/analytics/PerformanceTable.tsx
+// components/analytics/MonthlyPerformanceView.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface PerformanceTableProps {
-  data: {
-    totalTrades: number;
-    winRate: number;
-    sopRate: number;
-    totalPnl: number;
-    multiplier: number;
-    averageWin: number;
-    averageLoss: number;
-    largestWin: number;
-    largestLoss: number;
-    consecutiveWins: number;
-    consecutiveLosses: number;
-    bestSession: string;
-    worstSession: string | null;
-    avgTradesPerDay: number;
-    tradingDays: number;
-  };
+interface MonthlyData {
+  month: string;
+  monthNumber: number;
+  winRate: number;
+  sopRate: number;
+  pnl: number;
+  trades: number;
+  hasData: boolean;
 }
 
-export function PerformanceTable({ data }: PerformanceTableProps) {
+interface MonthlyPerformanceViewProps {
+  year: number;
+  overview: {
+    totalPnl: number;
+    winRate: number;
+    sopRate: number;
+    totalTrades: number;
+    winLossRecord: string;
+  };
+  monthlyBreakdown: MonthlyData[];
+}
+
+export function MonthlyPerformanceView({ year, overview, monthlyBreakdown }: MonthlyPerformanceViewProps) {
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
+    const sign = value >= 0 ? '+' : '';
+    return `${sign}$${value.toFixed(2)}`;
   };
 
   const formatPercent = (value: number) => {
@@ -173,113 +191,141 @@ export function PerformanceTable({ data }: PerformanceTableProps) {
 
   return (
     <div className="space-y-6">
-      {/* Summary Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Performance Summary</CardTitle>
-          <CardDescription>
-            Overall statistics for the selected period
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{data.totalTrades}</div>
-              <div className="text-sm text-muted-foreground">Total Trades</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {formatPercent(data.winRate)}
-              </div>
-              <div className="text-sm text-muted-foreground">Win Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {formatPercent(data.sopRate)}
-              </div>
-              <div className="text-sm text-muted-foreground">SOP Rate</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${
-                data.totalPnl >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {formatCurrency(data.totalPnl)}
-              </div>
-              <div className="text-sm text-muted-foreground">Total P&L</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{data.multiplier}x</div>
-              <div className="text-sm text-muted-foreground">Multiplier</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Your Performance</h2>
+          <p className="text-muted-foreground">{year} Overview</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">Month</Button>
+          <Button variant="default" size="sm">Year</Button>
+          <Select defaultValue={year.toString()}>
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2026">2026</SelectItem>
+              <SelectItem value="2025">2025</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-      {/* Detailed Metrics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <MetricRow 
-              label="Average Win" 
-              value={formatCurrency(data.averageWin)} 
-            />
-            <MetricRow 
-              label="Average Loss" 
-              value={formatCurrency(Math.abs(data.averageLoss))} 
-            />
-            <MetricRow 
-              label="Largest Win" 
-              value={formatCurrency(data.largestWin)} 
-            />
-            <MetricRow 
-              label="Largest Loss" 
-              value={formatCurrency(Math.abs(data.largestLoss))} 
-            />
-            <MetricRow 
-              label="Consecutive Wins" 
-              value={`${data.consecutiveWins} trades`} 
-            />
-            <MetricRow 
-              label="Consecutive Losses" 
-              value={`${data.consecutiveLosses} trades`} 
-            />
-            <MetricRow 
-              label="Best Session" 
-              value={<Badge variant="outline">{data.bestSession}</Badge>} 
-            />
-            <MetricRow 
-              label="Worst Session" 
-              value={data.worstSession || 'N/A'} 
-            />
-            <MetricRow 
-              label="Avg Trades/Day" 
-              value={data.avgTradesPerDay.toFixed(1)} 
-            />
-            <MetricRow 
-              label="Trading Days" 
-              value={`${data.tradingDays} days`} 
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-orange-500 bg-orange-50">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs">{year} P/L</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${
+              overview.totalPnl >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatCurrency(overview.totalPnl)}
+            </div>
+          </CardContent>
+        </Card>
 
-function MetricRow({ 
-  label, 
-  value 
-}: { 
-  label: string; 
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex justify-between items-center py-2 border-b last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
+        <Card className="border-l-4 border-l-green-500 bg-green-50">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs">Win Rate</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatPercent(overview.winRate)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {Math.round(overview.winRate * overview.totalTrades / 100)} wins / {overview.totalTrades} trades
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs">SOP Rate</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatPercent(overview.sopRate)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {Math.round(overview.sopRate * overview.totalTrades / 100)} SOP / {overview.totalTrades} trades
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500 bg-purple-50">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs">Total Trades</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {overview.totalTrades}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {overview.winLossRecord}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-500 rounded"></div>
+          <span>Win Rate (%)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-500 rounded"></div>
+          <span>SOP Rate</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-orange-500 rounded"></div>
+          <span>P/L (USD)</span>
+        </div>
+      </div>
+
+      {/* Monthly Breakdown */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {monthlyBreakdown.map((month) => (
+          <Card key={month.monthNumber} className={month.hasData ? '' : 'opacity-50'}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">{month.month}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {month.hasData ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Win Rate:</span>
+                    <span className="font-medium text-green-600">
+                      {formatPercent(month.winRate)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">SOP Rate:</span>
+                    <span className="font-medium text-blue-600">
+                      {formatPercent(month.sopRate)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">P/L:</span>
+                    <span className={`font-medium ${
+                      month.pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {formatCurrency(month.pnl)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-sm text-muted-foreground py-4">
+                  No trades
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -294,158 +340,82 @@ function MetricRow({
 ```typescript
 // lib/services/performanceAnalyticsService.ts
 
-export async function getPerformanceAnalytics(
+export async function getMonthlyPerformance(
   userId: string,
-  startDate?: Date,
-  endDate?: Date
+  year: number
 ) {
+  const startDate = new Date(year, 0, 1); // Jan 1
+  const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31
+
   const trades = await db
     .select()
     .from(individualTrades)
     .where(
       and(
         eq(individualTrades.userId, userId),
-        startDate ? gte(individualTrades.tradeTimestamp, startDate) : undefined,
-        endDate ? lte(individualTrades.tradeTimestamp, endDate) : undefined
+        gte(individualTrades.tradeTimestamp, startDate),
+        lte(individualTrades.tradeTimestamp, endDate)
       )
     )
     .orderBy(asc(individualTrades.tradeTimestamp));
 
-  if (trades.length === 0) {
-    return {
-      totalTrades: 0,
-      winRate: 0,
-      sopRate: 0,
-      totalPnl: 0,
-      multiplier: 0,
-      averageWin: 0,
-      averageLoss: 0,
-      largestWin: 0,
-      largestLoss: 0,
-      consecutiveWins: 0,
-      consecutiveLosses: 0,
-      bestSession: null,
-      worstSession: null,
-      avgTradesPerDay: 0,
-      tradingDays: 0,
-    };
-  }
-
-  // Calculate metrics
-  const wins = trades.filter(t => t.result === 'WIN');
-  const losses = trades.filter(t => t.result === 'LOSS');
-  const sopFollowed = trades.filter(t => t.sopFollowed);
-
+  // Calculate overview
   const totalTrades = trades.length;
-  const winRate = (wins.length / totalTrades) * 100;
-  const sopRate = (sopFollowed.length / totalTrades) * 100;
+  const wins = trades.filter(t => t.result === 'WIN').length;
+  const losses = trades.filter(t => t.result === 'LOSS').length;
+  const sopFollowed = trades.filter(t => t.sopFollowed).length;
   const totalPnl = trades.reduce((sum, t) => sum + t.profitLossUsd, 0);
 
-  // Average win/loss
-  const averageWin = wins.length > 0
-    ? wins.reduce((sum, t) => sum + t.profitLossUsd, 0) / wins.length
-    : 0;
-  const averageLoss = losses.length > 0
-    ? losses.reduce((sum, t) => sum + t.profitLossUsd, 0) / losses.length
-    : 0;
+  const overview = {
+    totalPnl,
+    winRate: totalTrades > 0 ? (wins / totalTrades) * 100 : 0,
+    sopRate: totalTrades > 0 ? (sopFollowed / totalTrades) * 100 : 0,
+    totalTrades,
+    winLossRecord: `W:${wins} L:${losses}`
+  };
 
-  // Largest win/loss
-  const largestWin = wins.length > 0
-    ? Math.max(...wins.map(t => t.profitLossUsd))
-    : 0;
-  const largestLoss = losses.length > 0
-    ? Math.min(...losses.map(t => t.profitLossUsd))
-    : 0;
+  // Calculate monthly breakdown
+  const monthlyBreakdown = [];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  // Consecutive wins/losses
-  const { maxWins, maxLosses } = calculateConsecutiveStreaks(trades);
+  for (let month = 0; month < 12; month++) {
+    const monthTrades = trades.filter(t => 
+      t.tradeTimestamp.getMonth() === month
+    );
 
-  // Best/worst session
-  const sessionStats = calculateSessionStats(trades);
-  const bestSession = sessionStats.best;
-  const worstSession = sessionStats.worst;
+    if (monthTrades.length === 0) {
+      monthlyBreakdown.push({
+        month: monthNames[month],
+        monthNumber: month + 1,
+        winRate: 0,
+        sopRate: 0,
+        pnl: 0,
+        trades: 0,
+        hasData: false
+      });
+    } else {
+      const monthWins = monthTrades.filter(t => t.result === 'WIN').length;
+      const monthSop = monthTrades.filter(t => t.sopFollowed).length;
+      const monthPnl = monthTrades.reduce((sum, t) => sum + t.profitLossUsd, 0);
 
-  // Trading days
-  const uniqueDays = new Set(
-    trades.map(t => t.tradeTimestamp.toISOString().split('T')[0])
-  );
-  const tradingDays = uniqueDays.size;
-  const avgTradesPerDay = totalTrades / tradingDays;
-
-  // Multiplier (from target achievement - TBD)
-  const multiplier = 0; // TODO: Calculate from target
+      monthlyBreakdown.push({
+        month: monthNames[month],
+        monthNumber: month + 1,
+        winRate: (monthWins / monthTrades.length) * 100,
+        sopRate: (monthSop / monthTrades.length) * 100,
+        pnl: monthPnl,
+        trades: monthTrades.length,
+        hasData: true
+      });
+    }
+  }
 
   return {
-    totalTrades,
-    winRate,
-    sopRate,
-    totalPnl,
-    multiplier,
-    averageWin,
-    averageLoss,
-    largestWin,
-    largestLoss,
-    consecutiveWins: maxWins,
-    consecutiveLosses: maxLosses,
-    bestSession,
-    worstSession,
-    avgTradesPerDay,
-    tradingDays,
+    year,
+    overview,
+    monthlyBreakdown
   };
-}
-
-function calculateConsecutiveStreaks(trades: Trade[]) {
-  let maxWins = 0;
-  let maxLosses = 0;
-  let currentWins = 0;
-  let currentLosses = 0;
-
-  for (const trade of trades) {
-    if (trade.result === 'WIN') {
-      currentWins++;
-      currentLosses = 0;
-      maxWins = Math.max(maxWins, currentWins);
-    } else {
-      currentLosses++;
-      currentWins = 0;
-      maxLosses = Math.max(maxLosses, currentLosses);
-    }
-  }
-
-  return { maxWins, maxLosses };
-}
-
-function calculateSessionStats(trades: Trade[]) {
-  const sessionGroups = trades.reduce((acc, trade) => {
-    const session = trade.marketSession;
-    if (!acc[session]) {
-      acc[session] = { wins: 0, total: 0 };
-    }
-    acc[session].total++;
-    if (trade.result === 'WIN') {
-      acc[session].wins++;
-    }
-    return acc;
-  }, {} as Record<string, { wins: number; total: number }>);
-
-  let best = null;
-  let worst = null;
-  let bestRate = 0;
-  let worstRate = 100;
-
-  for (const [session, stats] of Object.entries(sessionGroups)) {
-    const rate = (stats.wins / stats.total) * 100;
-    if (rate > bestRate) {
-      bestRate = rate;
-      best = session;
-    }
-    if (rate < worstRate) {
-      worstRate = rate;
-      worst = session;
-    }
-  }
-
-  return { best, worst };
 }
 ```
 
@@ -461,9 +431,9 @@ grep -r "monthly.*performance" . --include="*.tsx" --include="*.ts"
 ```
 
 ### Step 2: Remove Components
-- [ ] `components/charts/MonthlyPerformanceChart.tsx`
-- [ ] `components/charts/WinRateChart.tsx` (if only used in trends)
-- [ ] Any monthly-specific API endpoints
+- [ ] `components/charts/MonthlyPerformanceChart.tsx` (old line chart)
+- [ ] Any chart-specific utilities for monthly trends
+- [ ] Unused monthly chart API endpoint (if separate from daily summaries)
 
 ### Step 3: Update Imports
 - [ ] Remove imports in `app/(user)/analytics/trends/page.tsx`
@@ -475,8 +445,10 @@ grep -r "monthly.*performance" . --include="*.tsx" --include="*.ts"
 - [ ] Remove if not used by other features
 
 ### Step 5: Update Tests
-- [ ] Remove tests for deleted components
-- [ ] Add tests for new `PerformanceTable` component
+- [ ] Remove tests for deleted monthly chart component
+- [ ] Add tests for new `MonthlyPerformanceView` component
+- [ ] Test monthly aggregation logic
+- [ ] Test year selector functionality
 
 ---
 
@@ -490,16 +462,17 @@ grep -r "monthly.*performance" . --include="*.tsx" --include="*.ts"
 5. Write unit tests
 
 ### Phase 2: Frontend Component (Day 2)
-1. Create `PerformanceTable.tsx` component
-2. Add time period selector (Last 7/30 days, All time)
-3. Implement loading states
-4. Add error boundaries
+1. Create `MonthlyPerformanceView.tsx` component
+2. Add Year/Month toggle and year selector
+3. Implement 4-column summary cards with color coding
+4. Create monthly breakdown grid (4x3 cards)
+5. Implement loading states and empty states
 
 ### Phase 3: Page Replacement (Day 3)
 1. Update `/analytics/trends/page.tsx`
-2. Replace monthly chart with performance table
-3. Add session breakdown chart below table
-4. Test responsiveness
+2. Replace line chart with monthly card view
+3. Test year selector functionality
+4. Test responsiveness (mobile: 2-column, desktop: 4-column)
 
 ### Phase 4: Cleanup (Day 4)
 1. Identify all unused components
@@ -521,18 +494,19 @@ grep -r "monthly.*performance" . --include="*.tsx" --include="*.ts"
 ## 🧪 Testing Checklist
 
 ### Functional Tests
-- [ ] Performance table displays correct metrics
-- [ ] Time period filter works (7 days, 30 days, all time)
-- [ ] Empty state shows helpful message
-- [ ] Calculations match manual verification
-- [ ] Session breakdown chart displays correctly
+- [ ] Monthly performance view displays correct metrics
+- [ ] Year selector works (shows 2026, 2025, etc.)
+- [ ] Month/Year toggle works correctly
+- [ ] Empty months show "No trades" message
+- [ ] Summary cards calculate totals correctly
+- [ ] Color coding matches design (orange, green, blue, purple)
 
 ### Data Accuracy Tests
-- [ ] Win rate calculation verified
-- [ ] SOP rate calculation verified
-- [ ] P&L totals match individual trades
-- [ ] Consecutive streaks calculated correctly
-- [ ] Best/worst session identified correctly
+- [ ] Win rate calculation verified for each month
+- [ ] SOP rate calculation verified for each month
+- [ ] P&L totals match individual trades per month
+- [ ] Year overview totals match sum of all months
+- [ ] Win/Loss record accurate (W:X L:Y format)
 
 ### UI/UX Tests
 - [ ] Responsive on mobile (320px+)
@@ -543,10 +517,10 @@ grep -r "monthly.*performance" . --include="*.tsx" --include="*.ts"
 
 ### Cleanup Verification
 - [ ] No broken imports
-- [ ] No unused components remain
+- [ ] Old monthly line chart component removed
 - [ ] No console errors
 - [ ] Build succeeds
-- [ ] Bundle size decreased (due to removed code)
+- [ ] Bundle size similar or reduced
 
 ---
 
@@ -554,40 +528,43 @@ grep -r "monthly.*performance" . --include="*.tsx" --include="*.ts"
 
 ### User Engagement
 - Increased time on /analytics/trends page
-- Higher click-through from dashboard to trends
-- Fewer support requests about performance tracking
+- Better understanding of monthly performance patterns
+- Improved ability to identify strong/weak months
+- Easier year-over-year comparison
 
 ### Technical Performance
 - API response < 300ms
 - Page load < 1 second
-- Reduced bundle size by ~10-20KB (removed chart)
+- Efficient monthly aggregation query
 
 ---
 
 ## 📝 Migration Notes
 
 ### For Users
-- Old monthly chart removed
-- New comprehensive view available
+- Old line chart removed
+- New monthly card view available (matches admin style)
 - All historical data preserved
-- More detailed insights available
+- Year selector added for historical viewing
+- Clearer month-by-month breakdown
 
 ### For Developers
-- Check `git blame` for removed files before deleting
-- Archive removed components in `docs/archive/` if needed
-- Update Storybook (if used)
-- Update E2E tests
+- Check `git blame` for removed chart component before deleting
+- Archive old MonthlyPerformanceChart in `docs/archive/` if needed
+- Component name changed: `MonthlyPerformanceChart` → `MonthlyPerformanceView`
+- API endpoint: `/api/analytics/performance` with year parameter
 
 ---
 
 ## 🔮 Future Enhancements
 
 ### Version 1.5.0+
-- [ ] Export performance report as PDF
-- [ ] Compare performance across time periods
-- [ ] Goal tracking and progress indicators
-- [ ] Custom metric definitions
-- [ ] Performance forecasting (ML-based)
+- [ ] Export monthly performance as PDF
+- [ ] Compare multiple years side-by-side
+- [ ] Monthly goal setting and tracking
+- [ ] Month drill-down to daily trades
+- [ ] Custom time range selection (Q1, Q2, etc.)
+- [ ] Monthly performance heatmap visualization
 
 ---
 
