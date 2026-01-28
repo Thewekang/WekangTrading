@@ -75,8 +75,12 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
 
     yearTrades.forEach(trade => {
       // Convert UTC timestamp to user's timezone to get correct month
-      const dateInTimezone = new Date(trade.timestamp.toLocaleString('en-US', { timeZone: timezone }));
-      const month = dateInTimezone.getMonth() + 1; // 1-12
+      // Use Intl.DateTimeFormat to properly extract month in user's timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        month: 'numeric',
+        timeZone: timezone
+      });
+      const month = parseInt(formatter.format(trade.timestamp));
       
       monthlyData[month].trades++;
       monthlyData[month].pnl += trade.profitLossUsd;
@@ -140,40 +144,98 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
  * Get performance data for a specific month
  * Returns detailed daily breakdown
  * Converts UTC timestamps to user's timezone for day grouping
+ * Uses individualTrades to ensure timezone-correct daily aggregation
  */
 export async function getMonthlyPerformance(userId: string, year: number, month: number, timezone: string = 'Asia/Kuala_Lumpur') {
   try {
-    // Create start and end dates for the month in UTC
+    // Create start and end dates for the month in user's timezone, then convert to UTC for query
+    // Account for timezone offset to ensure we capture all trades for the month
     const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)); // Last day of month
+    startDate.setDate(startDate.getDate() - 2); // Buffer for timezone offset
+    
+    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    endDate.setDate(endDate.getDate() + 2); // Buffer for timezone offset
 
-    // Get daily summaries for the month
-    const dailyData = await db
-      .select()
-      .from(dailySummaries)
+    // Get individual trades for the month and group by day in user's timezone
+    const trades = await db
+      .select({
+        timestamp: individualTrades.tradeTimestamp,
+        result: individualTrades.result,
+        sopFollowed: individualTrades.sopFollowed,
+        profitLossUsd: individualTrades.profitLossUsd,
+      })
+      .from(individualTrades)
       .where(
         and(
-          eq(dailySummaries.userId, userId),
-          gte(dailySummaries.tradeDate, startDate),
-          lte(dailySummaries.tradeDate, endDate)
+          eq(individualTrades.userId, userId),
+          gte(individualTrades.tradeTimestamp, startDate),
+          lte(individualTrades.tradeTimestamp, endDate)
         )
       )
-      .orderBy(dailySummaries.tradeDate);
+      .orderBy(individualTrades.tradeTimestamp);
 
-    // Calculate totals
+    // Group trades by day in user's timezone
+    const dailyMap = new Map<number, {
+      trades: number;
+      wins: number;
+      sopFollowed: number;
+      pnl: number;
+    }>();
+
     let totalTrades = 0;
     let totalWins = 0;
     let totalSopFollowed = 0;
     let totalPnl = 0;
 
-    dailyData.forEach(day => {
-      totalTrades += day.totalTrades;
-      totalWins += day.totalWins;
-      totalSopFollowed += day.totalSopFollowed;
-      totalPnl += day.totalProfitLossUsd;
+    trades.forEach(trade => {
+      // Extract day number in user's timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        timeZone: timezone
+      });
+      const parts = formatter.formatToParts(trade.timestamp);
+      const dayInTimezone = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+      const monthInTimezone = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+      const yearInTimezone = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+
+      // Only include trades that fall in the requested month/year in user's timezone
+      if (yearInTimezone === year && monthInTimezone === month) {
+        if (!dailyMap.has(dayInTimezone)) {
+          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, sopFollowed: 0, pnl: 0 });
+        }
+
+        const dayData = dailyMap.get(dayInTimezone)!;
+        dayData.trades++;
+        dayData.pnl += trade.profitLossUsd;
+        totalTrades++;
+        totalPnl += trade.profitLossUsd;
+
+        if (trade.result === 'WIN') {
+          dayData.wins++;
+          totalWins++;
+        }
+
+        if (trade.sopFollowed) {
+          dayData.sopFollowed++;
+          totalSopFollowed++;
+        }
+      }
     });
 
     const totalLosses = totalTrades - totalWins;
+
+    // Convert map to array of daily breakdowns
+    const dailyBreakdown = Array.from(dailyMap.entries()).map(([day, data]) => ({
+      date: new Date(year, month - 1, day), // Local date for display
+      trades: data.trades,
+      wins: data.wins,
+      losses: data.trades - data.wins,
+      winRate: data.trades > 0 ? (data.wins / data.trades) * 100 : 0,
+      sopRate: data.trades > 0 ? (data.sopFollowed / data.trades) * 100 : 0,
+      pnl: data.pnl,
+    })).sort((a, b) => a.date.getDate() - b.date.getDate());
 
     return {
       year,
@@ -190,7 +252,21 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       },
       dailyBreakdown: dailyData.map(day => {
         // Convert UTC date to user's timezone for display
-        const dateInTimezone = new Date(day.tradeDate.toLocaleString('en-US', { timeZone: timezone }));
+        // Use Intl.DateTimeFormat to properly format in user's timezone
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          timeZone: timezone
+        });
+        const parts = formatter.formatToParts(day.tradeDate);
+        const yearPart = parts.find(p => p.type === 'year')?.value;
+        const monthPart = parts.find(p => p.type === 'month')?.value;
+        const dayPart = parts.find(p => p.type === 'day')?.value;
+        
+        // Create date in user's timezone (not UTC)
+        const dateInTimezone = new Date(`${yearPart}-${monthPart}-${dayPart}T00:00:00`);
+        
         return {
           date: dateInTimezone,
           trades: day.totalTrades,
@@ -225,8 +301,13 @@ export async function getAvailableYears(userId: string, timezone: string = 'Asia
     // Convert to user's timezone and extract unique years
     const years = new Set<number>();
     trades.forEach(trade => {
-      const dateInTimezone = new Date(trade.timestamp.toLocaleString('en-US', { timeZone: timezone }));
-      years.add(dateInTimezone.getFullYear());
+      // Use Intl.DateTimeFormat to properly extract year in user's timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        timeZone: timezone
+      });
+      const year = parseInt(formatter.format(trade.timestamp));
+      years.add(year);
     });
 
     // Sort descending (most recent first)
