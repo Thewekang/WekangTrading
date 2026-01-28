@@ -261,7 +261,7 @@ export function generatePDFHTML(
 </head>
 <body>
   <div class="header">
-    <h1>🏍️💰 WekangTrading Journal</h1>
+    <h1>WekangTrading Journal</h1>
     <div class="subtitle">Trading Performance Report</div>
     <div class="subtitle">Generated on ${new Date().toLocaleString()}</div>
   </div>

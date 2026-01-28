@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Professional Branding**: Replaced emoji icons (🏍️💰) with professional Wekang Trading logo
+  - Updated landing page header and footer
+  - Updated login and register pages
+  - Updated user navigation header
+  - Updated dashboard welcome message
+  - Updated trade entry form
+  - Improved visual identity and professional appearance
+
 ---
 
 ## [1.4.0] - 2026-01-29

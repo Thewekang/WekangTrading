@@ -57,7 +57,10 @@ export default async function DashboardPage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {session.user.name}! 🏍️💰
+              <span className="flex items-center gap-2">
+                Welcome back, {session.user.name}!
+                <img src="/logo.png" alt="Wekang Trading" className="w-6 h-6 object-contain inline-block" />
+              </span>
             </h1>
             <p className="text-muted-foreground">
               Track your trading performance and analyze your results
@@ -72,13 +75,25 @@ export default async function DashboardPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {session.user.name}! 🏍️💰
-          </h1>
-          <p className="text-muted-foreground">
-            Track your trading performance and analyze your results
-          </p>
+        {/* Enhanced Hero Section with Logo */}
+        <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-100">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-shrink-0">
+              <img 
+                src="/logo.png" 
+                alt="Wekang Trading" 
+                className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-md" 
+              />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2 text-slate-900">
+                Welcome back, {session.user.name}!
+              </h1>
+              <p className="text-slate-600 text-lg">
+                Track your trading performance and analyze your results
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Daily Loss Alert */}
