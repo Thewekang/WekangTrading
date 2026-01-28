@@ -62,7 +62,7 @@ export default function RegisterPage() {
     <Card>
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center mb-4">
-          <span className="text-4xl">🏍️💰</span>
+          <img src="/logo.png" alt="Wekang Trading" className="w-16 h-16 object-contain" />
         </div>
         <CardTitle className="text-2xl text-center">Create an account</CardTitle>
         <CardDescription className="text-center">

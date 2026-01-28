@@ -196,7 +196,10 @@ export function RealTimeTradeEntryForm() {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">🏍️💰 Quick Trade Entry</h2>
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <img src="/logo.png" alt="Wekang Trading" className="w-8 h-8 object-contain" />
+          Quick Trade Entry
+        </h2>
         <p className="text-sm text-gray-600">Record your trade in real-time</p>
       </div>
 

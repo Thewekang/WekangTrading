@@ -57,7 +57,10 @@ export default async function DashboardPage() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {session.user.name}! 🏍️💰
+              <span className="flex items-center gap-2">
+                Welcome back, {session.user.name}!
+                <img src="/logo.png" alt="Wekang Trading" className="w-6 h-6 object-contain inline-block" />
+              </span>
             </h1>
             <p className="text-muted-foreground">
               Track your trading performance and analyze your results

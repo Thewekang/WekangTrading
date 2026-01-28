@@ -1,6 +1,8 @@
 # WekangTradingJournal
 
-🏍️💰 Trading Performance Tracking System with Individual Trade Timing Analysis & Gamification
+![Wekang Trading Logo](public/logo.png)
+
+Trading Performance Tracking System with Individual Trade Timing Analysis & Gamification
 
 > **App Icon**: Fast motorcycle with money element
 

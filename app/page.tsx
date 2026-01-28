@@ -10,7 +10,7 @@ export default function Home() {
         {/* Navigation */}
         <nav className="flex justify-between items-center mb-16">
           <div className="flex items-center gap-3">
-            <div className="text-4xl">🏍️💰</div>
+            <img src="/logo.png" alt="Wekang Trading" className="w-12 h-12 object-contain" />
             <div>
               <h1 className="text-2xl font-bold text-slate-900">WekangTrading</h1>
               <p className="text-xs text-slate-600">Performance Tracking System</p>
@@ -119,7 +119,7 @@ export default function Home() {
       <footer className="border-t bg-white mt-20">
         <div className="container mx-auto px-4 py-8 text-center text-slate-600">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-2xl">🏍️💰</span>
+            <img src="/logo.png" alt="Wekang Trading" className="w-8 h-8 object-contain" />
             <span className="font-bold">WekangTrading</span>
           </div>
           <p className="text-sm">
