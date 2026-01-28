@@ -10,6 +10,13 @@ export default async function AdminSettingsPage() {
     redirect('/login');
   }
 
+  // Detect environment
+  const environment = process.env.NODE_ENV === 'production' ? 'Production' : 'Development';
+  const databaseName = process.env.DATABASE_URL?.includes('wekangtrading-prod') 
+    ? 'Turso (Production)' 
+    : 'Turso (Staging)';
+  const version = '1.3.1';
+
   return (
     <div className="space-y-6">
       <div>
@@ -56,15 +63,15 @@ export default async function AdminSettingsPage() {
           <CardContent className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm font-medium">Version</span>
-              <span className="text-sm text-muted-foreground">1.2.0</span>
+              <span className="text-sm text-muted-foreground">{version}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">Environment</span>
-              <span className="text-sm text-muted-foreground">Development</span>
+              <span className="text-sm text-muted-foreground">{environment}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">Database</span>
-              <span className="text-sm text-muted-foreground">Turso (Staging)</span>
+              <span className="text-sm text-muted-foreground">{databaseName}</span>
             </div>
           </CardContent>
         </Card>
