@@ -28,8 +28,9 @@ export default async function AdminLayout({
           <div className="flex h-16 justify-between">
             <div className="flex">
               <div className="flex flex-shrink-0 items-center">
-                <Link href="/admin/overview" className="text-xl font-bold text-gray-900">
-                  🏍️💰 Admin Panel
+                <Link href="/admin/overview" className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <img src="/logo.png" alt="Wekang Trading" className="w-7 h-7 object-contain" />
+                  Admin Panel
                 </Link>
               </div>
               <div className="hidden sm:ml-8 sm:flex sm:space-x-8 items-center">
