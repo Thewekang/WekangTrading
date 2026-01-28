@@ -14,6 +14,7 @@ declare module 'next-auth' {
   }
   interface User {
     role: string;
+    preferredTimezone?: string;
   }
 }
 
@@ -54,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          preferredTimezone: user.preferredTimezone,
         };
       },
     }),
@@ -70,6 +72,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.role = user.role;
         token.id = user.id;
+        token.preferredTimezone = user.preferredTimezone;
       }
       return token;
     },
@@ -77,6 +80,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.role = token.role as 'USER' | 'ADMIN';
         session.user.id = token.id as string;
+        session.user.preferredTimezone = token.preferredTimezone as string | undefined;
       }
       return session;
     },

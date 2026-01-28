@@ -7,6 +7,7 @@ declare module 'next-auth' {
     email: string;
     name: string;
     role: Role;
+    preferredTimezone?: string;
   }
 
   interface Session {
@@ -15,6 +16,7 @@ declare module 'next-auth' {
       email: string;
       name: string;
       role: Role;
+      preferredTimezone?: string;
     };
   }
 }
