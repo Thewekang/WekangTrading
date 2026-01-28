@@ -74,34 +74,30 @@ Version 1.4.0 focuses on enhancing user experience with performance insights:
 
 ## 📅 Sprint Schedule
 
-### Week 1: February 28 - February 5, 2026
+### Week 1: January 28 - February 5, 2026
 
-#### Day 1-2: User Ranking System (Backend)
-- [ ] Create database migration for `user_rankings` table
-- [ ] Implement `rankingService.ts` with calculation logic
-- [ ] Create API endpoint `/api/stats/ranking`
-- [ ] Write unit tests for ranking calculations
-- [ ] Test with seed data (multiple users)
+#### Day 1-2: User Ranking System (Backend) ✅ COMPLETED
+- [x] Create database migration for `user_rankings` table
+- [x] Implement `rankingService.ts` with calculation logic
+- [x] Create API endpoint `/api/stats/ranking`
+- [x] Write unit tests for ranking calculations
+- [x] Test with seed data (multiple users)
 
-#### Day 3: User Ranking System (Frontend)
-- [ ] Create `RankingCard.tsx` component
-- [ ] Integrate in dashboard page
-- [ ] Add loading states and error handling
-- [ ] Style with Wekang brand colors
-- [ ] Test responsiveness
+#### Day 3: User Ranking System (Frontend) ✅ COMPLETED
+- [x] Create `RankingCard.tsx` component
+- [x] Integrate in dashboard page
+- [x] Add loading states and error handling
+- [x] Style with Wekang brand colors
+- [x] Test responsiveness
 
-#### Day 4: Performance Analytics (Backend)
+#### Day 4-5: Performance Analytics (Backend & Frontend) 🔄 IN PROGRESS
 - [ ] Create `performanceAnalyticsService.ts`
 - [ ] Implement all calculation methods
 - [ ] Create API endpoint `/api/analytics/performance`
 - [ ] Add time period filtering
-- [ ] Write unit tests
-
-#### Day 5: Performance Analytics (Frontend)
-- [ ] Create `PerformanceTable.tsx` component
-- [ ] Add time period selector
+- [ ] Create `MonthlyPerformanceView.tsx` component
+- [ ] Add year/month selector
 - [ ] Implement loading states
-- [ ] Add session breakdown chart
 
 #### Day 6: Integration & Cleanup
 - [ ] Replace monthly chart in `/analytics/trends`

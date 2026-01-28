@@ -50,6 +50,13 @@
       "when": 1769329515613,
       "tag": "0006_hesitant_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1769615281737,
+      "tag": "0007_swift_paladin",
+      "breakpoints": true
     }
   ]
 }

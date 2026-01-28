@@ -25,6 +25,7 @@ import { AchievementShowcase } from '@/components/dashboard/AchievementShowcase'
 import { ActiveStreaksWidget } from '@/components/dashboard/ActiveStreaksWidget';
 import { NextBadgesProgress } from '@/components/dashboard/NextBadgesProgress';
 import { MotivationalMessagesFeed } from '@/components/dashboard/MotivationalMessagesFeed';
+import { RankingCard } from '@/components/dashboard/RankingCard';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -99,6 +100,11 @@ export default async function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-2 mb-6">
           <TodayEconomicNews />
           <WeeklyEconomicNews />
+        </div>
+
+        {/* User Ranking Card */}
+        <div className="mb-6">
+          <RankingCard />
         </div>
 
         {/* Stats Cards and Best SOP */}
