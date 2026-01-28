@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface DailyPerformance {
   date: number;
@@ -38,6 +39,7 @@ interface PerformanceSummary {
 }
 
 export function MonthlyPerformanceView() {
+  const { timezone } = useTimezone();
   const [view, setView] = useState<'month' | 'year'>('year');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);

@@ -23,10 +23,13 @@ export async function GET(request: NextRequest) {
     const yearParam = searchParams.get('year');
     const monthParam = searchParams.get('month');
     const action = searchParams.get('action');
+    
+    // Get user's timezone (default to Asia/Kuala_Lumpur)
+    const userTimezone = session.user.preferredTimezone || 'Asia/Kuala_Lumpur';
 
     // Get available years
     if (action === 'years') {
-      const years = await getAvailableYears(session.user.id);
+      const years = await getAvailableYears(session.user.id, userTimezone);
       return NextResponse.json({ success: true, data: years });
     }
 
@@ -52,12 +55,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const monthlyData = await getMonthlyPerformance(session.user.id, year, month);
+      const monthlyData = await getMonthlyPerformance(session.user.id, year, month, userTimezone);
       return NextResponse.json({ success: true, data: monthlyData });
     }
 
     // Otherwise, return yearly data
-    const yearlyData = await getYearlyPerformance(session.user.id, year);
+    const yearlyData = await getYearlyPerformance(session.user.id, year, userTimezone);
     return NextResponse.json({ success: true, data: yearlyData });
   } catch (error) {
     console.error('Error fetching performance analytics:', error);

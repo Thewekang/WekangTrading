@@ -35,17 +35,19 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 /**
  * Get performance data for a specific year
  * Returns overview and monthly breakdown
+ * Converts UTC timestamps to user's timezone for month grouping
  */
-export async function getYearlyPerformance(userId: string, year: number): Promise<YearlyPerformanceData> {
+export async function getYearlyPerformance(userId: string, year: number, timezone: string = 'Asia/Kuala_Lumpur'): Promise<YearlyPerformanceData> {
   try {
-    // Create start and end dates for the year in UTC
-    const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)); // Jan 1, 00:00:00
-    const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // Dec 31, 23:59:59
+    // Create start and end dates for the year in user's timezone
+    // Convert to UTC for database query
+    const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)); // Jan 1, 00:00:00 UTC
+    const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // Dec 31, 23:59:59 UTC
 
-    // Get all trades for the year
+    // Get all trades for the year and convert to user's timezone for month extraction
     const yearTrades = await db
       .select({
-        month: sql<number>`CAST(strftime('%m', datetime(${individualTrades.tradeTimestamp}, 'unixepoch')) AS INTEGER)`,
+        timestamp: individualTrades.tradeTimestamp,
         result: individualTrades.result,
         sopFollowed: individualTrades.sopFollowed,
         profitLossUsd: individualTrades.profitLossUsd,
@@ -72,7 +74,10 @@ export async function getYearlyPerformance(userId: string, year: number): Promis
     let totalPnl = 0;
 
     yearTrades.forEach(trade => {
-      const month = trade.month;
+      // Convert UTC timestamp to user's timezone to get correct month
+      const dateInTimezone = new Date(trade.timestamp.toLocaleString('en-US', { timeZone: timezone }));
+      const month = dateInTimezone.getMonth() + 1; // 1-12
+      
       monthlyData[month].trades++;
       monthlyData[month].pnl += trade.profitLossUsd;
       totalTrades++;
@@ -134,8 +139,9 @@ export async function getYearlyPerformance(userId: string, year: number): Promis
 /**
  * Get performance data for a specific month
  * Returns detailed daily breakdown
+ * Converts UTC timestamps to user's timezone for day grouping
  */
-export async function getMonthlyPerformance(userId: string, year: number, month: number) {
+export async function getMonthlyPerformance(userId: string, year: number, month: number, timezone: string = 'Asia/Kuala_Lumpur') {
   try {
     // Create start and end dates for the month in UTC
     const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
@@ -182,15 +188,19 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
         totalLosses,
         winLossRecord: `W:${totalWins} L:${totalLosses}`,
       },
-      dailyBreakdown: dailyData.map(day => ({
-        date: day.tradeDate,
-        trades: day.totalTrades,
-        wins: day.totalWins,
-        losses: day.totalLosses,
-        winRate: day.totalTrades > 0 ? (day.totalWins / day.totalTrades) * 100 : 0,
-        sopRate: day.totalTrades > 0 ? (day.totalSopFollowed / day.totalTrades) * 100 : 0,
-        pnl: day.totalProfitLossUsd,
-      })),
+      dailyBreakdown: dailyData.map(day => {
+        // Convert UTC date to user's timezone for display
+        const dateInTimezone = new Date(day.tradeDate.toLocaleString('en-US', { timeZone: timezone }));
+        return {
+          date: dateInTimezone,
+          trades: day.totalTrades,
+          wins: day.totalWins,
+          losses: day.totalLosses,
+          winRate: day.totalTrades > 0 ? (day.totalWins / day.totalTrades) * 100 : 0,
+          sopRate: day.totalTrades > 0 ? (day.totalSopFollowed / day.totalTrades) * 100 : 0,
+          pnl: day.totalProfitLossUsd,
+        };
+      }),
     };
   } catch (error) {
     console.error('Error getting monthly performance:', error);
@@ -200,19 +210,27 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
 
 /**
  * Get available years with data for the user
+ * Uses user's timezone to determine year boundaries
  */
-export async function getAvailableYears(userId: string): Promise<number[]> {
+export async function getAvailableYears(userId: string, timezone: string = 'Asia/Kuala_Lumpur'): Promise<number[]> {
   try {
-    const years = await db
+    // Get all trades
+    const trades = await db
       .select({
-        year: sql<number>`CAST(strftime('%Y', datetime(${individualTrades.tradeTimestamp}, 'unixepoch')) AS INTEGER)`,
+        timestamp: individualTrades.tradeTimestamp,
       })
       .from(individualTrades)
-      .where(eq(individualTrades.userId, userId))
-      .groupBy(sql`CAST(strftime('%Y', datetime(${individualTrades.tradeTimestamp}, 'unixepoch')) AS INTEGER)`)
-      .orderBy(sql`year DESC`);
+      .where(eq(individualTrades.userId, userId));
 
-    return years.map(y => y.year);
+    // Convert to user's timezone and extract unique years
+    const years = new Set<number>();
+    trades.forEach(trade => {
+      const dateInTimezone = new Date(trade.timestamp.toLocaleString('en-US', { timeZone: timezone }));
+      years.add(dateInTimezone.getFullYear());
+    });
+
+    // Sort descending (most recent first)
+    return Array.from(years).sort((a, b) => b - a);
   } catch (error) {
     console.error('Error getting available years:', error);
     return [new Date().getFullYear()]; // Fallback to current year
