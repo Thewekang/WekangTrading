@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.0] - 2026-01-28
+
+### Added
+- Economic Calendar Cron Job with GET endpoint for Vercel Cron compatibility
+- CRON_SECRET authorization for secure cron execution
+- Comprehensive cron logging to `cron_logs` table
+- Pre-merge verification documentation (SOP Delete, User Delete, Cron Fix)
+
+### Fixed
+- Economic calendar cron not triggering on production (missing GET endpoint)
+- Vercel.json cron path pointing to wrong endpoint
+- User deletion now properly removes OAuth accounts (future-proofing)
+- Complete data cleanup on user deletion (10 tables verified)
+
+### Changed
+- Environment files cleanup (removed 4 Vercel-generated .env files)
+- User delete now handles accounts table for OAuth support
+- Improved cron endpoint with better error handling and logging
+
+### Documentation
+- Added CRON-FIX-DEPLOYMENT.md with deployment guide
+- Added ENV-FILES-CLEANUP.md with environment analysis
+- Added USER-DELETE-ANALYSIS.md with comprehensive verification
+- Added PRE-MERGE-VERIFICATION-SUMMARY.md for merge approval
+
+### Security
+- Added CRON_SECRET for cron endpoint authorization
+- Enhanced user deletion to prevent orphaned OAuth data
+
+---
+
+## [Unreleased]
+
 ### Added
 
 **Feature 5: SOP Details & Mobile Enhancement - COMPLETE** ✅
