@@ -1,26 +1,96 @@
 /**
  * Performance Trends Page
- * Displays monthly performance breakdown and yearly overview
+ * Displays daily trends, moving averages, and comparison charts
  */
 
+'use client';
+
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
+import ChartSkeleton from '@/components/charts/ChartSkeleton';
+import { calculateMovingAverages } from '@/lib/utils/trendCalculations';
+
+// Dynamic imports for chart components (lazy loading)
+const TrendLineChart = dynamic(() => import('@/components/charts/TrendLineChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
+
+const ComparisonChart = dynamic(() => import('@/components/charts/ComparisonChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
+
+const MonthlyAnalyticsChart = dynamic(() => import('@/components/charts/MonthlyAnalyticsChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false
+});
 import { MonthlyPerformanceView } from '@/components/analytics/MonthlyPerformanceView';
+import type { DailyTrend } from '@/lib/utils/trendCalculations';
+import type { ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
 
 export default function TrendsPage() {
-  return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Performance Trends</h1>
-          <p className="text-muted-foreground">
-            Analyze your trading performance by year and month
-          </p>
-        </div>
+  const [trends, setTrends] = useState<DailyTrend[]>([]);
+  const [weeklyComparison, setWeeklyComparison] = useState<ComparisonData | null>(null);
+  const [monthlyComparison, setMonthlyComparison] = useState<ComparisonData | null>(null);
+  const [indicators, setIndicators] = useState<TrendIndicator[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasNoData, setHasNoData] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<'winRate' | 'sopRate' | 'profitLoss'>('winRate');
+  const [selectedDays, setSelectedDays] = useState(30);
 
-        <MonthlyPerformanceView />
-      </div>
-    </div>
-  );
-}
+  useEffect(() => {
+    fetchData();
+  }, [selectedDays]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [trendsRes, weeklyRes, monthlyRes, indicatorsRes] = await Promise.all([
+        fetch(`/api/stats/trends?days=${selectedDays}`),
+        fetch('/api/stats/comparisons?type=weekly'),
+        fetch('/api/stats/comparisons?type=monthly'),
+        fetch('/api/stats/indicators'),
+      ]);
+
+      const [trendsData, weeklyData, monthlyData, indicatorsData] = await Promise.all([
+        trendsRes.json(),
+        weeklyRes.json(),
+        monthlyRes.json(),
+        indicatorsRes.json(),
+      ]);
+
+      if (trendsData.success) setTrends(trendsData.data || []);
+      if (weeklyData.success) setWeeklyComparison(weeklyData.data);
+      if (monthlyData.success) setMonthlyComparison(monthlyData.data);
+      if (indicatorsData.success) setIndicators(indicatorsData.data || []);
+
+      // Check if user has any data at all
+      const hasAnyData = (trendsData.data && trendsData.data.length > 0);
+      setHasNoData(!hasAnyData);
+    } catch (error) {
+      console.error('Error fetching trends data:', error);
+      setError('Failed to load analytics data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getChartData = () => {
+    if (trends.length === 0) return [];
+    return calculateMovingAverages(trends, selectedMetric);
+  };
+
+  const getMetricLabel = () => {
+    switch (selectedMetric) {
+      case 'winRate': return 'Win Rate (%)';
+      case 'sopRate': return 'SOP Rate (%)';
+      case 'profitLoss': return 'Profit/Loss ($)';
+    }
+  };
 
   const getMetricFormatter = () => {
     if (selectedMetric === 'profitLoss') {
@@ -104,52 +174,9 @@ export default function TrendsPage() {
         <p className="text-gray-600">Analyze your trading performance over time with trends and comparisons</p>
       </div>
 
-      {/* Monthly Analytics Chart */}
+      {/* Monthly Performance View - Enhanced */}
       <div className="mb-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Monthly Performance {selectedYear}</h2>
-              <p className="text-sm text-gray-600 mt-1">Year-to-date overview by month</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {/* Year Selector */}
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {[...Array(5)].map((_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return <option key={year} value={year}>{year}</option>;
-                })}
-              </select>
-              {/* Monthly Metric Selector */}
-              <select
-                value={monthlyMetric}
-                onChange={(e) => setMonthlyMetric(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="winRate">Win Rate</option>
-                <option value="sopRate">SOP Compliance</option>
-                <option value="profitLoss">Profit/Loss</option>
-                <option value="totalTrades">Total Trades</option>
-              </select>
-            </div>
-          </div>
-
-          {monthlyData.length > 0 ? (
-            <MonthlyAnalyticsChart
-              data={monthlyData}
-              metric={monthlyMetric}
-              year={selectedYear}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              No monthly data available for {selectedYear}
-            </div>
-          )}
-        </div>
+        <MonthlyPerformanceView />
       </div>
 
       {/* Trend Indicators */}
