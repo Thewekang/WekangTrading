@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { sopTypes, individualTrades, userPinnedSops } from '@/lib/db/schema';
 import { eq, ne, and, gte, count, isNotNull, desc, sql } from 'drizzle-orm';
 import { asc } from 'drizzle-orm';
+import { getTableColumns } from 'drizzle-orm';
 
 /**
  * Get all active SOP types with pinned status for a user
@@ -19,7 +20,7 @@ export async function getActiveSopTypes(userId?: string) {
   // With user context, include pinned status and sort pinned first
   const result = await db
     .select({
-      ...sopTypes,
+      ...getTableColumns(sopTypes),
       isPinned: sql<boolean>`CASE WHEN ${userPinnedSops.userId} IS NOT NULL THEN 1 ELSE 0 END`,
       pinnedAt: userPinnedSops.pinnedAt,
     })
@@ -57,7 +58,7 @@ export async function getAllSopTypes(userId?: string) {
   // With user context, include pinned status and sort pinned first
   const result = await db
     .select({
-      ...sopTypes,
+      ...getTableColumns(sopTypes),
       isPinned: sql<boolean>`CASE WHEN ${userPinnedSops.userId} IS NOT NULL THEN 1 ELSE 0 END`,
       pinnedAt: userPinnedSops.pinnedAt,
     })
