@@ -148,13 +148,10 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
  */
 export async function getMonthlyPerformance(userId: string, year: number, month: number, timezone: string = 'Asia/Kuala_Lumpur') {
   try {
-    // Create start and end dates for the month in user's timezone, then convert to UTC for query
-    // Account for timezone offset to ensure we capture all trades for the month
-    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-    startDate.setDate(startDate.getDate() - 2); // Buffer for timezone offset
-    
-    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-    endDate.setDate(endDate.getDate() + 2); // Buffer for timezone offset
+    // Create start and end dates for the month with buffer for timezone offset
+    // Start from 2 days before to catch timezone edge cases
+    const startDate = new Date(Date.UTC(year, month - 1, -1, 0, 0, 0, 0)); // 2 days before month start
+    const endDate = new Date(Date.UTC(year, month, 2, 23, 59, 59, 999)); // 2 days after month end
 
     // Get individual trades for the month and group by day in user's timezone
     const trades = await db
@@ -173,6 +170,9 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
         )
       )
       .orderBy(individualTrades.tradeTimestamp);
+
+    console.log('[getMonthlyPerformance] Query range:', { startDate, endDate, year, month, timezone });
+    console.log('[getMonthlyPerformance] Found trades:', trades.length);
 
     // Group trades by day in user's timezone
     const dailyMap = new Map<number, {
@@ -225,6 +225,8 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     });
 
     const totalLosses = totalTrades - totalWins;
+    
+    console.log('[getMonthlyPerformance] After filtering:', { totalTrades, dailyMapSize: dailyMap.size, days: Array.from(dailyMap.keys()) });
 
     // Convert map to array of daily breakdowns
     const dailyBreakdown = Array.from(dailyMap.entries()).map(([day, data]) => ({
@@ -250,33 +252,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
         totalLosses,
         winLossRecord: `W:${totalWins} L:${totalLosses}`,
       },
-      dailyBreakdown: dailyData.map(day => {
-        // Convert UTC date to user's timezone for display
-        // Use Intl.DateTimeFormat to properly format in user's timezone
-        const formatter = new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          timeZone: timezone
-        });
-        const parts = formatter.formatToParts(day.tradeDate);
-        const yearPart = parts.find(p => p.type === 'year')?.value;
-        const monthPart = parts.find(p => p.type === 'month')?.value;
-        const dayPart = parts.find(p => p.type === 'day')?.value;
-        
-        // Create date in user's timezone (not UTC)
-        const dateInTimezone = new Date(`${yearPart}-${monthPart}-${dayPart}T00:00:00`);
-        
-        return {
-          date: dateInTimezone,
-          trades: day.totalTrades,
-          wins: day.totalWins,
-          losses: day.totalLosses,
-          winRate: day.totalTrades > 0 ? (day.totalWins / day.totalTrades) * 100 : 0,
-          sopRate: day.totalTrades > 0 ? (day.totalSopFollowed / day.totalTrades) * 100 : 0,
-          pnl: day.totalProfitLossUsd,
-        };
-      }),
+      dailyBreakdown,
     };
   } catch (error) {
     console.error('Error getting monthly performance:', error);
