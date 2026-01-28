@@ -198,6 +198,7 @@ export default function AdminSopTypesPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    sortOrder: 0,
 
     detailContentShort: '',
     detailContentLong: '',
@@ -295,6 +296,7 @@ export default function AdminSopTypesPage() {
       setFormData({ 
         name: '', 
         description: '',
+        sortOrder: 0,
         detailContentShort: '',
         detailContentLong: '',
         detailEnabledShort: false,
@@ -576,6 +578,7 @@ export default function AdminSopTypesPage() {
     setFormData({
       name: sopType.name,
       description: sopType.description || '',
+      sortOrder: sopType.sortOrder,
       detailContentShort: shortContent,
       detailContentLong: longContent,
       detailEnabledShort: sopType.detailEnabledShort,
