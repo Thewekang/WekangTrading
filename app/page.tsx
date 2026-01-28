@@ -32,6 +32,14 @@ export default function Home() {
 
         {/* Hero Content */}
         <div className="text-center max-w-4xl mx-auto mb-20">
+          {/* Large Brand Logo */}
+          <div className="mb-8 flex justify-center">
+            <img 
+              src="/logo.png" 
+              alt="Wekang Trading" 
+              className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-lg" 
+            />
+          </div>
           <div className="mb-6">
             <span className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-4">
               🚀 Professional Trading Analytics

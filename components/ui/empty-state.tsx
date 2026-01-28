@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { ReactNode } from 'react';
 
 interface EmptyStateProps {
-  icon: string;
+  icon?: string;
+  logo?: boolean;
   title: string;
   description: string;
   action?: {
@@ -17,10 +18,20 @@ interface EmptyStateProps {
  * Generic Empty State Component
  * Used when there's no data to display
  */
-export function EmptyState({ icon, title, description, action, children }: EmptyStateProps) {
+export function EmptyState({ icon, logo, title, description, action, children }: EmptyStateProps) {
   return (
-    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-      <div className="text-6xl mb-4">{icon}</div>
+    <div className="bg-gradient-to-br from-gray-50 to-blue-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+      {logo ? (
+        <div className="mb-6 flex justify-center">
+          <img 
+            src="/logo.png" 
+            alt="Wekang Trading" 
+            className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-lg opacity-90" 
+          />
+        </div>
+      ) : icon ? (
+        <div className="text-6xl mb-4">{icon}</div>
+      ) : null}
       <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-600 mb-6 max-w-md mx-auto">{description}</p>
       {action && (
@@ -41,7 +52,7 @@ export function EmptyState({ icon, title, description, action, children }: Empty
 export function NoTradesEmptyState() {
   return (
     <EmptyState
-      icon="📊"
+      logo={true}
       title="No trades yet"
       description="Start tracking your trading performance by entering your first trade. You can enter trades one at a time or use bulk entry for multiple trades."
       action={{

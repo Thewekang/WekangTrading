@@ -61,7 +61,7 @@ export default function LoginPage() {
     <Card>
       <CardHeader className="space-y-1">
         <div className="flex items-center justify-center mb-4">
-          <img src="/logo.png" alt="Wekang Trading" className="w-16 h-16 object-contain" />
+          <img src="/logo.png" alt="Wekang Trading" className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-md" />
         </div>
         <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
         <CardDescription className="text-center">
