@@ -1,102 +1,26 @@
 /**
  * Performance Trends Page
- * Displays daily trends, moving averages, and comparison charts
+ * Displays monthly performance breakdown and yearly overview
  */
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
-import ChartSkeleton from '@/components/charts/ChartSkeleton';
-import { calculateMovingAverages } from '@/lib/utils/trendCalculations';
-
-// Dynamic imports for chart components (lazy loading)
-const TrendLineChart = dynamic(() => import('@/components/charts/TrendLineChart'), {
-  loading: () => <ChartSkeleton />,
-  ssr: false
-});
-
-const ComparisonChart = dynamic(() => import('@/components/charts/ComparisonChart'), {
-  loading: () => <ChartSkeleton />,
-  ssr: false
-});
-
-const MonthlyAnalyticsChart = dynamic(() => import('@/components/charts/MonthlyAnalyticsChart'), {
-  loading: () => <ChartSkeleton />,
-  ssr: false
-});
-import type { DailyTrend } from '@/lib/utils/trendCalculations';
-import type { ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
+import { MonthlyPerformanceView } from '@/components/analytics/MonthlyPerformanceView';
 
 export default function TrendsPage() {
-  const [trends, setTrends] = useState<DailyTrend[]>([]);
-  const [weeklyComparison, setWeeklyComparison] = useState<ComparisonData | null>(null);
-  const [monthlyComparison, setMonthlyComparison] = useState<ComparisonData | null>(null);
-  const [indicators, setIndicators] = useState<TrendIndicator[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [hasNoData, setHasNoData] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<'winRate' | 'sopRate' | 'profitLoss'>('winRate');
-  const [monthlyMetric, setMonthlyMetric] = useState<'winRate' | 'sopRate' | 'profitLoss' | 'totalTrades'>('winRate');
-  const [selectedDays, setSelectedDays] = useState(30);
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Performance Trends</h1>
+          <p className="text-muted-foreground">
+            Analyze your trading performance by year and month
+          </p>
+        </div>
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedDays, selectedYear]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [trendsRes, weeklyRes, monthlyRes, indicatorsRes, monthlyStatsRes] = await Promise.all([
-        fetch(`/api/stats/trends?days=${selectedDays}`),
-        fetch('/api/stats/comparisons?type=weekly'),
-        fetch('/api/stats/comparisons?type=monthly'),
-        fetch('/api/stats/indicators'),
-        fetch(`/api/stats/monthly?year=${selectedYear}`),
-      ]);
-
-      const [trendsData, weeklyData, monthlyData, indicatorsData, monthlyStatsData] = await Promise.all([
-        trendsRes.json(),
-        weeklyRes.json(),
-        monthlyRes.json(),
-        indicatorsRes.json(),
-        monthlyStatsRes.json(),
-      ]);
-
-      if (trendsData.success) setTrends(trendsData.data || []);
-      if (weeklyData.success) setWeeklyComparison(weeklyData.data);
-      if (monthlyData.success) setMonthlyComparison(monthlyData.data);
-      if (indicatorsData.success) setIndicators(indicatorsData.data || []);
-      if (monthlyStatsData.success) setMonthlyData(monthlyStatsData.data?.months || []);
-
-      // Check if user has any data at all
-      const hasAnyData = (trendsData.data && trendsData.data.length > 0) ||
-                        (monthlyStatsData.data && monthlyStatsData.data.months && monthlyStatsData.data.months.length > 0);
-      setHasNoData(!hasAnyData);
-    } catch (error) {
-      console.error('Error fetching trends data:', error);
-      setError('Failed to load analytics data. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getChartData = () => {
-    if (trends.length === 0) return [];
-    return calculateMovingAverages(trends, selectedMetric);
-  };
-
-  const getMetricLabel = () => {
-    switch (selectedMetric) {
-      case 'winRate': return 'Win Rate (%)';
-      case 'sopRate': return 'SOP Rate (%)';
-      case 'profitLoss': return 'Profit/Loss ($)';
-    }
-  };
+        <MonthlyPerformanceView />
+      </div>
+    </div>
+  );
+}
 
   const getMetricFormatter = () => {
     if (selectedMetric === 'profitLoss') {
