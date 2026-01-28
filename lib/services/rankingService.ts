@@ -152,14 +152,22 @@ export async function calculateAllRankings() {
       previousRankings.map(r => [r.userId, r.rank])
     );
 
-    // Save new rankings with rank changes
-    const now = new Date();
-    for (const ranking of rankedUsers) {
-      const previousRank = previousRankMap.get(ranking.userId);
+    // Assign ranks and calculate percentiles with rank changes
+    const rankedUsersWithChanges = rankedUsers.map(user => {
+      const previousRank = previousRankMap.get(user.userId);
       const rankChange = previousRank
-        ? previousRank - ranking.rank // Positive = improved, negative = dropped
+        ? previousRank - user.rank // Positive = improved, negative = dropped
         : 0;
 
+      return {
+        ...user,
+        rankChange,
+      };
+    });
+
+    // Save new rankings
+    const now = new Date();
+    for (const ranking of rankedUsersWithChanges) {
       await db.insert(userRankings).values({
         userId: ranking.userId,
         rank: ranking.rank,
@@ -169,12 +177,12 @@ export async function calculateAllRankings() {
         totalPnl: ranking.totalPnl,
         totalTrades: ranking.totalTrades,
         percentile: ranking.percentile,
-        rankChange,
+        rankChange: ranking.rankChange,
         calculatedAt: now,
       });
     }
 
-    return rankedUsers;
+    return rankedUsersWithChanges;
   } catch (error) {
     console.error('Error calculating rankings:', error);
     throw new Error('Failed to calculate rankings');
