@@ -8,7 +8,7 @@ import { pinSopType, unpinSopType } from '@/lib/services/sopTypeService';
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -19,7 +19,8 @@ export async function POST(
       );
     }
 
-    const sopTypeId = params.id;
+    const { id } = await params;
+    const sopTypeId = id;
 
     await pinSopType(session.user.id, sopTypeId);
 
@@ -57,7 +58,7 @@ export async function POST(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -68,7 +69,8 @@ export async function DELETE(
       );
     }
 
-    const sopTypeId = params.id;
+    const { id } = await params;
+    const sopTypeId = id;
 
     await unpinSopType(session.user.id, sopTypeId);
 
