@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-01-28
+
+### Added
+- Professional Wekang Trading logo with transparent background
+- Complete favicon set for all platforms (iOS, Android, PWA)
+- Brand color palette in Tailwind config (red, orange, yellow, gold, black, white)
+- PWA manifest with Wekang branding
+- Dynamic system information display (version, environment, database)
+
+### Changed
+- Removed emojis from all metadata for professional appearance
+- Updated app title to professional format
+- Enhanced OpenGraph and Twitter card metadata
+- System information now dynamically detects environment and database
+
+### Fixed
+- System information showing outdated version on main branch
+- Missing professional branding icons
+
+---
+
 ## [1.3.0] - 2026-01-28
 
 ### Added
