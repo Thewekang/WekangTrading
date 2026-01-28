@@ -11,6 +11,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-01-29
+
+### Added
+- **User Ranking System**: Anonymous leaderboard showing relative performance ranking (1st, 2nd, 3rd place)
+  - Displays user's current rank among all active traders
+  - Shows ranking based on win rate, with minimum 10 trades for last 30 days qualification
+  - Medal indicators for top 3 performers (🥇🥈🥉)
+  - Anonymous display (doesn't reveal other users' names)
+- **Enhanced Performance Analytics View**: Complete calendar-based performance visualization
+  - Month/Year view toggle (replicated from admin dashboard)
+  - Interactive monthly calendar showing daily trading performance
+  - Color-coded performance indicators:
+    - Green: Positive P/L days
+    - Blue: Break-even days  
+    - Orange: Loss days
+    - Gray: No trading activity
+  - Year overview with 12 monthly performance cards (clickable drill-down)
+  - 4 summary cards with gradient backgrounds (P/L, Win Rate, SOP Rate, Total Trades)
+  - Full calendar display (all days 1-31, not just trading days)
+  - Legend with performance indicators
+- **Timezone-Aware Performance Aggregation**:
+  - All performance data now respects user's preferred timezone setting
+  - Trades grouped by day in user's timezone (not UTC)
+  - Proper handling of timezone edge cases (e.g., 23:00 UTC+8 = next day)
+  - Month/year boundaries calculated in user's timezone
+
+### Changed
+- Performance Trends page (`/analytics/trends`) now features comprehensive calendar view
+- Performance analytics service now queries `individualTrades` directly for timezone-correct daily grouping
+- Removed dependency on `dailySummaries` table for monthly performance (timezone issues)
+- Date range queries now include 2-day buffer to capture timezone edge cases
+
+### Fixed
+- **Critical timezone conversion bug**: Trades not appearing on correct calendar day
+  - Fixed incorrect use of `toLocaleString()` + `new Date()` parsing
+  - Implemented proper `Intl.DateTimeFormat.formatToParts()` for timezone conversion
+  - Trades now appear on correct date according to user's timezone setting
+- Performance calendar now displays all trades accurately in user's local time
+- Monthly performance aggregation now timezone-aware
+
+### Technical Improvements
+- Service layer properly extracts day/month/year in user's timezone using Intl API
+- Removed duplicate `dailyBreakdown` code from performance service
+- Cleaner, more maintainable timezone conversion logic
+
+---
+
 ## [1.3.1] - 2026-01-28
 
 ### Added
