@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/admin/economic-calendar/sync?action=api",
+      "path": "/api/admin/economic-calendar/sync-cron",
       "schedule": "0 5 * * 1-5"
     }
   ]

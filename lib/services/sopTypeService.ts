@@ -1,27 +1,82 @@
 import { db } from '@/lib/db';
-import { sopTypes, individualTrades } from '@/lib/db/schema';
-import { eq, ne, and, gte, count, isNotNull } from 'drizzle-orm';
+import { sopTypes, individualTrades, userPinnedSops } from '@/lib/db/schema';
+import { eq, ne, and, gte, count, isNotNull, desc, sql } from 'drizzle-orm';
 import { asc } from 'drizzle-orm';
+import { getTableColumns } from 'drizzle-orm';
 
 /**
- * Get all active SOP types
+ * Get all active SOP types with pinned status for a user
  */
-export async function getActiveSopTypes() {
-  return await db
-    .select()
+export async function getActiveSopTypes(userId?: string) {
+  if (!userId) {
+    // No user context, just return active SOPs
+    return await db
+      .select()
+      .from(sopTypes)
+      .where(eq(sopTypes.active, true))
+      .orderBy(asc(sopTypes.sortOrder), asc(sopTypes.name));
+  }
+
+  // With user context, include pinned status and sort pinned first
+  const result = await db
+    .select({
+      ...getTableColumns(sopTypes),
+      isPinned: sql<boolean>`CASE WHEN ${userPinnedSops.userId} IS NOT NULL THEN 1 ELSE 0 END`,
+      pinnedAt: userPinnedSops.pinnedAt,
+    })
     .from(sopTypes)
+    .leftJoin(
+      userPinnedSops,
+      and(
+        eq(userPinnedSops.sopTypeId, sopTypes.id),
+        eq(userPinnedSops.userId, userId)
+      )
+    )
     .where(eq(sopTypes.active, true))
-    .orderBy(asc(sopTypes.sortOrder), asc(sopTypes.name));
+    .orderBy(
+      desc(sql`CASE WHEN ${userPinnedSops.userId} IS NOT NULL THEN 1 ELSE 0 END`),
+      asc(sopTypes.sortOrder),
+      asc(sopTypes.name)
+    );
+
+  return result;
 }
 
 /**
  * Get all SOP types (including inactive) - Admin only
+ * Optionally include pinned status for a specific user
  */
-export async function getAllSopTypes() {
-  return await db
-    .select()
+export async function getAllSopTypes(userId?: string) {
+  if (!userId) {
+    // No user context, just return all SOPs
+    return await db
+      .select()
+      .from(sopTypes)
+      .orderBy(asc(sopTypes.sortOrder), asc(sopTypes.name));
+  }
+
+  // With user context, include pinned status and sort pinned first
+  const result = await db
+    .select({
+      ...getTableColumns(sopTypes),
+      isPinned: sql<boolean>`CASE WHEN ${userPinnedSops.userId} IS NOT NULL THEN 1 ELSE 0 END`,
+      pinnedAt: userPinnedSops.pinnedAt,
+    })
     .from(sopTypes)
-    .orderBy(asc(sopTypes.sortOrder), asc(sopTypes.name));
+    .leftJoin(
+      userPinnedSops,
+      and(
+        eq(userPinnedSops.sopTypeId, sopTypes.id),
+        eq(userPinnedSops.userId, userId)
+      )
+    )
+    .orderBy(
+      desc(sql`CASE WHEN ${userPinnedSops.userId} IS NOT NULL THEN 1 ELSE 0 END`),
+      asc(sopTypes.sortOrder),
+      asc(sopTypes.name)
+    );
+
+  return result;
 }
 
 /**
@@ -198,6 +253,89 @@ export async function getBestSopType(
   }
 
   return stats[0]; // Already sorted by win rate descending
+}
+
+/**
+ * Reorder SOP types by updating sortOrder based on array position
+ */
+export async function reorderSopTypes(orderedIds: string[]) {
+  // Update sortOrder for each SOP type based on its position in the array
+  const updates = orderedIds.map((id, index) => 
+    db.update(sopTypes)
+      .set({ sortOrder: index })
+      .where(eq(sopTypes.id, id))
+  );
+
+  // Execute all updates in parallel
+  await Promise.all(updates);
+}
+
+/**
+ * Pin a SOP type for a user (max 3 pins)
+ */
+export async function pinSopType(userId: string, sopTypeId: string) {
+  // Check current pin count
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(userPinnedSops)
+    .where(eq(userPinnedSops.userId, userId));
+
+  if (countResult.count >= 3) {
+    throw new Error('Maximum 3 pinned SOP types allowed');
+  }
+
+  // Check if already pinned
+  const [existing] = await db
+    .select()
+    .from(userPinnedSops)
+    .where(
+      and(
+        eq(userPinnedSops.userId, userId),
+        eq(userPinnedSops.sopTypeId, sopTypeId)
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    throw new Error('SOP type already pinned');
+  }
+
+  // Pin it
+  await db.insert(userPinnedSops).values({
+    userId,
+    sopTypeId,
+    pinnedAt: new Date(),
+  });
+}
+
+/**
+ * Unpin a SOP type for a user
+ */
+export async function unpinSopType(userId: string, sopTypeId: string) {
+  await db
+    .delete(userPinnedSops)
+    .where(
+      and(
+        eq(userPinnedSops.userId, userId),
+        eq(userPinnedSops.sopTypeId, sopTypeId)
+      )
+    );
+}
+
+/**
+ * Get user's pinned SOP types
+ */
+export async function getUserPinnedSops(userId: string) {
+  return await db
+    .select({
+      sopTypeId: userPinnedSops.sopTypeId,
+      pinnedAt: userPinnedSops.pinnedAt,
+      sopType: sopTypes,
+    })
+    .from(userPinnedSops)
+    .innerJoin(sopTypes, eq(sopTypes.id, userPinnedSops.sopTypeId))
+    .where(eq(userPinnedSops.userId, userId))
+    .orderBy(asc(userPinnedSops.pinnedAt));
 }
 
 // Helper function

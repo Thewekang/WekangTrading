@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 2.6
-- **Status**: ACTIVE - v1.2.1 DEPLOYED TO PRODUCTION ✅  
-- **Last Updated**: January 24, 2026
+- **Version**: 2.8
+- **Status**: ACTIVE - Feature 5 Complete ✅  
+- **Last Updated**: January 25, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,13 +13,14 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.2.1 DEPLOYED TO PRODUCTION - Performance Optimized ✅  
+**Project Status**: 🚀 v1.2.2 + Feature 5 Complete ✅  
 **Start Date**: January 8, 2026  
-**Production Release**: January 24, 2026  
-**Current Phase**: Monitoring & Enhancements
+**Latest Development**: January 25, 2026 (Feature 5 - SOP Details & Mobile)  
+**Current Phase**: Ready for Staging Deployment  
+**Active Branch**: feature/sop-details-mobile
 
 ```
-Overall Progress: ████████████████████ 100% Complete (v1.2.1)
+Overall Progress: ████████████████████ 100% Complete (v1.2.2)
 
 Phase Breakdown:
 ├─ Phase 0: Setup & Foundation       [100%] ██████████ ✅
@@ -28,8 +29,26 @@ Phase Breakdown:
 ├─ Phase 3: Dashboard & Analytics    [100%] ██████████ ✅
 ├─ Phase 4: Advanced Features        [100%] ██████████ ✅
 ├─ Phase 5: Polish & Deployment      [100%] ██████████ ✅
-└─ Phase 6: Performance Optimization [100%] ██████████ ✅
+├─ Phase 6: Performance Optimization [100%] ██████████ ✅
+└─ Hotfix v1.2.2: Critical Fixes     [100%] ██████████ ✅
 ```
+
+---
+
+## 1.2 Recent Release Summary
+
+### v1.2.2 - January 24, 2026 (Hotfix Release)
+
+**Critical Fixes Applied**:
+- 🔧 **Timezone Conversion Bug**: Fixed forms using browser timezone instead of user's selected timezone
+- 🎯 **Badge System**: Fixed badges not triggering after CSV imports (seeded production database)
+- 🔐 **Security**: Added environment files to .gitignore, fixed missing RAPIDAPI_KEY in production
+- ✨ **Enhancement**: Added timezone selector to bulk import form for flexible data imports
+
+**Impact**:
+- **Timezone Fix**: All new trades now correctly store UTC timestamps based on user's timezone preference
+- **Badge System**: CSV imports now automatically award achievements
+- **Import Flexibility**: Users can import data from different timezones without manual conversion
 
 ---
 
@@ -55,6 +74,50 @@ Phase Breakdown:
 - ✅ **Priority 4**: Data export & reporting (CSV + PDF with filters)
 - ✅ Toast notifications (Sonner library)
 - ✅ All bugs fixed (3 critical fixes)
+
+#### Feature 5: SOP Details & Mobile Enhancement ✅ COMPLETE
+**Branch**: feature/sop-details-mobile → merged to develop  
+**Database**: wekangtrading-staging  
+**Start Date**: January 24, 2026  
+**Completion Date**: January 25, 2026  
+**Status**: All Phases Complete ✅
+
+**Progress Breakdown**:
+- ✅ **Phase 1**: Database Schema (SHORT/LONG separation, migration 0005) - Complete
+- ✅ **Phase 2**: Rich Text Editor Components (Tiptap integration) - Complete
+- ✅ **Phase 3**: Admin UI Enhancement (tabbed interface, images, clipboard, persistence) - Complete
+- ✅ **Phase 4**: User Strategies Page (accordion layout, search, mobile-ready) - Complete
+- ✅ **Phase 5**: Mobile Responsiveness (navigation dropdowns, responsive layouts) - Complete
+- ✅ **Phase 6**: Admin UX Enhancements (drag-drop sorting, pin favorites) - Complete
+- ✅ **Phase 7**: Testing & Polish (JSON validation fixes, all workflows tested) - Complete
+
+**Key Achievements**:
+- 📦 New packages: Tiptap v3.17.0, isomorphic-dompurify, Radix UI, @dnd-kit
+- 🗄️ Migration 0005 applied to staging (6 new columns in sop_types table)
+- 🗄️ Migration 0006 applied to staging (dedicated image columns for better separation)
+- 🗄️ Migration 0007 applied to staging (user_pinned_sops table for favorites)
+- 🎨 Two-column editor layout with image gallery and chart notes
+- 📋 Clipboard paste support for quick screenshot insertion
+- 💾 JSON-based data persistence with backward compatibility
+- 🔒 Server-side HTML sanitization for XSS protection
+- 📱 Full mobile responsiveness with dropdown navigation
+- 🎯 Drag-and-drop SOP reordering with visual grab handles
+- ⭐ Pin/favorite system (max 3 per user) with star icons
+- 🐛 Fixed JSON content display bug with database cleanup script
+- 🔍 Search functionality in strategies page
+- 🖼️ Full-screen image viewer with click-to-expand
+
+**Files Changed**: 15+ files
+**New Files Created**: 8 files (components, utils, pages)
+**Database Migrations**: 1 (migration 0005)
+
+**Technical Debt Tracked**:
+- 📝 Images stored as base64 JSON (need dedicated schema migration or blob storage)
+- 📝 No clear/delete/reset button for strategy content
+- 📝 No version history or audit trail
+- 📝 No content preview mode
+
+**Next Steps**: Deploy to staging → Test → Merge to develop → Production
 
 #### Next Sprint
 **Phase 5**: Polish & Deployment  

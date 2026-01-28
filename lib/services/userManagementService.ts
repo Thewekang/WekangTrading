@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { users, individualTrades, dailySummaries, userTargets, sessions } from '@/lib/db/schema';
+import { users, individualTrades, dailySummaries, userTargets, sessions, accounts } from '@/lib/db/schema';
 import { eq, and, count, sum, ne } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
@@ -145,7 +145,12 @@ export async function deleteUserByAdmin(userId: string, currentAdminId: string) 
     .delete(sessions)
     .where(eq(sessions.userId, userId));
 
-  // 5. Delete user account
+  // 5. Delete OAuth accounts (future-proofing for when OAuth is implemented)
+  const accountsResult = await db
+    .delete(accounts)
+    .where(eq(accounts.userId, userId));
+
+  // 6. Delete user account
   await db.delete(users).where(eq(users.id, userId));
 }
 

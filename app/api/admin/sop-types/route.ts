@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const sopTypes = await getAllSopTypes();
+    // Pass user ID to get pinned status
+    const sopTypes = await getAllSopTypes(session.user.id);
 
     return NextResponse.json({
       success: true,
