@@ -50,6 +50,15 @@ module.exports = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			// Wekang Trading Brand Colors 🏍️💰
+  			wekang: {
+  				red: '#dc2626',      // Primary brand color (Red 600)
+  				orange: '#f97316',   // Energy & speed (Orange 500)
+  				yellow: '#fbbf24',   // Money & success (Amber 400)
+  				gold: '#eab308',     // Gold accent (Yellow 500)
+  				black: '#000000',    // Background
+  				white: '#ffffff',    // Text on dark
+  			},
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',
