@@ -156,13 +156,33 @@ export function MonthlyPerformanceView() {
     const weeks: (DailyPerformance | null)[][] = [];
     let week: (DailyPerformance | null)[] = Array(firstDay).fill(null);
 
+    // Create a map of performance data by day number for quick lookup
+    const performanceMap = new Map<number, DailyPerformance>();
     dailyPerformance.forEach((day) => {
-      week.push(day);
+      performanceMap.set(day.date, day);
+    });
+
+    // Create all days of the month (1 to daysInMonth)
+    for (let day = 1; day <= daysInMonth; day++) {
+      // Get performance data for this day if it exists
+      const dayPerformance = performanceMap.get(day);
+      
+      week.push(dayPerformance || {
+        date: day,
+        totalTrades: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        totalSopFollowed: 0,
+        profitLoss: 0,
+        winRate: 0,
+        sopRate: 0
+      });
+
       if (week.length === 7) {
         weeks.push(week);
         week = [];
       }
-    });
+    }
 
     // Fill remaining days
     if (week.length > 0) {
