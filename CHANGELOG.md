@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **User Ranking System**: Anonymous leaderboard in user dashboard showing relative performance ranking without revealing other users' identities
+- **Enhanced Performance Trends**: Replaced monthly chart in /analytics/trends with comprehensive performance view from admin dashboard
+
+### Changed
+- Performance Trends page now shows detailed performance metrics with improved visualization
+- Removed unused monthly performance chart component
+
 ---
 
 ## [1.3.1] - 2026-01-28
