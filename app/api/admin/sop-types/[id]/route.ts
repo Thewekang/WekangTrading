@@ -82,19 +82,21 @@ export async function PATCH(
             shortNotes = parsed.notes || '';
             
             // Validate image sizes
-            for (const image of shortImages) {
-              const validation = validateImageSize(image);
-              if (!validation.valid) {
-                return NextResponse.json(
-                  { 
-                    success: false, 
-                    error: { 
-                      code: 'IMAGE_TOO_LARGE', 
-                      message: `Short entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
-                    } 
-                  },
-                  { status: 400 }
-                );
+            if (shortImages && shortImages.length > 0) {
+              for (const image of shortImages) {
+                const validation = validateImageSize(image);
+                if (!validation.valid) {
+                  return NextResponse.json(
+                    { 
+                      success: false, 
+                      error: { 
+                        code: 'IMAGE_TOO_LARGE', 
+                        message: `Short entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                      } 
+                    },
+                    { status: 400 }
+                  );
+                }
               }
             }
           } else {
@@ -118,19 +120,21 @@ export async function PATCH(
             longNotes = parsed.notes || '';
             
             // Validate image sizes
-            for (const image of longImages) {
-              const validation = validateImageSize(image);
-              if (!validation.valid) {
-                return NextResponse.json(
-                  { 
-                    success: false, 
-                    error: { 
-                      code: 'IMAGE_TOO_LARGE', 
-                      message: `Long entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
-                    } 
-                  },
-                  { status: 400 }
-                );
+            if (longImages && longImages.length > 0) {
+              for (const image of longImages) {
+                const validation = validateImageSize(image);
+                if (!validation.valid) {
+                  return NextResponse.json(
+                    { 
+                      success: false, 
+                      error: { 
+                        code: 'IMAGE_TOO_LARGE', 
+                        message: `Long entry image size (${validation.sizeKB}KB) exceeds maximum allowed size (500KB)` 
+                      } 
+                    },
+                    { status: 400 }
+                  );
+                }
               }
             }
           } else {
