@@ -735,6 +735,7 @@ export default function AdminSopTypesPage() {
                       setFormData({ 
                         name: '', 
                         description: '',
+                        sortOrder: 0,
                         detailContentShort: '',
                         detailContentLong: '',
                         detailEnabledShort: false,
