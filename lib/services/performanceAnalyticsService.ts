@@ -171,9 +171,6 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       )
       .orderBy(individualTrades.tradeTimestamp);
 
-    console.log('[getMonthlyPerformance] Query range:', { startDate, endDate, year, month, timezone });
-    console.log('[getMonthlyPerformance] Found trades:', trades.length);
-
     // Group trades by day in user's timezone
     const dailyMap = new Map<number, {
       trades: number;
@@ -225,8 +222,6 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     });
 
     const totalLosses = totalTrades - totalWins;
-    
-    console.log('[getMonthlyPerformance] After filtering:', { totalTrades, dailyMapSize: dailyMap.size, days: Array.from(dailyMap.keys()) });
 
     // Convert map to array of daily breakdowns
     const dailyBreakdown = Array.from(dailyMap.entries()).map(([day, data]) => ({

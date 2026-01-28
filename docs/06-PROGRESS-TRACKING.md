@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 2.8
-- **Status**: ACTIVE - Feature 5 Complete ✅  
-- **Last Updated**: January 25, 2026
+- **Version**: 2.9
+- **Status**: ACTIVE - v1.4.0 Complete ✅  
+- **Last Updated**: January 29, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,14 +13,14 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.2.2 + Feature 5 Complete ✅  
+**Project Status**: 🚀 v1.4.0 - User Ranking & Performance Analytics ✅  
 **Start Date**: January 8, 2026  
-**Latest Development**: January 25, 2026 (Feature 5 - SOP Details & Mobile)  
+**Latest Development**: January 29, 2026 (v1.4.0 - User Ranking + Enhanced Performance View)  
 **Current Phase**: Ready for Staging Deployment  
-**Active Branch**: feature/sop-details-mobile
+**Active Branch**: feature/user-ranking-and-performance-update
 
 ```
-Overall Progress: ████████████████████ 100% Complete (v1.2.2)
+Overall Progress: ████████████████████ 100% Complete (v1.4.0)
 
 Phase Breakdown:
 ├─ Phase 0: Setup & Foundation       [100%] ██████████ ✅
@@ -30,12 +30,41 @@ Phase Breakdown:
 ├─ Phase 4: Advanced Features        [100%] ██████████ ✅
 ├─ Phase 5: Polish & Deployment      [100%] ██████████ ✅
 ├─ Phase 6: Performance Optimization [100%] ██████████ ✅
-└─ Hotfix v1.2.2: Critical Fixes     [100%] ██████████ ✅
+└─ v1.4.0: User Ranking + Analytics  [100%] ██████████ ✅
 ```
 
 ---
 
 ## 1.2 Recent Release Summary
+
+### v1.4.0 - January 29, 2026 (Feature Release)
+
+**Major Features Added**:
+- 🏆 **User Ranking System**: Anonymous leaderboard showing trader's rank among peers
+  - Medal indicators for top 3 performers (🥇🥈🥉)
+  - Minimum 10 trades qualification for last 30 days
+  - Win rate-based ranking
+  - Privacy-preserving (no names revealed)
+- 📊 **Enhanced Performance Analytics**: Complete calendar-based performance view
+  - Month/Year toggle with interactive calendar
+  - Daily performance visualization (color-coded by P/L)
+  - Yearly overview with 12 monthly cards
+  - Full calendar grid (all days, not just trading days)
+  - 4 gradient summary cards
+- 🌍 **Timezone-Aware Aggregation**: All performance data now respects user's timezone
+  - Trades grouped by day in user's local time
+  - Fixed critical timezone conversion bugs
+  - Proper handling of timezone edge cases
+
+**Critical Fixes**:
+- Fixed trades not appearing on correct calendar day due to timezone conversion bug
+- Replaced unreliable `toLocaleString()` with proper `Intl.DateTimeFormat` API
+- Performance queries now use individualTrades directly for timezone-correct grouping
+
+**Impact**:
+- Users can now see their competitive standing anonymously
+- Performance analytics accurately reflect user's local trading times
+- Calendar view provides comprehensive daily performance overview
 
 ### v1.2.2 - January 24, 2026 (Hotfix Release)
 
