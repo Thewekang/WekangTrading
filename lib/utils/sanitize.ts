@@ -1,12 +1,12 @@
-import DOMPurify from 'isomorphic-dompurify';
+import sanitize from 'sanitize-html';
 
 /**
  * Sanitize HTML content to prevent XSS attacks
- * Client-safe utility (no server dependencies)
+ * Uses sanitize-html which works in Node.js serverless environments
  */
 export function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
+  return sanitize(html, {
+    allowedTags: [
       'p', 'br', 'strong', 'em', 'u', 's',
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'ul', 'ol', 'li',
@@ -14,7 +14,15 @@ export function sanitizeHtml(html: string): string {
       'blockquote', 'hr',
       'img', 'figure', 'figcaption'
     ],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'class'],
-    ALLOW_DATA_ATTR: false,
+    allowedAttributes: {
+      'a': ['href', 'target', 'rel', 'class'],
+      'img': ['src', 'alt', 'title', 'class'],
+      '*': ['class']
+    },
+    allowedSchemes: ['http', 'https', 'data'],
+    // Allow data: URLs for base64 images
+    allowedSchemesByTag: {
+      img: ['http', 'https', 'data']
+    }
   });
 }
