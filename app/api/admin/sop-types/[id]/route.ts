@@ -18,10 +18,11 @@ export const revalidate = 0;
  */
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
+    
     const [sopType] = await db.select().from(sopTypes).where(eq(sopTypes.id, id)).limit(1);
     
     if (!sopType) {
@@ -56,7 +57,7 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -74,7 +75,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = await context.params;
+    const { id } = await params;
     const body = await req.json();
     const { 
       name, 
@@ -242,7 +243,7 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -260,7 +261,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = await context.params;
+    const { id } = await params;
     await deleteSopType(id);
 
     return NextResponse.json({
