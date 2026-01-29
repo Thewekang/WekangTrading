@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getAllSopTypes, createSopType } from '@/lib/services/sopTypeService';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/sop-types
  * Get all SOP types (admin only)

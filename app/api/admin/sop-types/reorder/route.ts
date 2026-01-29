@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth';
 import { reorderSopTypes } from '@/lib/services/sopTypeService';
 import { z } from 'zod';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const reorderSchema = z.object({
   orderedIds: z.array(z.string()).min(1)
 });
