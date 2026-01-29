@@ -18,12 +18,10 @@ export const revalidate = 0;
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Handle both sync and async params (Next.js 14 vs 15)
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const { id } = resolvedParams;
+    const { id } = await params;
     
     const [sopType] = await db.select().from(sopTypes).where(eq(sopTypes.id, id)).limit(1);
     
@@ -59,7 +57,7 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -77,9 +75,7 @@ export async function PATCH(
       );
     }
 
-    // Handle both sync and async params
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const { id } = resolvedParams;
+    const { id } = await params;
     const body = await req.json();
     const { 
       name, 
@@ -247,7 +243,7 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -265,9 +261,7 @@ export async function DELETE(
       );
     }
 
-    // Handle both sync and async params
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const { id } = resolvedParams;
+    const { id } = await params;
     await deleteSopType(id);
 
     return NextResponse.json({
