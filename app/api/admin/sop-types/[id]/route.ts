@@ -4,6 +4,10 @@ import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
 import { updateSopDetail } from '@/lib/services/sopDetailService';
 import { validateImageSize } from '@/lib/utils/imageValidation';
 
+// Force Node.js runtime (Vercel deployment fix)
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * PATCH /api/admin/sop-types/[id]
  * Update SOP type (admin only)
