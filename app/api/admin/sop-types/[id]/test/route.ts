@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Step 3b: Test imports ONE BY ONE
+// Step 3c: Test sopTypeService import
 import { auth } from '@/lib/auth';
-// import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
+import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
 // import { updateSopDetail } from '@/lib/services/sopDetailService';
 // import { validateImageSize } from '@/lib/utils/imageValidation';
 import { db } from '@/lib/db';
@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Test endpoint - Step 3b: Test auth import only
+ * Test endpoint - Step 3c: Test sopTypeService import
  * GET /api/admin/sop-types/[id]/test
  */
 export async function GET(
@@ -21,25 +21,22 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
-    // Test auth
-    const session = await auth();
-    
     const [sopType] = await db.select().from(sopTypes).where(eq(sopTypes.id, id)).limit(1);
     
     return NextResponse.json({
       success: true,
-      step: '3b-auth-only',
-      message: 'Auth import works',
+      step: '3c-sopTypeService',
+      message: 'sopTypeService import works',
       id,
-      hasSession: !!session,
       sopTypeFound: !!sopType,
+      updateSopTypeLoaded: typeof updateSopType === 'function',
+      deleteSopTypeLoaded: typeof deleteSopType === 'function',
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      step: '3b-auth-only',
+      step: '3c-sopTypeService',
       error: error.message,
       stack: error.stack?.split('\n').slice(0, 5).join('\n')
     }, { status: 500 });
