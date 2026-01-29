@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Step 3c: Test sopTypeService import
+// Step 3d: Test sopDetailService import
 import { auth } from '@/lib/auth';
 import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
-// import { updateSopDetail } from '@/lib/services/sopDetailService';
+import { updateSopDetail } from '@/lib/services/sopDetailService';
 // import { validateImageSize } from '@/lib/utils/imageValidation';
 import { db } from '@/lib/db';
 import { sopTypes } from '@/lib/db/schema';
@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Test endpoint - Step 3c: Test sopTypeService import
+ * Test endpoint - Step 3d: Test sopDetailService import
  * GET /api/admin/sop-types/[id]/test
  */
 export async function GET(
@@ -25,18 +25,17 @@ export async function GET(
     
     return NextResponse.json({
       success: true,
-      step: '3c-sopTypeService',
-      message: 'sopTypeService import works',
+      step: '3d-sopDetailService',
+      message: 'sopDetailService import works',
       id,
       sopTypeFound: !!sopType,
-      updateSopTypeLoaded: typeof updateSopType === 'function',
-      deleteSopTypeLoaded: typeof deleteSopType === 'function',
+      updateSopDetailLoaded: typeof updateSopDetail === 'function',
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      step: '3c-sopTypeService',
+      step: '3d-sopDetailService',
       error: error.message,
       stack: error.stack?.split('\n').slice(0, 5).join('\n')
     }, { status: 500 });
