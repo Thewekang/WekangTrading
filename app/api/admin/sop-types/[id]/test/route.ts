@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Step 3d: Test sopDetailService import
+// Step 3e: Test sanitize import directly
 import { auth } from '@/lib/auth';
 import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
-import { updateSopDetail } from '@/lib/services/sopDetailService';
-// import { validateImageSize } from '@/lib/utils/imageValidation';
+// import { updateSopDetail } from '@/lib/services/sopDetailService';
+import { sanitizeHtml } from '@/lib/utils/sanitize';
 import { db } from '@/lib/db';
 import { sopTypes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Test endpoint - Step 3d: Test sopDetailService import
+ * Test endpoint - Step 3e: Test sanitize import directly
  * GET /api/admin/sop-types/[id]/test
  */
 export async function GET(
@@ -25,17 +25,17 @@ export async function GET(
     
     return NextResponse.json({
       success: true,
-      step: '3d-sopDetailService',
-      message: 'sopDetailService import works',
+      step: '3e-sanitize',
+      message: 'sanitize import works',
       id,
       sopTypeFound: !!sopType,
-      updateSopDetailLoaded: typeof updateSopDetail === 'function',
+      sanitizeHtmlLoaded: typeof sanitizeHtml === 'function',
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      step: '3d-sopDetailService',
+      step: '3e-sanitize',
       error: error.message,
       stack: error.stack?.split('\n').slice(0, 5).join('\n')
     }, { status: 500 });
