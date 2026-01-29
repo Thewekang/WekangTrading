@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+// Step 2: Add database imports
+import { db } from '@/lib/db';
+import { sopTypes } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Minimal test endpoint to isolate 500 error
+ * Test endpoint - Step 2: Test database imports
  * GET /api/admin/sop-types/[id]/test
  */
 export async function GET(
@@ -12,21 +16,26 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Step 1: Just return params (no imports)
     const { id } = await params;
+    
+    // Step 2: Try database query
+    const [sopType] = await db.select().from(sopTypes).where(eq(sopTypes.id, id)).limit(1);
     
     return NextResponse.json({
       success: true,
-      step: 1,
-      message: 'Basic route works',
+      step: 2,
+      message: 'Database import and query works',
       id,
+      sopTypeFound: !!sopType,
+      sopTypeName: sopType?.name || null,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     return NextResponse.json({
       success: false,
+      step: 2,
       error: error.message,
-      stack: error.stack
+      stack: error.stack?.split('\n').slice(0, 5).join('\n')
     }, { status: 500 });
   }
 }
