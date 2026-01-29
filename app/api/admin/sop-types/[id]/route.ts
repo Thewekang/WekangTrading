@@ -3,10 +3,51 @@ import { auth } from '@/lib/auth';
 import { updateSopType, deleteSopType } from '@/lib/services/sopTypeService';
 import { updateSopDetail } from '@/lib/services/sopDetailService';
 import { validateImageSize } from '@/lib/utils/imageValidation';
+import { db } from '@/lib/db';
+import { sopTypes } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
-// Force Node.js runtime (Vercel deployment fix)
+// Next.js 15 Route Segment Config
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+/**
+ * GET /api/admin/sop-types/[id]
+ * Get single SOP type (for debugging deployment)
+ */
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const [sopType] = await db.select().from(sopTypes).where(eq(sopTypes.id, id)).limit(1);
+    
+    if (!sopType) {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: 'SOP type not found' } },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({
+      success: true,
+      data: sopType,
+      debug: {
+        route: 'deployed',
+        runtime: 'nodejs',
+        timestamp: new Date().toISOString(),
+        nodeVersion: process.version
+      }
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: { code: 'ERROR', message: error.message } },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * PATCH /api/admin/sop-types/[id]
@@ -15,7 +56,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -33,7 +74,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     const body = await req.json();
     const { 
       name, 
@@ -201,7 +242,7 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -219,7 +260,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = await params;
+    const { id } = await context.params;
     await deleteSopType(id);
 
     return NextResponse.json({
