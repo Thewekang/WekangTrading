@@ -114,16 +114,21 @@ export function TiptapEditor({ content, onChange, placeholder, entryType, images
         const items = event.clipboardData?.items;
         if (!items) return false;
 
+        // Check if clipboard contains an image
+        let hasImage = false;
         for (let i = 0; i < items.length; i++) {
           if (items[i].type.indexOf('image') !== -1) {
-            event.preventDefault();
+            hasImage = true;
+            event.preventDefault(); // Only prevent default for images
             const file = items[i].getAsFile();
             if (file) {
               handleImageFile(file);
             }
-            return true;
+            return true; // Image handled, stop here
           }
         }
+        
+        // No image found - let default text paste behavior happen
         return false;
       },
     },
