@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-01-30
+
+### Fixed
+- **Critical Production Bug**: Fixed 405/500 error when saving SOP details in admin panel
+  - **Root Cause**: `isomorphic-dompurify` package incompatible with Vercel serverless environment (uses JSDOM internally)
+  - **Solution**: Replaced with `sanitize-html` which is Node.js native and serverless-compatible
+  - Updated `lib/utils/sanitize.ts` to use new sanitization library
+  - Maintained same XSS protection capabilities with equivalent allowed tags and attributes
+  - All admin SOP management functions now work correctly in production
+
+---
+
 ## [1.4.0] - 2026-01-29
 
 ### Added
