@@ -151,12 +151,17 @@ export function datetimeLocalToUTC(datetimeLocalValue: string, timezone: string)
   const [year, month, day] = datePart.split('-').map(Number);
   const [hours, minutes] = timePart.split(':').map(Number);
   
-  // Create an ISO string that represents this time in the target timezone
-  // We'll use Intl to format a known UTC time in the target timezone,
-  // then calculate the offset
-  const testDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  // Create a date string in ISO format that would represent this time in the target timezone
+  // We need to find what UTC time corresponds to this local time in the target timezone
   
-  // Format the test date in the target timezone
+  // Step 1: Create an ISO string with the local time components
+  const localTimeStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  
+  // Step 2: Parse this as if it were in the target timezone by using a reverse calculation
+  // Create a date assuming UTC, then adjust for the timezone offset
+  const utcGuess = new Date(`${localTimeStr}Z`); // Parse as UTC
+  
+  // Step 3: Get the offset of the target timezone at this approximate time
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -168,18 +173,22 @@ export function datetimeLocalToUTC(datetimeLocalValue: string, timezone: string)
     hour12: false,
   });
   
-  const parts = formatter.formatToParts(testDate);
+  // Format the UTC guess in the target timezone to see what local time it would be
+  const parts = formatter.formatToParts(utcGuess);
   const tzYear = parseInt(parts.find(p => p.type === 'year')?.value || '0');
   const tzMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0');
   const tzDay = parseInt(parts.find(p => p.type === 'day')?.value || '0');
   const tzHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
   const tzMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+  const tzSecond = parseInt(parts.find(p => p.type === 'second')?.value || '0');
   
-  // Calculate the offset between what we want and what UTC gives us
-  const wantedDate = new Date(year, month - 1, day, hours, minutes);
-  const tzDate = new Date(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute);
-  const offset = wantedDate.getTime() - tzDate.getTime();
+  // Step 4: Calculate the difference between our target time and what the UTC guess gave us
+  const targetTime = Date.UTC(year, month - 1, day, hours, minutes, 0);
+  const actualTzTime = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, tzSecond);
+  const offset = targetTime - actualTzTime;
   
-  // Apply the offset to get the correct UTC time
-  return new Date(testDate.getTime() + offset);
+  // Step 5: Apply the offset to get the correct UTC time
+  const correctUtc = new Date(utcGuess.getTime() + offset);
+  
+  return correctUtc;
 }
