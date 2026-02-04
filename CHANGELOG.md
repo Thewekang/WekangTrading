@@ -9,22 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **CSV Import Timezone Bug (HOTFIX)**: Fixed incorrect "Trade date cannot be in the future" validation errors
-  - **Root Cause**: `datetimeLocalToUTC()` function in `lib/utils/timezones.ts` was using browser's local timezone instead of target timezone for date calculations
-  - **Impact**: Users in timezones ahead of UTC (e.g., Malaysia UTC+8) couldn't import trades from current date because conversion was incorrect
-  - **Example**: Feb 3, 2026 1:01 AM Malaysia time was incorrectly converted, causing future date validation error
-  - **Solution**: Fixed timezone conversion to use `Date.UTC()` for all calculations instead of local `new Date()` constructor
-  - **Testing**: Verified with Malaysia timezone (UTC+8) - trades from Feb 3, 2026 now correctly convert to Feb 2, 2026 UTC and pass validation
+---
+
+## [1.4.2] - 2026-02-05
+
+### Added
+- **Timezone Selection in Quick Trade Entry**: Users can now select timezone for trade timestamps (matching bulk and CSV import functionality)
+  - Timezone dropdown with default to user's preferred timezone setting
+  - Properly converts selected timezone to UTC for storage
+  - Ensures consistent timezone handling across all 3 entry methods (Quick, Bulk, CSV)
+  - Displays selected timezone in helper text for clarity
 
 ### Changed
-- **Professional Branding**: Replaced emoji icons (🏍️💰) with professional Wekang Trading logo
-  - Updated landing page header and footer
-  - Updated login and register pages
-  - Updated user navigation header
-  - Updated dashboard welcome message
-  - Updated trade entry form
-  - Improved visual identity and professional appearance
+- **Allow Duplicate Timestamps**: Removed timestamp uniqueness validation from all trade entry methods
+  - **Rationale**: Time format excludes seconds, making it legitimate for multiple trades to occur within the same minute
+  - Removed duplicate timestamp check from Bulk Trade Entry
+  - Removed duplicate timestamp check from CSV Import (both internal and existing trade checks)
+  - Updated Copilot instructions to reflect that duplicate timestamps are now allowed
+  - Quick Trade Entry already allowed duplicates (no changes needed)
 
 ---
 

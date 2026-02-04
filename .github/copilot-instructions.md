@@ -110,7 +110,7 @@ enum TargetCategory { PROP_FIRM, PERSONAL }
   tradeDate: z.date(),
   trades: z.array(individualTradeSchema).min(1).max(100),
   // All trades must be on same date (validate in API)
-  // No duplicate timestamps (validate in API)
+  // Duplicate timestamps are allowed (time format excludes seconds)
 }
 ```
 
@@ -360,14 +360,26 @@ xl: 1280px  // Large screens
 
 ### Real-Time Entry Workflow (Mobile Priority)
 - Quick entry during trading session
+- **Timezone selection** with default to user's preferred timezone
 - Minimal fields: timestamp, result, SOP, profit/loss
 - Large buttons, easy thumb access
 - Success toast notifications
+- Timestamp converted to UTC using selected timezone
 
 ### Bulk Entry Workflow (Desktop Priority)
 - Table-like input with keyboard navigation
+- **Timezone selection** with default to user's preferred timezone
 - Copy/paste support
 - Batch validation feedback
+- All timestamps converted to UTC using selected timezone
+
+### CSV Import Workflow
+- Upload CSV file with trade data
+- **Timezone selection** for interpreting CSV timestamps
+- Parse and validate trades
+- Preview before import
+- Batch insert with error handling
+- All timestamps converted to UTC using selected timezone
 
 ---
 
