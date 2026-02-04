@@ -110,7 +110,7 @@ enum TargetCategory { PROP_FIRM, PERSONAL }
   tradeDate: z.date(),
   trades: z.array(individualTradeSchema).min(1).max(100),
   // All trades must be on same date (validate in API)
-  // No duplicate timestamps (validate in API)
+  // Duplicate timestamps are allowed (time format excludes seconds)
 }
 ```
 
