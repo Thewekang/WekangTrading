@@ -42,16 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate timestamps
-    const timestamps = validatedData.trades.map(t => new Date(t.tradeTimestamp).toISOString());
-    const uniqueTimestamps = new Set(timestamps);
-    if (timestamps.length !== uniqueTimestamps.size) {
-      return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Duplicate trade timestamps detected' } },
-        { status: 400 }
-      );
-    }
-
     // Prepare trades for bulk insert
     const trades = validatedData.trades.map(trade => ({
       userId: session.user.id,

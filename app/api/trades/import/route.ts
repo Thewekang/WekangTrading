@@ -79,41 +79,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate timestamps within the import
-    const timestamps = trades.map(t => new Date(t.tradeTimestamp).getTime());
-    const uniqueTimestamps = new Set(timestamps);
-    if (timestamps.length !== uniqueTimestamps.size) {
-      return NextResponse.json(
-        { success: false, error: 'Duplicate timestamps found in import file' },
-        { status: 400 }
-      );
-    }
-
-    // Check for existing trades with same timestamps
-    const existingTrades = await db
-      .select({ tradeTimestamp: individualTrades.tradeTimestamp })
-      .from(individualTrades)
-      .where(eq(individualTrades.userId, session.user.id));
-
-    const existingTimestampSet = new Set(
-      existingTrades.map(t => t.tradeTimestamp.getTime())
-    );
-
-    const duplicates = trades.filter(t =>
-      existingTimestampSet.has(new Date(t.tradeTimestamp).getTime())
-    );
-
-    if (duplicates.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `${duplicates.length} trades already exist with the same timestamps`,
-          duplicates: duplicates.map(d => d.tradeTimestamp),
-        },
-        { status: 400 }
-      );
-    }
-
     // Get or create SOP types
     const uniqueSopTypeNames = [...new Set(trades.map(t => t.sopTypeName).filter(Boolean))];
     const sopTypeMap = new Map<string, string>();
