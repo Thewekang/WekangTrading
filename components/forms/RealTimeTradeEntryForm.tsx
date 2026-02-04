@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
 
 interface SopType {
@@ -36,7 +37,8 @@ function formatDateForInput(date: Date): string {
 
 export function RealTimeTradeEntryForm() {
   const router = useRouter();
-  const { timezone, toDatetimeLocal, datetimeLocalToUTC } = useTimezone();
+  const { timezone: userTimezone, toDatetimeLocal } = useTimezone();
+  const [entryTimezone, setEntryTimezone] = useState(userTimezone); // Timezone for this entry
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -119,13 +121,30 @@ export function RealTimeTradeEntryForm() {
         profitLoss = Math.abs(profitLoss);
       }
       
-      // Convert datetime-local input to UTC considering user's timezone
+      // Convert datetime-local input to UTC considering selected entry timezone
       let utcTimestamp: Date;
       if (data.tradeTimestamp instanceof Date) {
-        utcTimestamp = data.tradeTimestamp;
+        // Convert Date object to datetime-local string in entry timezone, then to UTC
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: entryTimezone,
+        });
+        const parts = formatter.formatToParts(data.tradeTimestamp);
+        const year = parts.find(p => p.type === 'year')?.value;
+        const month = parts.find(p => p.type === 'month')?.value;
+        const day = parts.find(p => p.type === 'day')?.value;
+        const hour = parts.find(p => p.type === 'hour')?.value;
+        const minute = parts.find(p => p.type === 'minute')?.value;
+        const datetimeString = `${year}-${month}-${day}T${hour}:${minute}`;
+        utcTimestamp = convertToUTC(datetimeString, entryTimezone);
       } else if (typeof data.tradeTimestamp === 'string') {
-        // If it's a datetime-local string format, convert using timezone
-        utcTimestamp = datetimeLocalToUTC(data.tradeTimestamp);
+        // If it's a datetime-local string format, convert using selected entry timezone
+        utcTimestamp = convertToUTC(data.tradeTimestamp, entryTimezone);
       } else {
         utcTimestamp = new Date(data.tradeTimestamp);
       }
@@ -249,6 +268,27 @@ export function RealTimeTradeEntryForm() {
           {errors.tradeTimestamp && (
             <p className="mt-1 text-sm text-red-600">{errors.tradeTimestamp.message}</p>
           )}
+        </div>
+
+        {/* Entry Timezone */}
+        <div>
+          <Label htmlFor="entryTimezone">Entry Timezone</Label>
+          <select
+            id="entryTimezone"
+            value={entryTimezone}
+            onChange={(e) => setEntryTimezone(e.target.value)}
+            disabled={isSubmitting}
+            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label} {tz.value === userTimezone && '(Your Setting)'}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            Trade time will be interpreted as {entryTimezone} and converted to UTC
+          </p>
         </div>
 
         {/* Result - Large Touch-Friendly Buttons */}
