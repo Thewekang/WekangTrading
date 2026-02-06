@@ -57,6 +57,13 @@
       "when": 1769615281737,
       "tag": "0007_swift_paladin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1770403691498,
+      "tag": "0008_handy_exodus",
+      "breakpoints": true
     }
   ]
 }
