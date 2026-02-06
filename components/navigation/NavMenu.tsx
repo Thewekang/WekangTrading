@@ -71,6 +71,7 @@ export function DesktopNav() {
     <div className="hidden lg:flex items-center space-x-1">
       <NavLink href="/dashboard">Dashboard</NavLink>
       <NavLink href="/trades">Trades</NavLink>
+      <NavLink href="/discipline-tracker">🛡️ Discipline</NavLink>
       
       <NavDropdown
         label="Performance"
@@ -120,6 +121,7 @@ export function MobileNav() {
           <div className="container mx-auto px-4 py-4 space-y-2">
             <NavLink href="/dashboard" className="block">Dashboard</NavLink>
             <NavLink href="/trades" className="block">Trades</NavLink>
+            <NavLink href="/discipline-tracker" className="block">🛡️ Discipline</NavLink>
             
             <div className="border-t pt-2 mt-2">
               <div className="text-xs font-semibold text-gray-500 px-3 mb-2">Performance</div>
