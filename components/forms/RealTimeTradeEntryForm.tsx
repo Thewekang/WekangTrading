@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
-import { usePostTradeQuote } from '@/lib/hooks/useQuoteHooks';
 import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
 
@@ -39,7 +38,6 @@ function formatDateForInput(date: Date): string {
 export function RealTimeTradeEntryForm() {
   const router = useRouter();
   const { timezone: userTimezone, toDatetimeLocal } = useTimezone();
-  const { showWinQuote, showLossQuote, showDisciplineQuote } = usePostTradeQuote();
   const [entryTimezone, setEntryTimezone] = useState(userTimezone); // Timezone for this entry
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -187,17 +185,7 @@ export function RealTimeTradeEntryForm() {
       
       // Success
       setSuccessMessage('✅ Trade recorded successfully!');
-      // Show motivational quote based on trade result
-      if (data.result === 'WIN') {
-        showWinQuote();
-      } else if (data.result === 'LOSS') {
-        showLossQuote();
-      } else if (!data.sopFollowed) {
-        // Show discipline quote if SOP not followed
-        showDisciplineQuote();
-      }
       
-      // 
       // Refresh daily loss alert if available
       if (typeof (window as any).refreshDailyLossAlert === 'function') {
         (window as any).refreshDailyLossAlert();
