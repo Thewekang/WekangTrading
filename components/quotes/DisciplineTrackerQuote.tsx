@@ -9,16 +9,58 @@
 import { useEffect, useState } from 'react';
 import { QuoteCard } from '@/components/quotes/QuoteCard';
 import type { TradingQuote } from '@/lib/validations/quote';
-import { Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 
 interface ContextualQuoteData {
   quote: TradingQuote;
   context: {
     category: string;
-    recentWinRate: number;
-    streak: string;
-    totalRecentTrades: number;
+    recentMood: 'winning' | 'losing' | 'mixed' | 'new';
+    lastThreeResults: ('WIN' | 'LOSS')[];
+    weeklyWinRate: number;
+    weeklyTotalTrades: number;
   };
+}
+
+function getMoodIcon(mood: 'winning' | 'losing' | 'mixed' | 'new') {
+  switch (mood) {
+    case 'winning':
+      return <TrendingUp className="h-4 w-4 text-green-600" />;
+    case 'losing':
+      return <TrendingDown className="h-4 w-4 text-red-600" />;
+    case 'mixed':
+      return <Minus className="h-4 w-4 text-yellow-600" />;
+    case 'new':
+      return <Sparkles className="h-4 w-4 text-purple-600" />;
+  }
+}
+
+function getMoodText(context: ContextualQuoteData['context']): string {
+  if (context.recentMood === 'new' || context.weeklyTotalTrades === 0) {
+    return 'Ready to start trading';
+  }
+
+  const moodDescriptions = {
+    winning: 'On a winning streak',
+    losing: 'Recovery mode',
+    mixed: 'Mixed results',
+    new: 'Getting started',
+  };
+
+  const parts = [moodDescriptions[context.recentMood]];
+
+  if (context.lastThreeResults.length > 0) {
+    const resultStr = context.lastThreeResults
+      .map(r => r === 'WIN' ? 'W' : 'L')
+      .join('-');
+    parts.push(`Last 3: ${resultStr}`);
+  }
+
+  if (context.weeklyTotalTrades > 0) {
+    parts.push(`Weekly: ${context.weeklyWinRate.toFixed(0)}% (${context.weeklyTotalTrades} trades)`);
+  }
+
+  return parts.join(' · ');
 }
 
 export function DisciplineTrackerQuote() {
@@ -67,18 +109,9 @@ export function DisciplineTrackerQuote() {
     <div className="mb-6">
       {/* Context Info Badge */}
       <div className="mb-2 flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
-        <Sparkles className="h-4 w-4" />
+        {getMoodIcon(quoteData.context.recentMood)}
         <span className="font-medium">
-          {quoteData.context.totalRecentTrades > 0 ? (
-            <>
-              Based on your recent performance: {quoteData.context.recentWinRate.toFixed(0)}% win rate
-              {quoteData.context.streak !== 'neutral' && (
-                <> · Current streak: {quoteData.context.streak}</>
-              )}
-            </>
-          ) : (
-            'Start trading to get personalized quotes'
-          )}
+          {getMoodText(quoteData.context)}
         </span>
       </div>
 
@@ -98,7 +131,7 @@ export function DisciplineTrackerQuote() {
 
       {/* Refresh Hint */}
       <p className="mt-2 text-xs text-muted-foreground text-center">
-        Refresh the page to see a new quote weighted to your trading context
+        Quote weighted to your last 3 trades and weekly performance · Refresh page for new quote
       </p>
     </div>
   );

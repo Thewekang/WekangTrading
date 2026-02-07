@@ -10,65 +10,70 @@ import { getRandomQuote } from './quoteService';
 import type { QuoteCategory } from '@/lib/validations/quote';
 
 interface TradingContext {
-  recentWinRate: number;
-  consecutiveLosses: number;
-  consecutiveWins: number;
-  totalRecentTrades: number;
-  isOnLosingStreak: boolean;
-  isOnWinningStreak: boolean;
+  lastThreeResults: ('WIN' | 'LOSS')[];
+  weeklyWinRate: number;
+  weeklyTotalTrades: number;
+  recentMood: 'winning' | 'losing' | 'mixed' | 'new';
 }
 
 /**
- * Analyze user's recent trading performance (last 20 trades)
+ * Analyze user's last 3 trades and weekly performance
  */
 async function analyzeTradingContext(userId: string): Promise<TradingContext> {
-  // Get last 20 trades
-  const recentTrades = await db
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  // Get last 3 trades
+  const lastThreeTrades = await db
     .select({
       result: individualTrades.result,
-      timestamp: individualTrades.tradeTimestamp,
     })
     .from(individualTrades)
     .where(eq(individualTrades.userId, userId))
     .orderBy(desc(individualTrades.tradeTimestamp))
-    .limit(20);
+    .limit(3);
 
-  if (recentTrades.length === 0) {
-    return {
-      recentWinRate: 0,
-      consecutiveLosses: 0,
-      consecutiveWins: 0,
-      totalRecentTrades: 0,
-      isOnLosingStreak: false,
-      isOnWinningStreak: false,
-    };
-  }
+  // Get weekly trades
+  const weeklyTrades = await db
+    .select({
+      result: individualTrades.result,
+    })
+    .from(individualTrades)
+    .where(
+      and(
+        eq(individualTrades.userId, userId),
+        gte(individualTrades.tradeTimestamp, oneWeekAgo)
+      )
+    )
+    .all();
 
-  // Calculate win rate
-  const wins = recentTrades.filter(t => t.result === 'WIN').length;
-  const recentWinRate = (wins / recentTrades.length) * 100;
+  const lastThreeResults = lastThreeTrades.map(t => t.result);
+  const weeklyWins = weeklyTrades.filter(t => t.result === 'WIN').length;
+  const weeklyWinRate = weeklyTrades.length > 0 ? (weeklyWins / weeklyTrades.length) * 100 : 0;
 
-  // Calculate consecutive streaks (from most recent)
-  let consecutiveLosses = 0;
-  let consecutiveWins = 0;
-
-  for (const trade of recentTrades) {
-    if (trade.result === 'LOSS') {
-      consecutiveLosses++;
-      if (consecutiveWins > 0) break; // Stop if we hit a win after counting losses
-    } else if (trade.result === 'WIN') {
-      consecutiveWins++;
-      if (consecutiveLosses > 0) break; // Stop if we hit a loss after counting wins
+  // Determine mood based on last 3 trades
+  let recentMood: 'winning' | 'losing' | 'mixed' | 'new' = 'new';
+  
+  if (lastThreeResults.length === 0) {
+    recentMood = 'new';
+  } else if (lastThreeResults.length >= 2) {
+    const wins = lastThreeResults.filter(r => r === 'WIN').length;
+    const losses = lastThreeResults.filter(r => r === 'LOSS').length;
+    
+    if (wins >= 2) {
+      recentMood = 'winning';
+    } else if (losses >= 2) {
+      recentMood = 'losing';
+    } else {
+      recentMood = 'mixed';
     }
   }
 
   return {
-    recentWinRate,
-    consecutiveLosses,
-    consecutiveWins,
-    totalRecentTrades: recentTrades.length,
-    isOnLosingStreak: consecutiveLosses >= 2,
-    isOnWinningStreak: consecutiveWins >= 3,
+    lastThreeResults,
+    weeklyWinRate,
+    weeklyTotalTrades: weeklyTrades.length,
+    recentMood,
   };
 }
 
@@ -78,44 +83,51 @@ async function analyzeTradingContext(userId: string): Promise<TradingContext> {
 function getContextualCategoryWeights(context: TradingContext): QuoteCategory[] {
   const categories: QuoteCategory[] = [];
 
-  // If on losing streak (2+ consecutive losses or win rate < 40%)
-  if (context.isOnLosingStreak || context.recentWinRate < 40) {
-    // Heavy bias towards discipline/patience/loss recovery
+  // New trader or no recent trades
+  if (context.recentMood === 'new' || context.weeklyTotalTrades === 0) {
     categories.push(
-      'discipline', 'discipline', 'discipline', // 3x weight
-      'patience', 'patience', 'patience', // 3x weight
-      'loss', 'loss', // 2x weight
-      'mental', 'mental', // 2x weight
-      'overtrading', // 1x weight
-      'risk', // 1x weight
-      'confidence' // 1x small boost
+      'general', 'general', // 2x
+      'discipline', 'discipline', // 2x
+      'patience', // 1x
+      'mental', // 1x
+      'risk', // 1x
+      'confidence' // 1x
     );
   }
-  // If on winning streak (3+ consecutive wins or win rate > 60%)
-  else if (context.isOnWinningStreak || context.recentWinRate > 60) {
-    // Moderate bias towards confidence/risk management (avoid overconfidence)
+  // Recent losing mood (2+ losses in last 3) OR poor weekly performance (<40%)
+  else if (context.recentMood === 'losing' || context.weeklyWinRate < 40) {
     categories.push(
-      'win', 'win', // 2x weight - celebrate success
-      'confidence', 'confidence', // 2x weight - build on momentum
-      'discipline', 'discipline', // 2x weight - maintain discipline
-      'risk', // 1x weight - manage risk in winning streak
-      'patience', // 1x weight - don't force trades
-      'mental', // 1x weight
-      'general' // 1x weight
+      'loss', 'loss', 'loss', // 3x - focus on recovery
+      'patience', 'patience', 'patience', // 3x - slow down
+      'discipline', 'discipline', // 2x - stick to plan
+      'mental', 'mental', // 2x - mental game
+      'risk', // 1x - risk management
+      'overtrading', // 1x - avoid revenge trading
+      'general' // 1x
     );
   }
-  // Neutral performance (40-60% win rate, no strong streaks)
+  // Recent winning mood (2+ wins in last 3) OR strong weekly performance (>60%)
+  else if (context.recentMood === 'winning' || context.weeklyWinRate > 60) {
+    categories.push(
+      'win', 'win', 'win', // 3x - celebrate success
+      'confidence', 'confidence', // 2x - build momentum
+      'discipline', 'discipline', // 2x - maintain edge
+      'risk', 'risk', // 2x - don't get overconfident
+      'patience', // 1x - wait for setups
+      'general' // 1x
+    );
+  }
+  // Mixed recent performance or neutral weekly (40-60%)
   else {
-    // Balanced distribution
     categories.push(
-      'discipline', 'discipline', // 2x weight - always important
-      'confidence', // 1x weight
-      'patience', // 1x weight
-      'mental', // 1x weight
-      'risk', // 1x weight
-      'general', // 1x weight
-      'win', // 1x weight
-      'loss' // 1x weight
+      'discipline', 'discipline', 'discipline', // 3x - always key
+      'general', 'general', // 2x
+      'patience', // 1x
+      'mental', // 1x
+      'confidence', // 1x
+      'risk', // 1x
+      'loss', // 1x
+      'win' // 1x
     );
   }
 
@@ -149,13 +161,10 @@ export async function getContextualQuote(userId: string) {
       quote,
       context: {
         category: selectedCategory,
-        recentWinRate: context.recentWinRate,
-        streak: context.isOnLosingStreak 
-          ? `${context.consecutiveLosses} loss${context.consecutiveLosses > 1 ? 'es' : ''}`
-          : context.isOnWinningStreak
-          ? `${context.consecutiveWins} wins`
-          : 'neutral',
-        totalRecentTrades: context.totalRecentTrades,
+        recentMood: context.recentMood,
+        lastThreeResults: context.lastThreeResults,
+        weeklyWinRate: context.weeklyWinRate,
+        weeklyTotalTrades: context.weeklyTotalTrades,
       },
     };
   } catch (error) {
@@ -170,9 +179,10 @@ export async function getContextualQuote(userId: string) {
       quote,
       context: {
         category: 'general' as QuoteCategory,
-        recentWinRate: 0,
-        streak: 'unknown',
-        totalRecentTrades: 0,
+        recentMood: 'new' as const,
+        lastThreeResults: [],
+        weeklyWinRate: 0,
+        weeklyTotalTrades: 0,
       },
     };
   }
