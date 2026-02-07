@@ -11,11 +11,10 @@ import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/s
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
 import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTracker';
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
-import { useDisciplineQuote } from '@/lib/hooks/useQuoteHooks';
+import { DisciplineTrackerQuote } from '@/components/quotes/DisciplineTrackerQuote';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
-  const { showDisciplineQuote, showPatienceQuote, showOvertradinQuote } = useDisciplineQuote();
   const [settings, setSettings] = useState<DisciplineTrackerSettings | null>(null);
   const [rows, setRows] = useState<DisciplineTrackerRow[]>([]);
   const [filteredRows, setFilteredRows] = useState<DisciplineTrackerRow[]>([]);
@@ -245,6 +244,9 @@ export default function DisciplineTrackerPage() {
           <p className="text-muted-foreground mt-1">Rules before results</p>
         </div>
       </div>
+
+      {/* Contextual Quote - Pinned at Top */}
+      <DisciplineTrackerQuote />
 
       {/* Settings Panel */}
       <SettingsPanel settings={settings} onUpdate={handleUpdateSettings} />

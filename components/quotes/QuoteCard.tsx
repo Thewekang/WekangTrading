@@ -16,9 +16,10 @@ interface QuoteCardProps {
     author: string;
     sourceType: string;
   };
-  remainingQuotes: number;
-  onClose: () => void;
+  remainingQuotes?: number;
+  onClose?: () => void;
   variant?: 'toast' | 'inline'; // toast for post-trade, inline for dashboard
+  showCategoryBadge?: boolean; // Optional: show category badge
 }
 
 // ============================================
@@ -27,9 +28,10 @@ interface QuoteCardProps {
 
 export function QuoteCard({ 
   quote, 
-  remainingQuotes, 
+  remainingQuotes = 0, 
   onClose,
-  variant = 'toast'
+  variant = 'toast',
+  showCategoryBadge = true,
 }: QuoteCardProps) {
   
   const isToast = variant === 'toast';
@@ -97,11 +99,13 @@ export function QuoteCard({
           </p>
           
           {/* Category Badge */}
-          <div className="flex items-center space-x-2">
-            <span className="px-2 py-1 bg-white/20 rounded-full text-white/90 text-[10px] font-medium uppercase tracking-wider backdrop-blur-sm">
-              {quote.category}
-            </span>
-          </div>
+          {showCategoryBadge && (
+            <div className="flex items-center space-x-2">
+              <span className="px-2 py-1 bg-white/20 rounded-full text-white/90 text-[10px] font-medium uppercase tracking-wider backdrop-blur-sm">
+                {quote.category}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Footer Stats */}
