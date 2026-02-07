@@ -11,6 +11,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-02-07
+
+### Added
+- **🎯 Discipline Tracker Feature**: Complete execution discipline and rule enforcement system
+  - **Instrument-Agnostic Daily Tracker**: Track trading discipline across any market or account
+  - **Configurable P&L Settings**: Customize TP1/TP2/TP3, BE, and SL values per user
+  - **Auto-Locking Trades**: Prevent overtrading with rule-based trade locking
+    - Trade 1 win → Locks Trade 2 & 3 (stop for the day)
+    - Trade 2 win → Locks Trade 3 (preserve profits)
+    - Trade 2 loss → Locks Trade 3 (stop losses)
+  - **A+ Setup Confirmation**: Require high-quality setup confirmation after BE/SL outcomes
+  - **Range Expansion Tracking**: Track market conditions for Trade 3 eligibility
+  - **Session Window Enforcement**: Trade 3 only allowed in prime trading sessions
+  - **Real-Time Rule Evaluation**: Visual feedback with lock states and reasoning tooltips
+  - **Interactive Table**: Inline editing with debounced notes input (500ms delay)
+  - **Toggle Switches**: Independent A+ and Range Expansion confirmation controls
+  - **Cumulative Statistics**: Track P&L, win rate, discipline adherence over time
+  - **Duplicate Date Prevention**: One row per date with proper error handling
+  - **Tooltips with Info Icons**: Clear explanations for A+ and Range Expansion columns
+  - **CSV-Ready Structure**: Prepared for future export functionality
+
+### Technical
+- **Database Schema**: Added 2 new tables (`discipline_tracker_settings`, `discipline_tracker_rows`)
+- **Migration 0008**: Created discipline tracker tables with proper column naming
+- **Column Rename Migration**: Fixed aplusConfirmed → isAPlusDay, rangeExpansionConfirmed → isRangeExpansionDay
+- **Rules Engine**: Pure functions with comprehensive lock state evaluation (311 lines)
+- **API Endpoints**: 3 RESTful endpoints with Zod validation
+  - `GET/POST /api/discipline-tracker/settings`
+  - `GET/POST /api/discipline-tracker/rows`
+  - `GET/PATCH/DELETE /api/discipline-tracker/rows/[id]`
+- **UI Components**: 5 interactive components + main page
+  - TradeCell: Dropdown with "EMPTY" handling and lock states
+  - TP3Input: Manual TP3 amount entry
+  - RowActions: Edit/Delete with confirmation dialog
+  - AddRowDialog: Form with duplicate date handling
+  - TrackerTable: 397 lines with debounced notes input
+- **shadcn/ui Components**: Added alert-dialog and tooltip components
+- **Performance Optimization**: Debounced notes input to prevent constant re-renders
+- **Documentation**: Comprehensive 844-line feature specification
+
+### Fixed
+- **Database Column Naming**: Resolved mismatch between schema and code references
+- **Validation Schema**: Fixed updateDisciplineTrackerRowSchema stripping trade outcomes
+- **Notes Input Performance**: Implemented 500ms debounce to prevent constant API calls
+- **Toggle State Management**: Fixed toggles resetting by fetching fresh row data
+- **Error Handling**: Improved duplicate date error handling (keeps dialog open for user to fix)
+
+### Changed
+- **Progress Tracking**: Updated to v3.0, added v1.5.0 milestone
+- **Feature Documentation**: Updated 15-DISCIPLINE-TRACKER.md to production-ready status
+
+---
+
 ## [1.4.2] - 2026-02-05
 
 ### Added
