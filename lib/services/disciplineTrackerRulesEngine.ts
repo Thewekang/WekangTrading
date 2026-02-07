@@ -62,12 +62,12 @@ export function evaluateDayRow(
   const trade3Pnl = getOutcomePnl(trade3, settings, row.trade3Tp3Amount);
 
   // Set colors for Trade 1
-  if (trade1 && trade1 !== '') {
+  if (trade1 && trade1 !== 'EMPTY') {
     evaluation.trade1Color = OUTCOME_COLORS[trade1];
   }
 
   // Count trades and outcomes
-  if (trade1 && trade1 !== '') {
+  if (trade1 && trade1 !== 'EMPTY') {
     evaluation.totalTrades++;
     evaluation.dayPnl += trade1Pnl;
     if (trade1Type === 'win') evaluation.wins++;
@@ -79,7 +79,7 @@ export function evaluateDayRow(
   // TRADE 2 RULES
   // ============================================
   
-  if (trade1 && trade1 !== '') {
+  if (trade1 && trade1 !== 'EMPTY') {
     // Rule: If Trade 1 = TP1/TP2/TP3 → STOP (Trade 2 disabled)
     if (trade1Type === 'win') {
       evaluation.allowedTrade2 = false;
@@ -112,7 +112,7 @@ export function evaluateDayRow(
   }
 
   // Process Trade 2 if it exists
-  if (trade2 && trade2 !== '') {
+  if (trade2 && trade2 !== 'EMPTY') {
     evaluation.totalTrades++;
     evaluation.dayPnl += trade2Pnl;
     if (trade2Type === 'win') evaluation.wins++;
@@ -140,7 +140,7 @@ export function evaluateDayRow(
   evaluation.lockReasonTrade3 = 'Trade 3 rarely allowed';
 
   // Check if Trade 3 can be allowed
-  if (trade1 && trade2 && trade1 !== '' && trade2 !== '') {
+  if (trade1 && trade2 && trade1 !== 'EMPTY' && trade2 !== 'EMPTY') {
     // Rule: Trade 3 allowed ONLY IF ALL conditions met:
     // - Trade 1 = BE
     // - Trade 2 = BE
@@ -167,14 +167,14 @@ export function evaluateDayRow(
       evaluation.allowedTrade3 = true;
       evaluation.lockReasonTrade3 = '';
     }
-  } else if (!trade1 || trade1 === '') {
+  } else if (!trade1 || trade1 === 'EMPTY') {
     evaluation.lockReasonTrade3 = 'Complete Trade 1 first';
-  } else if (!trade2 || trade2 === '') {
+  } else if (!trade2 || trade2 === 'EMPTY') {
     evaluation.lockReasonTrade3 = 'Complete Trade 2 first';
   }
 
   // Process Trade 3 if it exists
-  if (trade3 && trade3 !== '') {
+  if (trade3 && trade3 !== 'EMPTY') {
     evaluation.totalTrades++;
     evaluation.dayPnl += trade3Pnl;
     if (trade3Type === 'win') evaluation.wins++;
@@ -197,7 +197,7 @@ export function evaluateDayRow(
   // TRADE 2 ADDITIONAL RULES (After Trade 2 outcome)
   // ============================================
   
-  if (trade2 && trade2 !== '') {
+  if (trade2 && trade2 !== 'EMPTY') {
     // Rule: If Trade 2 = TP1/TP2/TP3 → Trade 3 disabled
     if (trade2Type === 'win') {
       evaluation.allowedTrade3 = false;
