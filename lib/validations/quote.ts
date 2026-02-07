@@ -59,8 +59,7 @@ export const updateQuoteSchema = z.object({
 
 export const getRandomQuoteSchema = z.object({
   category: quoteCategorySchema.optional(),
-  userId: z.string().uuid(),
-  forceShow: z.boolean().default(false),
+  forceShow: z.boolean().default(false).optional(),
 });
 
 // ============================================
