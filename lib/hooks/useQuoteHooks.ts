@@ -44,12 +44,12 @@ export function useDisciplineQuote() {
 
   const showDisciplineQuote = () => showQuote('discipline');
   const showPatienceQuote = () => showQuote('patience');
-  const showOvertradinQuote = () => showQuote('overtrading');
+  const showOvertradingQuote = () => showQuote('overtrading');
 
   return {
     showDisciplineQuote,
     showPatienceQuote,
-    showOvertradinQuote,
+    showOvertradingQuote,
     isLoading,
   };
 }

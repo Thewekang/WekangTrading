@@ -12,9 +12,11 @@ import type { AggregatedStats } from '@/lib/types/disciplineTracker';
 import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTracker';
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
 import { DisciplineTrackerQuote } from '@/components/quotes/DisciplineTrackerQuote';
+import { useDisciplineQuote } from '@/lib/hooks/useQuoteHooks';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
+  const { showOvertradingQuote, showPatienceQuote } = useDisciplineQuote();
   const [settings, setSettings] = useState<DisciplineTrackerSettings | null>(null);
   const [rows, setRows] = useState<DisciplineTrackerRow[]>([]);
   const [filteredRows, setFilteredRows] = useState<DisciplineTrackerRow[]>([]);
@@ -164,7 +166,7 @@ export default function DisciplineTrackerPage() {
         
         // Show discipline quote if breaking rules (trade 2 or 3 with Stop Loss)
         if (updates.trade2Outcome === 'SL' || updates.trade3Outcome === 'SL') {
-          showOvertradinQuote();
+          showOvertradingQuote();
         } else if (updates.trade1Outcome === 'SL' && (updates.trade2Outcome || updates.trade3Outcome)) {
           showPatienceQuote();
         }
