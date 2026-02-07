@@ -138,43 +138,41 @@ export async function POST(request: NextRequest) {
     // Batch insert all trades
     await db.insert(individualTrades).values(tradesToInsert);
 
-    // Recalculate daily summaries for affected dates
+    // Recalculate daily summaries for affected dates (in parallel)
     const uniqueDates = [
       ...new Set(
         tradesToInsert.map(t => t.tradeTimestamp.toISOString().split('T')[0])
       ),
     ];
 
-    for (const dateStr of uniqueDates) {
-      await updateDailySummary(session.user.id, new Date(dateStr));
-    }
+    await Promise.all(
+      uniqueDates.map(dateStr => updateDailySummary(session.user.id, new Date(dateStr)))
+    );
 
-    // Recalculate user stats from all trades (needed for badge evaluation)
-    console.log(`[CSV Import] Recalculating user stats for user ${session.user.id}`);
-    await initializeUserStats(session.user.id);
+    // Recalculate user stats from all trades (for badge evaluation)
+    // Note: initializeUserStats is automatically called in updateUserStatsFromTrades if needed
     await updateUserStatsFromTrades(session.user.id);
     
-    // Check and award badges after stats update
-    console.log(`[CSV Import] Checking and awarding badges for user ${session.user.id}`);
-    const newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
-    console.log(`[CSV Import] Awarded ${newBadges.length} badge(s)`);
-
-    // Revalidate paths to update UI with new notifications
-    revalidatePath('/dashboard');
-    revalidatePath('/dashboard/achievements');
-    revalidatePath('/notifications');
-    revalidatePath('/', 'layout'); // Revalidate layout to update notification count in navbar
-
-    return NextResponse.json(
+    // Return immediately for fast UX
+    const response = NextResponse.json(
       {
         success: true,
         imported: tradesToInsert.length,
         datesAffected: uniqueDates.length,
-        badges: newBadges, // Return full badge objects for celebration modal
         message: `Successfully imported ${tradesToInsert.length} trades`,
       },
       { status: 201 }
     );
+    
+    // Check badges and revalidate cache asynchronously (non-blocking)
+    Promise.all([
+      checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
+        .catch(error => console.error('Badge check error (non-fatal):', error)),
+      // Single revalidation of layout updates all nested routes
+      Promise.resolve(revalidatePath('/', 'layout'))
+    ]);
+    
+    return response;
   } catch (error) {
     console.error('[POST /api/trades/import]', error);
     

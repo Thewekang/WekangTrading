@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BulkTradeEntryForm } from '@/components/forms/BulkTradeEntryForm';
+import { TradesPageQuote } from '@/components/quotes/TradesPageQuote';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -39,6 +40,9 @@ export default async function BulkTradePage() {
             <Button variant="outline">← Back to Trades</Button>
           </Link>
         </div>
+
+        {/* Contextual Quote - Pinned at Top */}
+        <TradesPageQuote />
 
         {/* Timezone Reminder */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">

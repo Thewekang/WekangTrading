@@ -1,31 +1,32 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { getPersonalStats, getDailyTrends, getSessionStats, getHourlyStats } from '@/lib/services/statsService';
+import { getPersonalStats } from '@/lib/services/statsService';
 import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import TargetProgressCard from '@/components/dashboard/TargetProgressCard';
 
-// Dynamic imports for chart components (lazy loading)
-const SessionComparisonChart = dynamic(() => import('@/components/charts/SessionComparisonChart'), {
-  loading: () => <ChartSkeleton />
+// Dynamic imports for economic news (lazy loading)
+const TodayEconomicNews = dynamic(() => import('@/components/calendar/TodayEconomicNews'), {
+  loading: () => <div className="animate-pulse bg-gray-100 rounded-lg h-48" />
 });
 
-const HourlyHeatmap = dynamic(() => import('@/components/charts/HourlyHeatmap'), {
-  loading: () => <ChartSkeleton />
+const WeeklyEconomicNews = dynamic(() => import('@/components/calendar/WeeklyEconomicNews'), {
+  loading: () => <div className="animate-pulse bg-gray-100 rounded-lg h-48" />
 });
+
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
-import TodayEconomicNews from '@/components/calendar/TodayEconomicNews';
-import WeeklyEconomicNews from '@/components/calendar/WeeklyEconomicNews';
-import { AchievementShowcase } from '@/components/dashboard/AchievementShowcase';
-import { ActiveStreaksWidget } from '@/components/dashboard/ActiveStreaksWidget';
-import { NextBadgesProgress } from '@/components/dashboard/NextBadgesProgress';
-import { MotivationalMessagesFeed } from '@/components/dashboard/MotivationalMessagesFeed';
+import { CollapsibleAchievementsSection } from '@/components/dashboard/CollapsibleAchievementsSection';
+import { CollapsibleChartSection } from '@/components/dashboard/CollapsibleChartSection';
+import { SessionComparisonChartWrapper } from '@/components/charts/SessionComparisonChartWrapper';
+import { HourlyHeatmapWrapper } from '@/components/charts/HourlyHeatmapWrapper';
 import { RankingCard } from '@/components/dashboard/RankingCard';
+import { QuoteOfTheDayWidget } from '@/components/quotes/QuoteOfTheDayWidget';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,11 +35,10 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch real stats and targets
-  const [stats, sessionStats, hourlyStats, activeTargets, bestSop] = await Promise.all([
+  // Fetch only critical stats for initial page load
+  // sessionStats and hourlyStats will be fetched client-side on demand (in collapsible sections)
+  const [stats, activeTargets, bestSop] = await Promise.all([
     getPersonalStats(session.user.id, 'month'),
-    getSessionStats(session.user.id, 'month'),
-    getHourlyStats(session.user.id, 'month'),
     getActiveTargetsWithProgress(session.user.id),
     getBestSopType(session.user.id, 'month'),
   ]);
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
             <h1 className="text-3xl font-bold mb-2">
               <span className="flex items-center gap-2">
                 Welcome back, {session.user.name}!
-                <img src="/logo.png" alt="Wekang Trading" className="w-6 h-6 object-contain inline-block" />
+                <Image src="/logo.png" alt="Wekang Trading" width={24} height={24} className="object-contain inline-block" priority />
               </span>
             </h1>
             <p className="text-muted-foreground">
@@ -79,10 +79,13 @@ export default async function DashboardPage() {
         <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-100">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex-shrink-0">
-              <img 
+              <Image 
                 src="/logo.png" 
                 alt="Wekang Trading" 
-                className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-md" 
+                width={96}
+                height={96}
+                className="object-contain drop-shadow-md" 
+                priority
               />
             </div>
             <div className="flex-1 text-center md:text-left">
@@ -99,17 +102,13 @@ export default async function DashboardPage() {
         {/* Daily Loss Alert */}
         <DailyLossAlert className="mb-6" />
 
-        {/* Achievement Showcase */}
+        {/* Quote of the Day Widget */}
         <div className="mb-6">
-          <AchievementShowcase limit={4} />
+          <QuoteOfTheDayWidget />
         </div>
 
-        {/* Gamification Widgets Row */}
-        <div className="grid gap-6 lg:grid-cols-3 mb-6">
-          <ActiveStreaksWidget />
-          <NextBadgesProgress limit={3} />
-          <MotivationalMessagesFeed limit={5} />
-        </div>
+        {/* Collapsible Achievements Section */}
+        <CollapsibleAchievementsSection />
 
         {/* Economic News Widgets */}
         <div className="grid gap-6 lg:grid-cols-2 mb-6">
@@ -213,106 +212,74 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Performance Legend */}
+        {/* Performance Legend - Compact */}
         {totalTrades > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
-            <div className="flex flex-wrap items-center gap-6">
-              <span className="text-sm font-medium text-gray-700">Performance Guide:</span>
-              
-              {/* Win Rate Legend */}
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-600">Win Rate:</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-green-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">≥60%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-yellow-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">50-59%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-red-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">&lt;50%</span>
-                </div>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-8">
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <span className="font-medium text-gray-700">Legend:</span>
+              <div className="flex items-center gap-3">
+                <span className="text-green-600">● ≥60% Win</span>
+                <span className="text-yellow-600">● 50-59%</span>
+                <span className="text-red-600">● &lt;50%</span>
               </div>
-
-              {/* SOP Compliance Legend */}
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-600">SOP:</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-green-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">≥80%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-yellow-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">60-79%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-red-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">&lt;60%</span>
-                </div>
-              </div>
-
-              {/* P/L Legend */}
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-600">P/L:</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-green-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">Profit</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-red-600 font-semibold text-xs">●</span>
-                  <span className="text-xs text-gray-600">Loss</span>
-                </div>
+              <div className="h-3 w-px bg-gray-300" />
+              <div className="flex items-center gap-3">
+                <span className="text-green-600">● ≥80% SOP</span>
+                <span className="text-yellow-600">● 60-79%</span>
+                <span className="text-red-600">● &lt;60%</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Best Session Insight */}
+        {/* Best Session Insight - Collapsible */}
         {bestSession && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-blue-900 mb-2">🎯 Best Trading Session</h2>
-            <p className="text-blue-800 mb-4">
-              Your highest win rate this month is during the <span className="font-semibold">{bestSession}</span> session 
-              with a <span className="font-semibold">{stats.bestSessionWinRate.toFixed(1)}%</span> win rate. 
-              Consider focusing more trades in this time period.
-            </p>
-            
-            {/* Session Breakdown */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              {Object.entries(stats.sessionBreakdown).map(([session, data]) => (
-                <div 
-                  key={session} 
-                  className={`p-3 rounded-lg border-2 ${
-                    session === bestSession 
-                      ? 'bg-blue-100 border-blue-300' 
-                      : 'bg-white border-gray-200'
-                  }`}
-                >
-                  <div className="text-xs font-medium text-gray-600 mb-1">{session}</div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {data.winRate.toFixed(1)}%
+          <CollapsibleChartSection
+            title="Best Trading Session"
+            description={`Your highest win rate this month is during the ${bestSession} session with ${stats.bestSessionWinRate.toFixed(1)}% win rate`}
+            icon="🎯"
+            defaultOpen={false}
+          >
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-blue-800 mb-4">
+                Consider focusing more trades during the <span className="font-semibold">{bestSession}</span> session 
+                for optimal performance.
+              </p>
+              
+              {/* Session Breakdown */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.entries(stats.sessionBreakdown).map(([session, data]) => (
+                  <div 
+                    key={session} 
+                    className={`p-3 rounded-lg border-2 ${
+                      session === bestSession 
+                        ? 'bg-blue-100 border-blue-300' 
+                        : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className="text-xs font-medium text-gray-600 mb-1">{session}</div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {data.winRate.toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {data.wins}/{data.trades} trades
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {data.wins}/{data.trades} trades
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          </CollapsibleChartSection>
         )}
 
-        {/* Session Breakdown (when no clear best) */}
+        {/* Session Breakdown (when no clear best) - Collapsible */}
         {!bestSession && totalTrades > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">📊 Session Performance</h2>
-            <p className="text-gray-700 mb-4">
-              Need at least 3 trades in a session to identify your best trading time.
-            </p>
-            
-            {/* Session Breakdown */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <CollapsibleChartSection
+            title="Session Performance"
+            description="Need at least 3 trades in a session to identify your best trading time"
+            icon="📊"
+            defaultOpen={false}
+          >
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3">
               {Object.entries(stats.sessionBreakdown).map(([session, data]) => {
                 const sessionLabels: Record<string, string> = {
                   ASIA: 'ASIA',
@@ -336,43 +303,37 @@ export default async function DashboardPage() {
                 );
               })}
             </div>
-          </div>
+          </CollapsibleChartSection>
         )}
 
-        {/* Session Performance Chart */}
+        {/* Session Performance Chart - Collapsible */}
         {totalTrades > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">📈 Session Win Rate Comparison</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Visual breakdown of your performance across different trading sessions
-                </p>
-              </div>
-              <Link
-                href="/analytics/trends"
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                View Trends →
-              </Link>
+          <CollapsibleChartSection
+            title="Session Win Rate Comparison"
+            description="Visual breakdown of your performance across different trading sessions"
+            icon="📈"
+            linkHref="/analytics/trends"
+            linkText="View Trends →"
+            defaultOpen={false}
+          >
+            <div className="mt-4">
+              <SessionComparisonChartWrapper userId={session.user.id} bestSession={bestSession} />
             </div>
-            <SessionComparisonChart data={sessionStats} bestSession={bestSession} />
-          </div>
+          </CollapsibleChartSection>
         )}
 
-        {/* Hourly Performance Heatmap */}
+        {/* Hourly Performance Heatmap - Collapsible */}
         {totalTrades > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">🕐 Hourly Performance Heatmap</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Identify your most profitable trading hours by time of day
-            </p>
-            <HourlyHeatmap 
-              data={hourlyStats} 
-              userId={session.user.id}
-              period="month"
-            />
-          </div>
+          <CollapsibleChartSection
+            title="Hourly Performance Heatmap"
+            description="Identify your most profitable trading hours by time of day"
+            icon="🕐"
+            defaultOpen={false}
+          >
+            <div className="mt-4">
+              <HourlyHeatmapWrapper userId={session.user.id} />
+            </div>
+          </CollapsibleChartSection>
         )}
 
         {/* No Data State */}

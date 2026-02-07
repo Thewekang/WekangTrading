@@ -18,6 +18,7 @@ import { NoTradesEmptyState, NoResultsEmptyState } from '@/components/ui/empty-s
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { TradesTableVirtualized } from '@/components/TradesTableVirtualized';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Trade {
   id: string;
@@ -66,6 +67,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Collapsible filters state
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -427,9 +431,56 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
 
   return (
     <>
-      {/* Quick Filters Section */}
-      <div className="bg-white rounded-lg shadow-md p-4 border mb-4">
-        <h3 className="text-sm font-semibold mb-3">⚡ Quick Filters</h3>
+      {/* 24-Hour Deletion Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">ℹ️</span>
+          <div>
+            <h3 className="font-semibold text-blue-900 mb-1">Trade Deletion Policy</h3>
+            <p className="text-sm text-blue-800">
+              You can delete trades within <strong>24 hours</strong> of creation. After 24 hours, trades are locked to maintain data integrity. 
+              The 🗑️ delete button will be disabled for older trades.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Timezone Reminder */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🌍</span>
+          <p className="text-sm text-amber-900">
+            <strong>Timezone:</strong> All timestamps are displayed in <strong>{timezone}</strong> timezone.
+            {timezone !== 'UTC' && <span className="text-amber-700 ml-1">(Data is stored in UTC)</span>}
+            <a href="/settings" className="ml-2 text-amber-700 hover:text-amber-900 underline font-medium">
+              Change timezone
+            </a>
+          </p>
+        </div>
+      </div>
+
+      {/* Filters Section - Collapsible */}
+      <div className="border rounded-lg mb-4">
+        <button
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🔍</span>
+            <h2 className="text-lg font-semibold">Filters & Search</h2>
+          </div>
+          {isFiltersOpen ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
+        </button>
+        
+        {isFiltersOpen && (
+          <div className="border-t">
+            {/* Quick Filters Section */}
+            <div className="bg-white p-4 border-b">
+              <h3 className="text-sm font-semibold mb-3">⚡ Quick Filters</h3>
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={handleQuickFilterToday}
@@ -483,7 +534,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       </div>
 
       {/* Filter Presets Section */}
-      <div className="bg-white rounded-lg shadow-md p-4 border mb-4">
+      <div className="bg-white p-4 border-b">
         <h3 className="text-sm font-semibold mb-3">💾 Filter Presets</h3>
         
         {/* Load Presets */}
@@ -557,9 +608,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         </div>
       </div>
 
-      {/* Filters Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 border mb-6">
-        <h2 className="text-lg font-semibold mb-4">🔍 Filters</h2>
+      {/* Advanced Filters Section */}
+      <div className="bg-white p-6 border-b">
+        <h3 className="text-sm font-semibold mb-4">Advanced Filters</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -683,33 +734,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           </Button>
         </div>
       </div>
-
-      {/* 24-Hour Deletion Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl">ℹ️</span>
-          <div>
-            <h3 className="font-semibold text-blue-900 mb-1">Trade Deletion Policy</h3>
-            <p className="text-sm text-blue-800">
-              You can delete trades within <strong>24 hours</strong> of creation. After 24 hours, trades are locked to maintain data integrity. 
-              The 🗑️ delete button will be disabled for older trades.
-            </p>
           </div>
-        </div>
-      </div>
-
-      {/* Timezone Reminder */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🌍</span>
-          <p className="text-sm text-amber-900">
-            <strong>Timezone:</strong> All timestamps are displayed in <strong>{timezone}</strong> timezone.
-            {timezone !== 'UTC' && <span className="text-amber-700 ml-1">(Data is stored in UTC)</span>}
-            <a href="/settings" className="ml-2 text-amber-700 hover:text-amber-900 underline font-medium">
-              Change timezone
-            </a>
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Trades Table */}
@@ -744,6 +770,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">P/L (USD)</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
@@ -787,7 +814,12 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                   <tr key={trade.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        {formatDateTime(trade.tradeTimestamp)}
+                        <Link 
+                          href={`/trades/${trade.id}`}
+                          className="text-blue-600 hover:underline font-medium"
+                        >
+                          {formatDateTime(trade.tradeTimestamp)}
+                        </Link>
                         {canDeleteTrade(trade) && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Can be deleted (within 24 hours)">
                             🕒
@@ -934,12 +966,13 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         </div>
         <div className="bg-white rounded-lg shadow p-4 border text-center">
           <p className="text-sm text-gray-600 mb-1">Net P/L</p>
-          <p className={`text-2xl font-bold ${summaryStats.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`text-2xl font-bold ${ summaryStats.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {summaryStats.netProfitLoss >= 0 ? '+' : ''}${summaryStats.netProfitLoss.toFixed(2)}
           </p>
         </div>
       </div>
 
+      {/* Showing X Trades Section */}
       {trades.length > 0 && (
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <h3 className="font-semibold text-green-900 mb-2">✅ Showing {trades.length} Trades</h3>
@@ -991,7 +1024,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           )}
         </div>
       )}
-      
+
       {/* Export Modal */}
       <ExportModal
         isOpen={showExportModal}
