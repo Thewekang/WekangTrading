@@ -11,9 +11,11 @@ import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/s
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
 import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTracker';
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
+import { useDisciplineQuote } from '@/lib/hooks/useQuoteHooks';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
+  const { showDisciplineQuote, showPatienceQuote, showOvertradinQuote } = useDisciplineQuote();
   const [settings, setSettings] = useState<DisciplineTrackerSettings | null>(null);
   const [rows, setRows] = useState<DisciplineTrackerRow[]>([]);
   const [filteredRows, setFilteredRows] = useState<DisciplineTrackerRow[]>([]);
@@ -159,6 +161,13 @@ export default function DisciplineTrackerPage() {
       if (data.success) {
         setRows(rows.map((r) => (r.id === id ? data.data : r)));
         setFilteredRows(filteredRows.map((r) => (r.id === id ? data.data : r)));
+        
+        // Show discipline quote if breaking rules (trade 2 or 3 with LOSS)
+        if (updates.trade2Outcome === 'LOSS' || updates.trade3Outcome === 'LOSS') {
+          showOvertradinQuote();
+        } else if (updates.trade1Outcome === 'LOSS' && (updates.trade2Outcome || updates.trade3Outcome)) {
+          showPatienceQuote();
+        }
         // Don't show toast on every update to avoid noise
       } else {
         throw new Error(data.error?.message || 'Failed to update row');

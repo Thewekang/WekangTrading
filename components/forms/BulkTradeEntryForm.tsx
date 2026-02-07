@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { usePostTradeQuote } from '@/lib/hooks/useQuoteHooks';
 import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
 
@@ -35,6 +36,7 @@ interface BulkTradeRow {
 export function BulkTradeEntryForm() {
   const router = useRouter();
   const { timezone: userTimezone } = useTimezone();
+  const { showRandomQuote } = usePostTradeQuote();
   const [tradeDate, setTradeDate] = useState('');
   const [importTimezone, setImportTimezone] = useState(userTimezone); // Timezone for this import
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
@@ -200,6 +202,9 @@ export function BulkTradeEntryForm() {
       }
 
       setSuccessMessage(`✅ ${filledRows.length} trades recorded successfully!`);
+      
+      // Show random motivational quote after bulk entry
+      showRandomQuote();
       
       // Reset form after 2 seconds
       setTimeout(() => {

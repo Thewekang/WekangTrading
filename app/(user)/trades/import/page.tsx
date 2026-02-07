@@ -16,6 +16,7 @@ import { Download, Upload, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-r
 import { parseCSVFile, downloadCSVTemplate, type ParsedTrade, type ValidationError } from '@/lib/utils/csvParser';
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { usePostTradeQuote } from '@/lib/hooks/useQuoteHooks';
 import { COMMON_TIMEZONES } from '@/lib/utils/timezones';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import type { Badge } from '@/lib/db/schema';
@@ -24,6 +25,7 @@ export default function ImportTradesPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { timezone: userTimezone } = useTimezone();
+  const { showRandomQuote } = usePostTradeQuote();
   
   const [file, setFile] = useState<File | null>(null);
   const [importTimezone, setImportTimezone] = useState(userTimezone);
@@ -131,6 +133,9 @@ export default function ImportTradesPage() {
         }, 500);
       } else {
         showToast(`Successfully imported ${data.imported} trades!`, 'success');
+        
+        // Show motivational quote after successful import
+        showRandomQuote();
         
         // Set flag for achievements page to refresh progress
         localStorage.setItem('badgesUpdated', Date.now().toString());
