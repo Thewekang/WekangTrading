@@ -6,7 +6,7 @@ import { StatsDisplay } from '@/components/discipline-tracker/StatsDisplay';
 import { FilterBar } from '@/components/discipline-tracker/FilterBar';
 import { TrackerTable } from '@/components/discipline-tracker/TrackerTable';
 import { AddRowDialog } from '@/components/discipline-tracker/AddRowDialog';
-import { Shield } from 'lucide-react';
+import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/schema';
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
 import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTracker';
@@ -28,6 +28,7 @@ export default function DisciplineTrackerPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Fetch settings and rows on mount
   useEffect(() => {
@@ -248,9 +249,6 @@ export default function DisciplineTrackerPage() {
       {/* Contextual Quote - Pinned at Top */}
       <DisciplineTrackerQuote />
 
-      {/* Settings Panel */}
-      <SettingsPanel settings={settings} onUpdate={handleUpdateSettings} />
-
       {/* Filter Bar */}
       <FilterBar onFilterChange={handleFilterChange} />
 
@@ -266,6 +264,30 @@ export default function DisciplineTrackerPage() {
         onDuplicate={handleDuplicateRow}
         onAddRow={() => setAddDialogOpen(true)}
       />
+
+      {/* Settings Panel - Collapsible */}
+      <div className="border rounded-lg">
+        <button
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Plan Settings</h2>
+          </div>
+          {isSettingsOpen ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
+        </button>
+        
+        {isSettingsOpen && (
+          <div className="p-4 border-t">
+            <SettingsPanel settings={settings} onUpdate={handleUpdateSettings} />
+          </div>
+        )}
+      </div>
 
       {/* Add Row Dialog */}
       <AddRowDialog
