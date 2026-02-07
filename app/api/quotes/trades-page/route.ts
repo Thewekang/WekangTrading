@@ -8,6 +8,9 @@ import { auth } from '@/lib/auth';
 import { getTradesPageQuote } from '@/lib/services/tradesPageQuoteService';
 import { incrementQuoteDisplayCount } from '@/lib/services/quoteService';
 
+// Cache for 30 seconds (balance between freshness and performance)
+export const revalidate = 30;
+
 /**
  * GET /api/quotes/trades-page
  * Get a contextual quote for trades page

@@ -6,10 +6,19 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { QuoteCard } from '@/components/quotes/QuoteCard';
 import type { TradingQuote } from '@/lib/validations/quote';
 import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
+
+// Client-side cache for trades page quote (5 minutes TTL)
+const CACHE_KEY = 'tradesPageQuote';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CachedQuote {
+  data: TradesPageQuoteData;
+  timestamp: number;
+}
 
 interface TradesPageQuoteData {
   quote: TradingQuote;
@@ -67,19 +76,38 @@ export function TradesPageQuote() {
   const [quoteData, setQuoteData] = useState<TradesPageQuoteData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [language, setLanguage] = useState<'en' | 'bm'>('en');
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    // Prevent double-fetch in strict mode
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    
     fetchTradesPageQuote();
   }, []);
 
   const fetchTradesPageQuote = async () => {
     try {
+      // Check cache first
+      const cached = getCachedQuote();
+      if (cached) {
+        setQuoteData(cached);
+        setLanguage(Math.random() > 0.5 ? 'en' : 'bm');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
-      const response = await fetch('/api/quotes/trades-page');
+      const response = await fetch('/api/quotes/trades-page', {
+        // Add cache headers for browser caching
+        next: { revalidate: 30 }
+      });
       const data = await response.json();
 
       if (data.success) {
         setQuoteData(data.data);
+        // Cache the result
+        setCachedQuote(data.data);
         // Random initial language
         setLanguage(Math.random() > 0.5 ? 'en' : 'bm');
       }
@@ -87,6 +115,36 @@ export function TradesPageQuote() {
       console.error('Failed to fetch trades page quote:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getCachedQuote = (): TradesPageQuoteData | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+      
+      const { data, timestamp }: CachedQuote = JSON.parse(cached);
+      const isExpired = Date.now() - timestamp > CACHE_TTL;
+      
+      if (isExpired) {
+        sessionStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      
+      return data;
+    } catch {
+      return null;
+    }
+  };
+
+  const setCachedQuote = (data: TradesPageQuoteData) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cached: CachedQuote = { data, timestamp: Date.now() };
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+    } catch (error) {
+      // Silent fail if sessionStorage is unavailable
     }
   };
 

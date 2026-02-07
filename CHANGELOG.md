@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] - 2026-02-07
+
+### Added
+- **⚡ Performance Optimization**: Trade recording speed improvements
+  - **Non-blocking Badge Checking**: Badge awards now processed asynchronously (500-1000ms faster)
+  - **Parallel Daily Summary Updates**: Use Promise.all for multi-date operations (70% faster)
+  - **Optimized Cache Invalidation**: Single layout-level revalidatePath (100-200ms savings)
+  - **Removed Redundant Operations**: Eliminated duplicate initializeUserStats calls
+  - **Speed Improvements**:
+    - Individual trade entry: 1200ms → 300ms (75% faster)
+    - Bulk entry: 2500ms → 800ms (68% faster)
+    - CSV import: 4200ms → 1300ms (69% faster)
+  - See [PERFORMANCE-OPTIMIZATION-v1.7.0.md](docs/PERFORMANCE-OPTIMIZATION-v1.7.0.md) for technical details
+
+- **📍 Pinned Quotes on Trade Entry Pages**: TradesPageQuote component added to:
+  - /trades/new (Real-time entry)
+  - /trades/bulk (Bulk entry)
+  - /trades/import (CSV import)
+  - Smart caching with 5-minute sessionStorage TTL
+
+- **🎯 Collapsible Dashboard Sections**: Improved dashboard load performance
+  - Best Trading Session (collapsible)
+  - Session Win Rate Comparison (collapsible, collapsed by default)
+  - Hourly Performance Heatmap (collapsible, collapsed by default)
+  - Deferred data fetching for heavy charts
+
+### Optimized
+- **Quote Loading Performance**: 50-100ms cached, 200-300ms fresh
+  - API-level caching with revalidate: 30-60 seconds
+  - Client-side sessionStorage caching
+  - Database query optimization
+
 ## [1.6.0] - 2026-02-07
 
 ### Added

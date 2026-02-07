@@ -17,6 +17,9 @@ import {
 } from '@/lib/services/userQuotePreferencesService';
 import { getRandomQuoteSchema } from '@/lib/validations/quote';
 
+// Cache for 60 seconds (random quotes can be cached longer)
+export const revalidate = 60;
+
 /**
  * POST /api/quotes/random
  * Get a random quote with cooldown and preference checks

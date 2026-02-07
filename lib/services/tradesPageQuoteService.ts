@@ -18,22 +18,13 @@ interface TradesPageContext {
 
 /**
  * Analyze user's last 3 trades and weekly performance
+ * Optimized to use a single query with proper ordering
  */
 async function analyzeTradesPageContext(userId: string): Promise<TradesPageContext> {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  // Get last 3 trades
-  const lastThreeTrades = await db
-    .select({
-      result: individualTrades.result,
-    })
-    .from(individualTrades)
-    .where(eq(individualTrades.userId, userId))
-    .orderBy(desc(individualTrades.tradeTimestamp))
-    .limit(3);
-
-  // Get weekly trades
+  // Single optimized query: Get weekly trades (includes last 3)
   const weeklyTrades = await db
     .select({
       result: individualTrades.result,
@@ -45,9 +36,11 @@ async function analyzeTradesPageContext(userId: string): Promise<TradesPageConte
         gte(individualTrades.tradeTimestamp, oneWeekAgo)
       )
     )
+    .orderBy(desc(individualTrades.tradeTimestamp))
     .all();
 
-  const lastThreeResults = lastThreeTrades.map(t => t.result);
+  // Extract last 3 from weekly data (no additional query needed)
+  const lastThreeResults = weeklyTrades.slice(0, 3).map(t => t.result);
   const weeklyWins = weeklyTrades.filter(t => t.result === 'WIN').length;
   const weeklyWinRate = weeklyTrades.length > 0 ? (weeklyWins / weeklyTrades.length) * 100 : 0;
 

@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Increment display count for analytics
-    await incrementQuoteDisplayCount(quote.id);
+    // Note: Quote of the Day is not counted in display statistics
+    // because it's a deterministic daily quote shown to all users
 
     return NextResponse.json({
       success: true,
