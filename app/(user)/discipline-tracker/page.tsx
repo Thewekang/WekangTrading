@@ -162,10 +162,10 @@ export default function DisciplineTrackerPage() {
         setRows(rows.map((r) => (r.id === id ? data.data : r)));
         setFilteredRows(filteredRows.map((r) => (r.id === id ? data.data : r)));
         
-        // Show discipline quote if breaking rules (trade 2 or 3 with LOSS)
-        if (updates.trade2Outcome === 'LOSS' || updates.trade3Outcome === 'LOSS') {
+        // Show discipline quote if breaking rules (trade 2 or 3 with Stop Loss)
+        if (updates.trade2Outcome === 'SL' || updates.trade3Outcome === 'SL') {
           showOvertradinQuote();
-        } else if (updates.trade1Outcome === 'LOSS' && (updates.trade2Outcome || updates.trade3Outcome)) {
+        } else if (updates.trade1Outcome === 'SL' && (updates.trade2Outcome || updates.trade3Outcome)) {
           showPatienceQuote();
         }
         // Don't show toast on every update to avoid noise
