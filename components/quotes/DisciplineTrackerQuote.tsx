@@ -16,7 +16,11 @@ interface ContextualQuoteData {
   context: {
     category: string;
     recentMood: 'winning' | 'losing' | 'mixed' | 'new';
-    lastThreeResults: ('WIN' | 'LOSS')[];
+    lastThreeDays: Array<{
+      wins: number;
+      losses: number;
+      breakevens: number;
+    }>;
     weeklyWinRate: number;
     weeklyTotalTrades: number;
   };
@@ -37,7 +41,7 @@ function getMoodIcon(mood: 'winning' | 'losing' | 'mixed' | 'new') {
 
 function getMoodText(context: ContextualQuoteData['context']): string {
   if (context.recentMood === 'new' || context.weeklyTotalTrades === 0) {
-    return 'Ready to start trading';
+    return 'Ready to start tracking discipline';
   }
 
   const moodDescriptions = {
@@ -49,11 +53,16 @@ function getMoodText(context: ContextualQuoteData['context']): string {
 
   const parts = [moodDescriptions[context.recentMood]];
 
-  if (context.lastThreeResults.length > 0) {
-    const resultStr = context.lastThreeResults
-      .map(r => r === 'WIN' ? 'W' : 'L')
-      .join('-');
-    parts.push(`Last 3: ${resultStr}`);
+  // Show last 3 days summary
+  if (context.lastThreeDays.length > 0) {
+    const dayResults = context.lastThreeDays.map(day => {
+      const total = day.wins + day.losses + day.breakevens;
+      if (total === 0) return '-';
+      if (day.wins > day.losses) return 'W';
+      if (day.losses > day.wins) return 'L';
+      return 'BE';
+    });
+    parts.push(`Last 3 days: ${dayResults.join('-')}`);
   }
 
   if (context.weeklyTotalTrades > 0) {
@@ -131,7 +140,7 @@ export function DisciplineTrackerQuote() {
 
       {/* Refresh Hint */}
       <p className="mt-2 text-xs text-muted-foreground text-center">
-        Quote weighted to your last 3 trades and weekly performance · Refresh page for new quote
+        Quote weighted to your last 3 days and weekly discipline tracker performance · Refresh page for new quote
       </p>
     </div>
   );

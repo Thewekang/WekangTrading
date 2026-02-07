@@ -1,78 +1,126 @@
 /**
  * Contextual Quote Service
- * Provides weighted quote selection based on user's trading performance context
+ * Provides weighted quote selection based on user's Discipline Tracker performance
  */
 
 import { db } from '@/lib/db';
-import { individualTrades } from '@/lib/db/schema';
+import { disciplineTrackerRows } from '@/lib/db/schema/disciplineTracker';
 import { eq, desc, and, gte } from 'drizzle-orm';
 import { getRandomQuote } from './quoteService';
 import type { QuoteCategory } from '@/lib/validations/quote';
 
 interface TradingContext {
-  lastThreeResults: ('WIN' | 'LOSS')[];
+  lastThreeDays: Array<{
+    date: Date;
+    wins: number;
+    losses: number;
+    breakevens: number;
+  }>;
   weeklyWinRate: number;
   weeklyTotalTrades: number;
   recentMood: 'winning' | 'losing' | 'mixed' | 'new';
 }
 
 /**
- * Analyze user's last 3 trades and weekly performance
+ * Analyze user's last 3 days and weekly performance from Discipline Tracker
  */
 async function analyzeTradingContext(userId: string): Promise<TradingContext> {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  // Get last 3 trades
-  const lastThreeTrades = await db
-    .select({
-      result: individualTrades.result,
-    })
-    .from(individualTrades)
-    .where(eq(individualTrades.userId, userId))
-    .orderBy(desc(individualTrades.tradeTimestamp))
+  // Get last 3 days from discipline tracker
+  const lastThreeRows = await db
+    .select()
+    .from(disciplineTrackerRows)
+    .where(eq(disciplineTrackerRows.userId, userId))
+    .orderBy(desc(disciplineTrackerRows.tradeDate))
     .limit(3);
 
-  // Get weekly trades
-  const weeklyTrades = await db
-    .select({
-      result: individualTrades.result,
-    })
-    .from(individualTrades)
+  // Get weekly rows
+  const weeklyRows = await db
+    .select()
+    .from(disciplineTrackerRows)
     .where(
       and(
-        eq(individualTrades.userId, userId),
-        gte(individualTrades.tradeTimestamp, oneWeekAgo)
+        eq(disciplineTrackerRows.userId, userId),
+        gte(disciplineTrackerRows.tradeDate, oneWeekAgo)
       )
     )
     .all();
 
-  const lastThreeResults = lastThreeTrades.map(t => t.result);
-  const weeklyWins = weeklyTrades.filter(t => t.result === 'WIN').length;
-  const weeklyWinRate = weeklyTrades.length > 0 ? (weeklyWins / weeklyTrades.length) * 100 : 0;
+  // Helper function to determine if outcome is a win, loss, or breakeven
+  const categorizeOutcome = (outcome: string) => {
+    if (!outcome || outcome === '' || outcome === 'EMPTY') return null;
+    if (outcome === 'SL') return 'loss';
+    if (outcome === 'BE') return 'breakeven';
+    if (outcome === 'TP1' || outcome === 'TP2' || outcome === 'TP3') return 'win';
+    return null;
+  };
 
-  // Determine mood based on last 3 trades
+  // Analyze last 3 days
+  const lastThreeDays = lastThreeRows.map(row => {
+    const outcomes = [
+      categorizeOutcome(row.trade1Outcome || ''),
+      categorizeOutcome(row.trade2Outcome || ''),
+      categorizeOutcome(row.trade3Outcome || ''),
+    ].filter(o => o !== null);
+
+    return {
+      date: row.tradeDate,
+      wins: outcomes.filter(o => o === 'win').length,
+      losses: outcomes.filter(o => o === 'loss').length,
+      breakevens: outcomes.filter(o => o === 'breakeven').length,
+    };
+  });
+
+  // Analyze weekly performance
+  let weeklyWins = 0;
+  let weeklyLosses = 0;
+  let weeklyBreakevens = 0;
+
+  weeklyRows.forEach(row => {
+    const outcomes = [
+      categorizeOutcome(row.trade1Outcome || ''),
+      categorizeOutcome(row.trade2Outcome || ''),
+      categorizeOutcome(row.trade3Outcome || ''),
+    ].filter(o => o !== null);
+
+    weeklyWins += outcomes.filter(o => o === 'win').length;
+    weeklyLosses += outcomes.filter(o => o === 'loss').length;
+    weeklyBreakevens += outcomes.filter(o => o === 'breakeven').length;
+  });
+
+  const weeklyTotalTrades = weeklyWins + weeklyLosses + weeklyBreakevens;
+  const weeklyWinRate = weeklyTotalTrades > 0 ? (weeklyWins / weeklyTotalTrades) * 100 : 0;
+
+  // Determine mood based on last 3 days
   let recentMood: 'winning' | 'losing' | 'mixed' | 'new' = 'new';
-  
-  if (lastThreeResults.length === 0) {
+
+  if (lastThreeDays.length === 0) {
     recentMood = 'new';
-  } else if (lastThreeResults.length >= 2) {
-    const wins = lastThreeResults.filter(r => r === 'WIN').length;
-    const losses = lastThreeResults.filter(r => r === 'LOSS').length;
-    
-    if (wins >= 2) {
-      recentMood = 'winning';
-    } else if (losses >= 2) {
+  } else {
+    // Count days with more wins vs losses
+    let winningDays = 0;
+    let losingDays = 0;
+
+    lastThreeDays.forEach(day => {
+      if (day.wins > day.losses) winningDays++;
+      else if (day.losses > day.wins) losingDays++;
+    });
+
+    if (losingDays >= 2) {
       recentMood = 'losing';
+    } else if (winningDays >= 2) {
+      recentMood = 'winning';
     } else {
       recentMood = 'mixed';
     }
   }
 
   return {
-    lastThreeResults,
+    lastThreeDays,
     weeklyWinRate,
-    weeklyTotalTrades: weeklyTrades.length,
+    weeklyTotalTrades,
     recentMood,
   };
 }
@@ -162,7 +210,11 @@ export async function getContextualQuote(userId: string) {
       context: {
         category: selectedCategory,
         recentMood: context.recentMood,
-        lastThreeResults: context.lastThreeResults,
+        lastThreeDays: context.lastThreeDays.map(day => ({
+          wins: day.wins,
+          losses: day.losses,
+          breakevens: day.breakevens,
+        })),
         weeklyWinRate: context.weeklyWinRate,
         weeklyTotalTrades: context.weeklyTotalTrades,
       },
@@ -180,7 +232,7 @@ export async function getContextualQuote(userId: string) {
       context: {
         category: 'general' as QuoteCategory,
         recentMood: 'new' as const,
-        lastThreeResults: [],
+        lastThreeDays: [],
         weeklyWinRate: 0,
         weeklyTotalTrades: 0,
       },
