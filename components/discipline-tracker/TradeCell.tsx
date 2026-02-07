@@ -22,7 +22,7 @@ export function TradeCell({
   cellColor,
   tradeNumber,
 }: TradeCellProps) {
-  if (isLocked && (!value || value === '' || value === 'EMPTY')) {
+  if (isLocked && (!value || value === 'EMPTY')) {
     // Locked and empty - show lock icon
     return (
       <div
@@ -75,7 +75,7 @@ export function TradeCell({
           </SelectItem>
         </SelectContent>
       </Select>
-      {isLocked && value && value !== '' && value !== 'EMPTY' && (
+      {isLocked && value && value !== 'EMPTY' && (
         <div className="absolute -top-1 -right-1 bg-gray-700 rounded-full p-0.5">
           <Lock className="h-3 w-3 text-white" />
         </div>
