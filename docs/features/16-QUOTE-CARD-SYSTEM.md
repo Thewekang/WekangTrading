@@ -42,7 +42,8 @@ A **globally accessible motivational quote system** that displays trading wisdom
 1. **Post-Trade Motivation**: Show discipline quotes after losses, humility quotes after wins
 2. **Random Inspiration**: Display wisdom during page loads (low probability)
 3. **Dialog Enhancement**: Show quotes in large input dialogs (trade entry, bulk entry)
-4. **Admin Control**: Manage quote library, enable/disable, adjust weights
+4. **Quote of the Day**: Display rotating quote on dashboard (persistent for 24 hours)
+5. **Admin Control**: Manage quote library, enable/disable, adjust weights
 
 ---
 
@@ -92,8 +93,10 @@ A **globally accessible motivational quote system** that displays trading wisdom
    - Dashboard section
    - Always visible "Quote of the Day"
    - No auto-dismiss
+   - Persistent for 24 hours (refreshes daily)
+   - Different styling from toast (card-based)
 
-**Recommendation**: Use **Toast** as primary, **Modal** for dialog integration.
+**Recommendation**: Use **Toast** as primary for post-trade triggers, **Inline Card** for "Quote of the Day" on dashboard.
 
 ### 2.4 Language Rotation Logic
 

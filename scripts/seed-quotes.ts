@@ -47,18 +47,6 @@ async function seedQuotes() {
   console.log('🌱 Starting quote seeding process...\n');
 
   try {
-    // Check if quotes already exist
-    const existingQuotes = await db.select({ count: tradingQuotes.id })
-      .from(tradingQuotes)
-      .all();
-
-    if (existingQuotes.length > 0) {
-      console.log(`⚠️  Found ${existingQuotes.length} existing quotes in database.`);
-      console.log('   Skipping seed to prevent duplicates.');
-      console.log('   To re-seed, delete all quotes first or use the admin "Reset to Defaults" button.\n');
-      return;
-    }
-
     // Read quotes from JSON file
     const jsonPath = path.join(process.cwd(), 'public', 'data', 'quotes.json');
     const jsonData = fs.readFileSync(jsonPath, 'utf-8');
@@ -66,34 +54,60 @@ async function seedQuotes() {
 
     console.log(`📖 Found ${quotes.length} quotes in seed file.\n`);
 
-    // Insert quotes
-    let successCount = 0;
-    let errorCount = 0;
+    // Insert or update quotes (upsert behavior)
+    let insertCount = 0;
+    let updateCount = 0;
+    let skipCount = 0;
 
     for (const quote of quotes) {
       try {
-        await db.insert(tradingQuotes).values({
-          id: quote.id,
-          enabled: quote.enabled,
-          category: quote.category as any,
-          weight: quote.weight,
-          textEn: quote.textEn,
-          textBm: quote.textBm,
-          author: quote.author,
-          sourceType: quote.sourceType as any,
-          displayCount: 0,
-        });
-        successCount++;
-        console.log(`✅ Inserted: ${quote.id} - "${quote.textEn.substring(0, 50)}..."`);
+        // Check if quote exists
+        const existing = await db.select()
+          .from(tradingQuotes)
+          .where(eq(tradingQuotes.id, quote.id))
+          .get();
+
+        if (existing) {
+          // Update existing quote
+          await db.update(tradingQuotes)
+            .set({
+              enabled: quote.enabled,
+              category: quote.category as any,
+              weight: quote.weight,
+              textEn: quote.textEn,
+              textBm: quote.textBm,
+              author: quote.author,
+              sourceType: quote.sourceType as any,
+            })
+            .where(eq(tradingQuotes.id, quote.id));
+          updateCount++;
+          console.log(`🔄 Updated: ${quote.id} - "${quote.textEn.substring(0, 50)}..."`);
+        } else {
+          // Insert new quote
+          await db.insert(tradingQuotes).values({
+            id: quote.id,
+            enabled: quote.enabled,
+            category: quote.category as any,
+            weight: quote.weight,
+            textEn: quote.textEn,
+            textBm: quote.textBm,
+            author: quote.author,
+            sourceType: quote.sourceType as any,
+            displayCount: 0,
+          });
+          insertCount++;
+          console.log(`✅ Inserted: ${quote.id} - "${quote.textEn.substring(0, 50)}..."`);
+        }
       } catch (error) {
-        errorCount++;
-        console.error(`❌ Failed to insert ${quote.id}:`, error);
+        skipCount++;
+        console.error(`❌ Failed to process ${quote.id}:`, error);
       }
     }
 
     console.log(`\n✨ Seeding complete!`);
-    console.log(`   Success: ${successCount}`);
-    console.log(`   Errors: ${errorCount}`);
+    console.log(`   Inserted: ${insertCount}`);
+    console.log(`   Updated: ${updateCount}`);
+    console.log(`   Errors: ${skipCount}`);
     console.log(`   Total: ${quotes.length}\n`);
 
   } catch (error) {

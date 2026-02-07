@@ -158,5 +158,105 @@
     "textBm": "Jangan doa untuk hidup yang mudah. Doalah untuk kekuatan menghadapi kesukaran.",
     "author": "Bruce Lee",
     "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-605",
+    "enabled": true,
+    "category": "win",
+    "weight": 8,
+    "textEn": "One winning trade doesn't make you profitable. One hundred winning trades following the same system does.",
+    "textBm": "Satu trade menang tidak menjadikan anda menguntungkan. Seratus trade menang dengan sistem yang sama, ya.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-606",
+    "enabled": true,
+    "category": "win",
+    "weight": 7,
+    "textEn": "Your best trade was following your rules, not hitting your target.",
+    "textBm": "Trade terbaik anda adalah mengikut peraturan, bukan mencapai target.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-701",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 9,
+    "textEn": "The market rewards patience and punishes urgency.",
+    "textBm": "Pasaran memberi ganjaran kepada kesabaran dan menghukum tergesa-gesa.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-702",
+    "enabled": true,
+    "category": "risk",
+    "weight": 8,
+    "textEn": "Risk management is not about avoiding losses. It's about surviving them.",
+    "textBm": "Pengurusan risiko bukan tentang mengelak kerugian. Ia tentang bertahan daripadanya.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-703",
+    "enabled": true,
+    "category": "mental",
+    "weight": 7,
+    "textEn": "Your emotions are information, not instructions.",
+    "textBm": "Emosi anda adalah maklumat, bukan arahan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-704",
+    "enabled": true,
+    "category": "general",
+    "weight": 6,
+    "textEn": "In trading, you don't get what you deserve. You get what you risk.",
+    "textBm": "Dalam trading, anda tidak dapat apa yang anda layak. Anda dapat apa yang anda pertaruhkan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-705",
+    "enabled": true,
+    "category": "confidence",
+    "weight": 7,
+    "textEn": "Trade like a sniper, not a machine gun.",
+    "textBm": "Trade seperti penembak tepat, bukan mesingan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-706",
+    "enabled": true,
+    "category": "loss",
+    "weight": 9,
+    "textEn": "Losing money teaches you nothing. Losing with discipline teaches you everything.",
+    "textBm": "Kehilangan wang tidak mengajar anda apa-apa. Kehilangan dengan disiplin mengajar anda segalanya.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-707",
+    "enabled": true,
+    "category": "general",
+    "weight": 8,
+    "textEn": "The goal of a successful trader is to make the best trades. Money is secondary.",
+    "textBm": "Matlamat trader yang berjaya adalah membuat trade yang terbaik. Wang adalah kedua.",
+    "author": "Alexander Elder",
+    "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-708",
+    "enabled": true,
+    "category": "patience",
+    "weight": 8,
+    "textEn": "The market is a device for transferring money from the impatient to the patient.",
+    "textBm": "Pasaran adalah alat untuk memindahkan wang daripada yang tidak sabar kepada yang sabar.",
+    "author": "Warren Buffett",
+    "sourceType": "publicFigure"
   }
 ]
