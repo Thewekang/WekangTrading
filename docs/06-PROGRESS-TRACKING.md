@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 2.9
-- **Status**: ACTIVE - v1.4.0 Complete ✅  
-- **Last Updated**: January 29, 2026
+- **Version**: 3.0
+- **Status**: ACTIVE - v1.5.0 Complete ✅  
+- **Last Updated**: February 7, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,14 +13,14 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.4.0 - User Ranking & Performance Analytics ✅  
+**Project Status**: 🚀 v1.5.0 - Discipline Tracker ✅  
 **Start Date**: January 8, 2026  
-**Latest Development**: January 29, 2026 (v1.4.0 - User Ranking + Enhanced Performance View)  
-**Current Phase**: Ready for Staging Deployment  
-**Active Branch**: feature/user-ranking-and-performance-update
+**Latest Development**: February 7, 2026 (v1.5.0 - Discipline Tracker)  
+**Current Phase**: Ready for Production Deployment  
+**Active Branch**: feature/discipline-tracker
 
 ```
-Overall Progress: ████████████████████ 100% Complete (v1.4.0)
+Overall Progress: ████████████████████ 100% Complete (v1.5.0)
 
 Phase Breakdown:
 ├─ Phase 0: Setup & Foundation       [100%] ██████████ ✅
@@ -30,12 +30,49 @@ Phase Breakdown:
 ├─ Phase 4: Advanced Features        [100%] ██████████ ✅
 ├─ Phase 5: Polish & Deployment      [100%] ██████████ ✅
 ├─ Phase 6: Performance Optimization [100%] ██████████ ✅
-└─ v1.4.0: User Ranking + Analytics  [100%] ██████████ ✅
+├─ v1.4.0: User Ranking + Analytics  [100%] ██████████ ✅
+└─ v1.5.0: Discipline Tracker        [100%] ██████████ ✅
 ```
 
 ---
 
 ## 1.2 Recent Release Summary
+
+### v1.5.0 - February 7, 2026 (Feature Release)
+
+**Major Features Added**:
+- 🎯 **Discipline Tracker**: Standalone execution discipline and rule enforcement system
+  - Instrument-agnostic daily trading discipline tracker
+  - Configurable P&L values (TP1/TP2/TP3, BE, SL)
+  - Auto-locking trades based on outcomes (prevent overtrading)
+  - A+ Setup confirmation requirement after BE/SL
+  - Range Expansion tracking for Trade 3 eligibility
+  - Session window enforcement (prime sessions only for Trade 3)
+  - Real-time rule evaluation with visual feedback
+  - Cumulative statistics (P&L, win rate, discipline adherence)
+  - Inline editing with debounced notes input
+  - Toggle switches for A+ and Range Expansion confirmation
+  - Interactive table with lock states and reasoning tooltips
+  - Duplicate date prevention
+  - CSV-ready data structure for future export
+
+**Technical Implementation**:
+- Database: 2 new tables (`discipline_tracker_settings`, `discipline_tracker_rows`)
+- Rules Engine: Pure functions with lock state evaluation
+- API: 3 RESTful endpoints with Zod validation
+- UI: 5 interactive components + main page
+- Performance: Debounced notes input (500ms), optimized re-renders
+- Migration: Column rename migration executed successfully
+
+**Bug Fixes & Improvements**:
+- Fixed database column naming mismatch
+- Fixed validation schema stripping trade outcomes
+- Fixed notes input causing constant re-renders
+- Fixed toggle state management issues
+- Improved error handling for duplicate dates
+- Added tooltips with info icons for better UX
+
+---
 
 ### v1.4.0 - January 29, 2026 (Feature Release)
 
