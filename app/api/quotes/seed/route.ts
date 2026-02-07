@@ -12,17 +12,16 @@ import { tradingQuotes } from '@/lib/db/schema/tradingQuotes';
 import { eq } from 'drizzle-orm';
 import quotesDataImport from '@/public/data/quotes.json';
 
-const quotesData = quotesDataImport as { quotes: Array<{
+const quotesData = quotesDataImport as Array<{
   id: string;
   enabled: boolean;
-  category: string;
+  category: 'discipline' | 'loss' | 'win' | 'confidence' | 'patience' | 'overtrading' | 'risk' | 'mental' | 'general';
   weight: number;
   textEn: string;
   textBm: string;
   author: string;
-  sourceType: string;
-  sourceUrl?: string;
-}> };
+  sourceType: 'original' | 'publicFigure';
+}>;
 
 /**
  * POST /api/quotes/seed
@@ -52,7 +51,7 @@ export async function POST(req: NextRequest) {
     let errors = 0;
 
     // Process each quote
-    for (const quote of quotesData.quotes) {
+    for (const quote of quotesData) {
       try {
         // Check if quote exists
         const existingQuote = await db
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        total: quotesData.quotes.length,
+        total: quotesData.length,
         inserted,
         updated,
         errors,

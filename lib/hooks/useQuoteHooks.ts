@@ -17,9 +17,9 @@ import type { QuoteCategory } from '@/lib/validations/quote';
 export function usePostTradeQuote() {
   const { showQuote, isLoading } = useQuoteSystem();
 
-  const showWinQuote = () => showQuote('WIN');
-  const showLossQuote = () => showQuote('LOSS');
-  const showDisciplineQuote = () => showQuote('DISCIPLINE');
+  const showWinQuote = () => showQuote('win');
+  const showLossQuote = () => showQuote('loss');
+  const showDisciplineQuote = () => showQuote('discipline');
   const showRandomQuote = () => showQuote(); // Any category
 
   return {
@@ -42,9 +42,9 @@ export function usePostTradeQuote() {
 export function useDisciplineQuote() {
   const { showQuote, isLoading } = useQuoteSystem();
 
-  const showDisciplineQuote = () => showQuote('DISCIPLINE');
-  const showPatienceQuote = () => showQuote('PATIENCE');
-  const showOvertradinQuote = () => showQuote('OVERTRADING');
+  const showDisciplineQuote = () => showQuote('discipline');
+  const showPatienceQuote = () => showQuote('patience');
+  const showOvertradinQuote = () => showQuote('overtrading');
 
   return {
     showDisciplineQuote,
@@ -61,8 +61,8 @@ export function useDisciplineQuote() {
 export function useRiskManagementQuote() {
   const { showQuote, isLoading } = useQuoteSystem();
 
-  const showRiskQuote = () => showQuote('RISK');
-  const showConfidenceQuote = () => showQuote('CONFIDENCE');
+  const showRiskQuote = () => showQuote('risk');
+  const showConfidenceQuote = () => showQuote('confidence');
 
   return {
     showRiskQuote,

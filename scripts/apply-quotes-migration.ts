@@ -17,7 +17,9 @@ if (!databaseUrl || !authToken) {
 
 async function main() {
   console.log('🚀 Applying migration 0009 (Trading Quotes System) to Turso database...');
-  
+    if (!databaseUrl) {
+    throw new Error('DATABASE_URL is not defined');
+  }
   const client = createClient({
     url: databaseUrl,
     authToken: authToken,
