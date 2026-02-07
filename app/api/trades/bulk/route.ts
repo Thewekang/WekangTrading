@@ -54,40 +54,28 @@ export async function POST(request: NextRequest) {
       notes: trade.notes,
     }));
 
-    // Bulk create trades
+    // Bulk create trades (stats update now happens inside createTradesBulk)
     const result = await createTradesBulk(trades);
     
-    // Recalculate user stats from all trades (needed for badge evaluation)
-    console.log(`[Bulk Trade] Recalculating user stats for user ${session.user.id}`);
-    await initializeUserStats(session.user.id);
-    await updateUserStatsFromTrades(session.user.id);
-    
-    // Check and award badges after stats update
-    console.log(`[Bulk Trade] Checking and awarding badges for user ${session.user.id}`);
-    let newBadges: any[] = [];
-    try {
-      newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
-      console.log(`[Bulk Trade] Awarded ${newBadges.length} badge(s)`);
-    } catch (badgeError) {
-      // Don't fail trade creation if badge check fails
-      console.error('Badge check error (non-fatal):', badgeError);
-    }
-
-    // Revalidate paths to update UI with new notifications
-    revalidatePath('/dashboard');
-    revalidatePath('/dashboard/achievements');
-    revalidatePath('/notifications');
-    revalidatePath('/', 'layout'); // Revalidate layout to update notification count in navbar
-
-    return NextResponse.json(
+    // Return immediately for fast UX
+    const response = NextResponse.json(
       { 
         success: true, 
         data: result, 
-        badges: newBadges, // Include earned badges in response
         message: `${result.count} trades created successfully` 
       },
       { status: 201 }
     );
+    
+    // Check badges and revalidate cache asynchronously (non-blocking)
+    Promise.all([
+      checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
+        .catch(error => console.error('Badge check error (non-fatal):', error)),
+      // Single revalidation of layout updates all nested routes
+      Promise.resolve(revalidatePath('/', 'layout'))
+    ]);
+    
+    return response;
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

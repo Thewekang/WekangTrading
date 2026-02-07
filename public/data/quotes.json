@@ -1,0 +1,262 @@
+[
+  {
+    "id": "q-101",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 8,
+    "textEn": "One trade executed well beats ten trades taken out of boredom.",
+    "textBm": "Satu trade yang dibuat dengan betul lebih bernilai daripada sepuluh trade kerana bosan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-102",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 7,
+    "textEn": "Your edge doesn't disappear after a few losses — your discipline does.",
+    "textBm": "Kelebihan anda tidak hilang selepas beberapa kerugian — disiplin anda yang hilang.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-103",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 7,
+    "textEn": "You don't need to trade today. You need to trade correctly.",
+    "textBm": "Anda tidak perlu trade hari ini. Anda perlu trade dengan betul.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-104",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 6,
+    "textEn": "A flat day with rules followed is a winning day.",
+    "textBm": "Hari tanpa untung tetapi patuh peraturan adalah hari yang menang.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-201",
+    "enabled": true,
+    "category": "loss",
+    "weight": 9,
+    "textEn": "Losses are part of the plan. Rule-breaking is not.",
+    "textBm": "Kerugian adalah sebahagian daripada pelan. Melanggar peraturan bukan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-202",
+    "enabled": true,
+    "category": "loss",
+    "weight": 8,
+    "textEn": "A losing trade doesn't invalidate a profitable system.",
+    "textBm": "Satu trade rugi tidak membatalkan sistem yang menguntungkan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-203",
+    "enabled": true,
+    "category": "loss",
+    "weight": 7,
+    "textEn": "If the setup was valid, the loss was valid.",
+    "textBm": "Jika setup itu sah, kerugian itu juga sah.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-301",
+    "enabled": true,
+    "category": "overtrading",
+    "weight": 8,
+    "textEn": "This trade won't fix the last one.",
+    "textBm": "Trade ini tidak akan membaiki trade yang lepas.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-302",
+    "enabled": true,
+    "category": "overtrading",
+    "weight": 7,
+    "textEn": "Revenge trading is just delayed regret.",
+    "textBm": "Revenge trading hanyalah penyesalan yang ditangguhkan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-401",
+    "enabled": true,
+    "category": "patience",
+    "weight": 7,
+    "textEn": "Most of trading is waiting.",
+    "textBm": "Sebahagian besar trading adalah menunggu.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-402",
+    "enabled": true,
+    "category": "patience",
+    "weight": 6,
+    "textEn": "If nothing is clear, that is the signal.",
+    "textBm": "Jika tiada yang jelas, itu sendiri adalah signal.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-501",
+    "enabled": true,
+    "category": "confidence",
+    "weight": 6,
+    "textEn": "Confidence comes from following rules, not winning trades.",
+    "textBm": "Keyakinan datang daripada patuh peraturan, bukan menang trade.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-601",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 6,
+    "textEn": "The hard reality of trading is that every trade has an uncertain outcome.",
+    "textBm": "Realiti trading adalah setiap trade mempunyai keputusan yang tidak pasti.",
+    "author": "Mark Douglas",
+    "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-602",
+    "enabled": true,
+    "category": "risk",
+    "weight": 6,
+    "textEn": "Don't focus on making money. Focus on protecting what you have.",
+    "textBm": "Jangan fokus buat duit. Fokus lindungi apa yang anda ada.",
+    "author": "Paul Tudor Jones",
+    "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-603",
+    "enabled": true,
+    "category": "patience",
+    "weight": 5,
+    "textEn": "It was never my thinking that made the big money. It was my sitting.",
+    "textBm": "Keuntungan besar datang daripada kesabaran menunggu.",
+    "author": "Jesse Livermore",
+    "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-604",
+    "enabled": true,
+    "category": "mental",
+    "weight": 4,
+    "textEn": "Do not pray for an easy life. Pray for the strength to endure a difficult one.",
+    "textBm": "Jangan doa untuk hidup yang mudah. Doalah untuk kekuatan menghadapi kesukaran.",
+    "author": "Bruce Lee",
+    "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-605",
+    "enabled": true,
+    "category": "win",
+    "weight": 8,
+    "textEn": "One winning trade doesn't make you profitable. One hundred winning trades following the same system does.",
+    "textBm": "Satu trade menang tidak menjadikan anda menguntungkan. Seratus trade menang dengan sistem yang sama, ya.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-606",
+    "enabled": true,
+    "category": "win",
+    "weight": 7,
+    "textEn": "Your best trade was following your rules, not hitting your target.",
+    "textBm": "Trade terbaik anda adalah mengikut peraturan, bukan mencapai target.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-701",
+    "enabled": true,
+    "category": "discipline",
+    "weight": 9,
+    "textEn": "The market rewards patience and punishes urgency.",
+    "textBm": "Pasaran memberi ganjaran kepada kesabaran dan menghukum tergesa-gesa.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-702",
+    "enabled": true,
+    "category": "risk",
+    "weight": 8,
+    "textEn": "Risk management is not about avoiding losses. It's about surviving them.",
+    "textBm": "Pengurusan risiko bukan tentang mengelak kerugian. Ia tentang bertahan daripadanya.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-703",
+    "enabled": true,
+    "category": "mental",
+    "weight": 7,
+    "textEn": "Your emotions are information, not instructions.",
+    "textBm": "Emosi anda adalah maklumat, bukan arahan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-704",
+    "enabled": true,
+    "category": "general",
+    "weight": 6,
+    "textEn": "In trading, you don't get what you deserve. You get what you risk.",
+    "textBm": "Dalam trading, anda tidak dapat apa yang anda layak. Anda dapat apa yang anda pertaruhkan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-705",
+    "enabled": true,
+    "category": "confidence",
+    "weight": 7,
+    "textEn": "Trade like a sniper, not a machine gun.",
+    "textBm": "Trade seperti penembak tepat, bukan mesingan.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-706",
+    "enabled": true,
+    "category": "loss",
+    "weight": 9,
+    "textEn": "Losing money teaches you nothing. Losing with discipline teaches you everything.",
+    "textBm": "Kehilangan wang tidak mengajar anda apa-apa. Kehilangan dengan disiplin mengajar anda segalanya.",
+    "author": "Trading Discipline Reminder",
+    "sourceType": "original"
+  },
+  {
+    "id": "q-707",
+    "enabled": true,
+    "category": "general",
+    "weight": 8,
+    "textEn": "The goal of a successful trader is to make the best trades. Money is secondary.",
+    "textBm": "Matlamat trader yang berjaya adalah membuat trade yang terbaik. Wang adalah kedua.",
+    "author": "Alexander Elder",
+    "sourceType": "publicFigure"
+  },
+  {
+    "id": "q-708",
+    "enabled": true,
+    "category": "patience",
+    "weight": 8,
+    "textEn": "The market is a device for transferring money from the impatient to the patient.",
+    "textBm": "Pasaran adalah alat untuk memindahkan wang daripada yang tidak sabar kepada yang sabar.",
+    "author": "Warren Buffett",
+    "sourceType": "publicFigure"
+  }
+]

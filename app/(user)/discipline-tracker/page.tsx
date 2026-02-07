@@ -6,11 +6,12 @@ import { StatsDisplay } from '@/components/discipline-tracker/StatsDisplay';
 import { FilterBar } from '@/components/discipline-tracker/FilterBar';
 import { TrackerTable } from '@/components/discipline-tracker/TrackerTable';
 import { AddRowDialog } from '@/components/discipline-tracker/AddRowDialog';
-import { Shield } from 'lucide-react';
+import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/schema';
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
 import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTracker';
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
+import { DisciplineTrackerQuote } from '@/components/quotes/DisciplineTrackerQuote';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
@@ -27,6 +28,7 @@ export default function DisciplineTrackerPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Fetch settings and rows on mount
   useEffect(() => {
@@ -159,6 +161,13 @@ export default function DisciplineTrackerPage() {
       if (data.success) {
         setRows(rows.map((r) => (r.id === id ? data.data : r)));
         setFilteredRows(filteredRows.map((r) => (r.id === id ? data.data : r)));
+        
+        // Show discipline quote if breaking rules (trade 2 or 3 with LOSS)
+        if (updates.trade2Outcome === 'LOSS' || updates.trade3Outcome === 'LOSS') {
+          showOvertradinQuote();
+        } else if (updates.trade1Outcome === 'LOSS' && (updates.trade2Outcome || updates.trade3Outcome)) {
+          showPatienceQuote();
+        }
         // Don't show toast on every update to avoid noise
       } else {
         throw new Error(data.error?.message || 'Failed to update row');
@@ -237,8 +246,8 @@ export default function DisciplineTrackerPage() {
         </div>
       </div>
 
-      {/* Settings Panel */}
-      <SettingsPanel settings={settings} onUpdate={handleUpdateSettings} />
+      {/* Contextual Quote - Pinned at Top */}
+      <DisciplineTrackerQuote />
 
       {/* Filter Bar */}
       <FilterBar onFilterChange={handleFilterChange} />
@@ -255,6 +264,30 @@ export default function DisciplineTrackerPage() {
         onDuplicate={handleDuplicateRow}
         onAddRow={() => setAddDialogOpen(true)}
       />
+
+      {/* Settings Panel - Collapsible */}
+      <div className="border rounded-lg">
+        <button
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Plan Settings</h2>
+          </div>
+          {isSettingsOpen ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
+        </button>
+        
+        {isSettingsOpen && (
+          <div className="p-4 border-t">
+            <SettingsPanel settings={settings} onUpdate={handleUpdateSettings} />
+          </div>
+        )}
+      </div>
 
       {/* Add Row Dialog */}
       <AddRowDialog

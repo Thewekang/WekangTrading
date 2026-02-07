@@ -131,12 +131,13 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
     .insert(individualTrades)
     .values(tradesWithSessions);
 
-  // Update daily summaries for all affected dates
+  // Update daily summaries for all affected dates (in parallel)
   const uniqueDates = new Set(trades.map(t => t.tradeTimestamp.toISOString().split('T')[0]));
-  for (const dateStr of uniqueDates) {
-    const date = new Date(dateStr);
-    await updateDailySummary(userId, date);
-  }
+  await Promise.all(
+    Array.from(uniqueDates).map(dateStr => 
+      updateDailySummary(userId, new Date(dateStr))
+    )
+  );
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades

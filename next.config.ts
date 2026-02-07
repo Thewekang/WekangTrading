@@ -17,6 +17,33 @@ const nextConfig: NextConfig = {
   
   // Production optimizations
   productionBrowserSourceMaps: false, // Disable source maps in production for smaller bundles
+  
+  // Suppress harmless development warnings
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      // Suppress React DevTools suggestion in development
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'react-dom$': 'react-dom/profiling',
+      };
+    }
+    return config;
+  },
+  
+  // Headers to control preload warnings
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+        ],
+      },
+    ];
+  },
 };
 
 // Bundle analyzer setup (only runs when ANALYZE=true)

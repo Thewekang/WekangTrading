@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { getTrades } from '@/lib/services/individualTradeService';
 import { TradesList } from '@/components/TradesList';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
+import { TradesPageQuote } from '@/components/quotes/TradesPageQuote';
 
 export const metadata = {
   title: 'My Trades | WekangTradingJournal',
@@ -51,6 +52,9 @@ export default async function TradesPage() {
             </Link>
           </div>
         </div>
+
+        {/* Contextual Quote - Pinned at Top */}
+        <TradesPageQuote />
 
         {/* Daily Loss Alert */}
         <DailyLossAlert className="mb-6" />
