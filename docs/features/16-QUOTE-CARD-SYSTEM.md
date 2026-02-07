@@ -1,9 +1,10 @@
 # Quote Card System - Feature Documentation
 
-**Version:** 1.0.0  
-**Status:** 📋 Planning Phase  
+**Version:** 1.1.0  
+**Status:** ✅ Implemented (Phases 1-6 Complete)  
 **Branch:** `feature/quote-card-system`  
-**Created:** February 7, 2026
+**Created:** February 7, 2026  
+**Last Updated:** February 7, 2026
 
 ---
 
@@ -19,6 +20,171 @@
 8. [Implementation Plan](#implementation-plan)
 9. [User Experience Flow](#user-experience-flow)
 10. [Testing Strategy](#testing-strategy)
+11. [Implementation Summary](#implementation-summary)
+12. [Deviations from Plan](#deviations-from-plan)
+
+---
+
+## 1. Implementation Summary
+
+### ✅ Completed Features (v1.1.0)
+
+**Phase 1-6 Implementation**: All core features implemented and functional
+
+#### Core System
+- ✅ **26 Bilingual Quotes**: 9 categories, both EN/BM
+- ✅ **Weighted Random Selection**: 1-10 weight system
+- ✅ **Anti-Repeat Logic**: Excludes last shown quote
+- ✅ **Cooldown System**: Default 15 min (configurable)
+- ✅ **Session Limits**: Max 5 quotes per session
+- ✅ **Language Rotation**: Automatic EN ↔ BM alternation
+
+#### Visual Components
+- ✅ **QuoteCard Component**: Toast + inline variants
+- ✅ **Purple Gradient Styling**: Beautiful animations
+- ✅ **Quote of the Day Widget**: Dashboard persistent display
+- ✅ **Context-aware Display**: 9 trigger categories
+
+#### Integration Points
+- ✅ **Dashboard**: Quote of the Day widget (24hr persistence)
+- ✅ **My Trades**: Contextual quote pinned at top (removed popups)
+- ✅ **Discipline Tracker**: Contextual quote pinned at top (separate table analysis)
+- ✅ **Removed**: All popup quotes from trade entry forms
+
+#### Admin Features
+- ✅ **Full CRUD Management**: /admin/quotes page
+- ✅ **Stats Dashboard**: Total, enabled, by category
+- ✅ **Search & Filter**: Category, status, text/author
+- ✅ **Sortable Table**: ID, category, weight, display count
+- ✅ **Re-seed Function**: Upsert logic from JSON
+
+#### API Layer
+- ✅ **7 Endpoints**: Complete REST API
+  - GET/POST /api/quotes
+  - GET/PATCH/DELETE /api/quotes/[id]
+  - POST /api/quotes/random
+  - GET /api/quotes/quote-of-the-day
+  - POST /api/quotes/seed (admin only)
+  - GET/PATCH /api/quotes/preferences
+  - POST /api/quotes/contextual (Discipline Tracker)
+  - POST /api/quotes/trades-page (My Trades)
+
+### 🎯 Key Achievements
+
+1. **Contextual Intelligence**: 
+   - Discipline Tracker: Analyzes last 3 DAYS from disciplineTrackerRows table
+   - My Trades: Analyzes last 3 TRADES from individualTrades table
+   - Weighted category selection based on performance
+
+2. **Quote of the Day**:
+   - Deterministic selection using date-based seed
+   - 24-hour persistence (refreshes at midnight)
+   - Dashboard widget with beautiful card design
+
+3. **UI/UX Enhancements**:
+   - Collapsible filters on My Trades page
+   - Collapsible Plan Settings on Discipline Tracker
+   - Pinned contextual quotes (non-intrusive)
+   - Removed annoying popup quotes
+
+---
+
+## 2. Deviations from Plan
+
+### Changes from Original Design
+
+#### 1. **Quote Popup Removal** ✅ IMPROVED
+**Original Plan**: Show popup quotes after trade entry (WIN/LOSS triggers)
+
+**What Changed**: Removed ALL popup quotes from:
+- Real-time trade entry form
+- Bulk trade entry form  
+- CSV import page
+
+**Why**: Popups were intrusive and annoying. Users didn't want interruptions during active trading.
+
+**New Approach**: 
+- **Pinned contextual quotes** at top of pages (Discipline Tracker, My Trades)
+- Quotes refresh on page load based on recent performance
+- Non-intrusive, always visible, context-aware
+
+#### 2. **Discipline Tracker Integration** ✅ ENHANCED
+**Original Plan**: Show quote popup after updating trade outcomes
+
+**What Changed**: 
+- Created `contextualQuoteService.ts` analyzing disciplineTrackerRows table
+- Analyzes last 3 DAYS (not individual trades)
+- Each day has up to 3 outcomes (trade1, trade2, trade3)
+- Categorizes: SL→loss, BE→breakeven, TP1/TP2/TP3→win
+- Determines mood based on winning vs losing days
+- Weekly performance calculation
+
+**Result**: 
+- `DisciplineTrackerQuote` component pinned at top
+- Displays: Mood icon (📈📉➖✨), last 3 days (W-L-BE), weekly win rate
+- Refreshes on page load, not after every update
+
+#### 3. **My Trades Integration** ✅ ENHANCED
+**Original Plan**: Show quote popup after quick trade entry
+
+**What Changed**:
+- Created `tradesPageQuoteService.ts` analyzing individualTrades table
+- Analyzes last 3 TRADES + weekly performance
+- Same weighting logic as Discipline Tracker
+- `TradesPageQuote` component pinned at top (above loss reminder)
+
+**Result**:
+- Shows mood icon, last 3 results (W-L-W format), weekly win rate
+- Non-intrusive, always visible
+- Provides immediate performance context
+
+#### 4. **Quote of the Day** ✅ ADDED
+**Original Plan**: Not included in initial phases
+
+**What Implemented**:
+- `QuoteOfTheDayWidget` component for dashboard
+- Deterministic selection using date-based seed
+- 24-hour persistence (same quote all day)
+- Beautiful card design matching theme
+- API endpoint: GET /api/quotes/quote-of-the-day
+
+**Why Added**: Requested during implementation for ambient motivation
+
+#### 5. **UI/UX Improvements** ✅ ADDED
+**Original Plan**: Standard filter/settings display
+
+**What Changed**:
+- Made Filters & Search section collapsible on My Trades
+- Made Plan Settings collapsible on Discipline Tracker
+- Both collapsed by default to reduce visual clutter
+- Added ChevronDown/ChevronUp icons
+- Consistent pattern across both pages
+
+**Why**: Better UX, less scrolling, cleaner initial page load
+
+#### 6. **Database Table Separation** ✅ CRITICAL FIX
+**Original Plan**: Assumed shared trade data
+
+**What Fixed**:
+- Discipline Tracker uses `disciplineTrackerRows` table (NOT individualTrades)
+- Separate service for each page's contextual quotes
+- Different analysis logic:
+  - Discipline: Last 3 DAYS (each day = 3 trade slots)
+  - My Trades: Last 3 TRADES (individual trade records)
+
+**Why**: Corrected during implementation after user feedback
+
+### Summary of Changes
+
+| Feature | Original Plan | Implemented | Status |
+|---------|--------------|-------------|--------|
+| Post-trade popups | Toast notifications | Removed entirely | ✅ Better UX |
+| Discipline Tracker | Popup after update | Pinned contextual quote | ✅ Enhanced |
+| My Trades | Popup after entry | Pinned contextual quote | ✅ Enhanced |
+| Quote of the Day | Not planned | Dashboard widget | ✅ Added |
+| Contextual quotes | Generic triggers | Performance-based weighting | ✅ Enhanced |
+| UI filters | Always visible | Collapsible (default closed) | ✅ Improved |
+| Data source | Assumed shared | Separate tables per page | ✅ Fixed |
 
 ---
 
@@ -410,82 +576,132 @@ Features:
 - Used in CSV import after successful imports
 - **Decision**: Similar animation pattern for quote cards
 
-### 7.2 Integration Points (Actual Locations)
+### 7.2 Integration Points (Actual Implementation)
 
-**1. Quick Trade Entry** (Real-Time)
-- **Component**: `components/forms/RealTimeTradeEntryForm.tsx`
-- **Page**: `app/(user)/trades/new/page.tsx`
-- **Trigger Point**: After successful API response from `/api/trades/individual`
-- **Existing Toast**: Already uses sonner `toast.success()` / `toast.error()`
-- **Integration**: Add quote trigger after toast success
+**❌ REMOVED: Popup Quote Integrations**
+
+The following popup quote triggers were planned but removed due to poor UX:
+- ~~Real-Time Trade Entry (after save)~~
+- ~~Bulk Trade Entry (after bulk save)~~
+- ~~CSV Import (after import)~~
+- ~~Discipline Tracker (after outcome update)~~
+
+**✅ IMPLEMENTED: Pinned Contextual Quotes**
+
+#### 1. **Dashboard - Quote of the Day**
+- **Component**: `components/quotes/QuoteOfTheDayWidget.tsx`
+- **Page**: `app/(user)/dashboard/page.tsx`
+- **API**: `GET /api/quotes/quote-of-the-day`
+- **Behavior**: 
+  - Displays one quote persistently for 24 hours
+  - Deterministic selection (date-based seed)
+  - Beautiful card design with gradient background
+  - Refreshes automatically at midnight
+
 ```typescript
-// In RealTimeTradeEntryForm.tsx after successful save
-if (response.ok && data.success) {
-  toast.success('Trade recorded successfully!');
-  
-  // NEW: Trigger quote based on trade result
-  const category = formData.result === 'WIN' ? 'win' : 
-                   formData.result === 'LOSS' ? 'loss' : 'patience';
-  await showQuote({ category, reason: 'trade' });
+// Dashboard page
+<QuoteOfTheDayWidget />
+```
+
+#### 2. **Discipline Tracker - Contextual Quote** ✅
+- **Component**: `components/quotes/DisciplineTrackerQuote.tsx`
+- **Service**: `lib/services/contextualQuoteService.ts`
+- **API**: `POST /api/quotes/contextual`
+- **Data Source**: `disciplineTrackerRows` table (NOT individualTrades)
+- **Analysis Logic**:
+  - Queries last 3 DAYS of discipline tracker records
+  - Each day can have up to 3 trade outcomes (trade1, trade2, trade3)
+  - Categorizes outcomes:
+    - SL → loss
+    - BE → breakeven
+    - TP1, TP2, TP3 → win
+  - Determines mood based on winning vs losing days
+  - Calculates weekly win rate from discipline tracker data
+- **Display**: 
+  - Pinned at top of page (below header, above filters)
+  - Shows: Mood icon (📈📉➖✨), last 3 days format (W-L-BE), weekly win rate
+  - Refreshes on page load
+  - Non-intrusive, always visible
+
+```typescript
+// Discipline Tracker page
+<DisciplineTrackerQuote />
+```
+
+#### 3. **My Trades - Contextual Quote** ✅
+- **Component**: `components/quotes/TradesPageQuote.tsx`
+- **Service**: `lib/services/tradesPageQuoteService.ts`
+- **API**: `POST /api/quotes/trades-page`
+- **Data Source**: `individualTrades` table
+- **Analysis Logic**:
+  - Queries last 3 TRADES (most recent)
+  - Analyzes trade results (WIN/LOSS)
+  - Calculates weekly performance
+  - Applies same weighting logic as Discipline Tracker
+  - Categories weighted based on performance:
+    - Losing streak → 3x LOSS, PATIENCE
+    - Winning streak → 3x WIN, CONFIDENCE
+    - Mixed → 3x DISCIPLINE
+- **Display**:
+  - Pinned at top of page (above loss reminder)
+  - Shows: Mood icon, last 3 results (W-L-W format), weekly win rate
+  - Refreshes on page load
+  - Provides immediate performance context
+
+```typescript
+// My Trades page (via TradesList component)
+<TradesPageQuote />
+```
+
+#### 4. **Removed Popup Quotes**
+All quote hooks and display logic removed from:
+- `components/forms/RealTimeTradeEntryForm.tsx`
+- `components/forms/BulkTradeEntryForm.tsx`
+- `app/(user)/trades/import/page.tsx`
+
+**Reason**: User feedback indicated popups were intrusive during active trading. Pinned contextual quotes provide better UX.
+
+### 7.3 Contextual Quote Weighting Logic
+
+**Shared Logic** (both Discipline Tracker and My Trades):
+
+```typescript
+// Determine mood based on performance
+const winDays = performance.filter(d => d.result === 'win').length;
+const lossDays = performance.filter(d => d.result === 'loss').length;
+
+let mood: 'losing' | 'winning' | 'mixed' | 'starting';
+
+if (winDays === 0 && lossDays === 0) {
+  mood = 'starting'; // No data yet
+} else if (lossDays > winDays) {
+  mood = 'losing'; // More losses than wins
+} else if (winDays > lossDays) {
+  mood = 'winning'; // More wins than losses
+} else {
+  mood = 'mixed'; // Equal or complex pattern
 }
+
+// Apply category weights based on mood
+const categoryWeights: Record<QuoteCategory, number> = {
+  GENERAL: 1,
+  DISCIPLINE: mood === 'mixed' ? 3 : 1,
+  LOSS: mood === 'losing' ? 3 : 1,
+  WIN: mood === 'winning' ? 3 : 1,
+  PATIENCE: mood === 'losing' ? 3 : 1,
+  CONFIDENCE: mood === 'winning' ? 3 : 1,
+  OVERTRADING: 1,
+  RISK: 1,
+  MENTAL: 1,
+};
 ```
 
-**2. Bulk Trade Entry**
-- **Component**: `components/forms/BulkTradeEntryForm.tsx`
-- **Page**: `app/(user)/trades/bulk/page.tsx`
-- **Trigger Point**: After all trades successfully saved
-- **Existing Toast**: Uses sonner toasts
-- **Integration**: Show quote after bulk save completes
-```typescript
-// After bulk save success
-toast.success(`${trades.length} trades saved successfully!`);
+**Display Format**:
 
-// NEW: Analyze last trade or aggregate outcome
-const lastTrade = trades[trades.length - 1];
-const category = lastTrade.result === 'WIN' ? 'win' : 
-                 lastTrade.result === 'LOSS' ? 'loss' : 'general';
-await showQuote({ category, reason: 'bulk' });
 ```
-
-**3. CSV Import**
-- **Page**: `app/(user)/trades/import/page.tsx`
-- **Trigger Point**: After successful import (already has BadgeCelebration)
-- **Existing Pattern**: Shows badge celebration after import
-- **Integration**: Show quote after badge celebration dismisses
-```typescript
-// After successful import
-setShowCelebration(true); // Badge celebration
-// NEW: Show quote after celebration (3s delay)
-setTimeout(async () => {
-  await showQuote({ category: 'general', reason: 'import' });
-}, 3000);
+📈 Last 3 days: W-W-L | Weekly: 68% WR    ← Discipline Tracker
+📉 Last 3: L-L-W | Weekly: 45% WR         ← My Trades
 ```
-
-**4. Discipline Tracker**
-- **Page**: `app/(user)/discipline-tracker/page.tsx`
-- **Trigger Point**: After Trade 1/2/3 outcome updated
-- **Existing Toast**: Uses `toast.info()` for rule changes
-- **Integration**: Add quote trigger in handleUpdateRow
-```typescript
-// In handleUpdateRow after successful update
-if (data.success) {
-  setRows(rows.map((r) => (r.id === id ? data.data : r)));
-  
-  // NEW: Trigger quote if trade outcome changed
-  if (updates.trade1Outcome || updates.trade2Outcome || updates.trade3Outcome) {
-    const outcome = updates.trade1Outcome || updates.trade2Outcome || updates.trade3Outcome;
-    const category = outcome === 'TP1' || outcome === 'TP2' || outcome === 'TP3' ? 'win' :
-                     outcome === 'SL' ? 'loss' : 'patience';
-    await showQuote({ category, reason: 'discipline-tracker' });
-  }
-}
-```
-
-**5. Page Loads** (Random - Low Priority)
-- **Location**: QuoteSystemProvider (global)
-- **Probability**: 5% on component mount
-- **Cooldown**: Still applies
-- **Implementation**: useEffect in provider checks random + cooldown
 
 ### 7.2 Event Emitter Pattern
 

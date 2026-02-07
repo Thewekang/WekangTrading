@@ -9,6 +9,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **💬 Quote Card System (v1.1.0)**: Motivational quotes integrated across the platform
+  - **26 Bilingual Quotes**: 9 categories (Discipline, Risk Management, Patience, Consistency, Emotional Control, Learning, Confidence, Gratitude, Focus) in English & Bahasa Malaysia
+  - **Quote of the Day Widget**: Dashboard widget with 24-hour persistence using deterministic selection
+  - **Contextual Quotes**: Smart quote selection based on trading performance
+    - **Discipline Tracker Quote**: Analyzes last 3 days from disciplineTrackerRows table, displays mood icon + weekly win rate
+    - **My Trades Quote**: Analyzes last 3 trades from individualTrades table, displays performance context
+  - **Weighted Random Selection**: 1-10 weight system with anti-repeat logic
+  - **Admin Management**: Full CRUD interface for quotes with search, filter, sort, and bulk re-seed
+  - **Beautiful UI**: Purple gradient cards with animations, mobile-responsive design
+
+### Changed
+- **🔽 Collapsible Sections**: Improved UX with collapsible filters and settings
+  - **My Trades**: Filters & Search section collapsible (collapsed by default)
+  - **Discipline Tracker**: Plan Settings section collapsible (collapsed by default)
+  - Both sections use ChevronDown/ChevronUp icons for clear visual feedback
+  - Reduces visual clutter and improves initial page load experience
+
+### Removed
+- **Popup Quotes**: Removed intrusive quote popups from trade entry forms
+  - Quote popups after quick trade entry ❌ (replaced with pinned contextual quote)
+  - Quote popups after bulk trade entry ❌
+  - Quote popups after CSV import ❌
+  - **Rationale**: Non-intrusive pinned quotes provide better UX without disrupting workflow
+
+### Technical
+- **Database Schema**: Added trading_quotes table (11 fields)
+- **API Endpoints**: 7 RESTful endpoints
+  - `GET/POST /api/quotes` - List all quotes, create new quote
+  - `GET/PATCH/DELETE /api/quotes/[id]` - Get, update, delete specific quote
+  - `POST /api/quotes/random` - Get random quote with filters
+  - `GET /api/quotes/quote-of-the-day` - Deterministic daily quote
+  - `POST /api/quotes/seed` - Bulk seed/upsert quotes
+  - `GET/PATCH /api/quotes/preferences` - User quote preferences
+  - `POST /api/quotes/contextual` - Discipline Tracker contextual quote
+  - `POST /api/quotes/trades-page` - My Trades contextual quote
+- **Service Layer**: 4 new services
+  - quoteService.ts (11 functions for quote operations)
+  - userQuotePreferencesService.ts (preferences management)
+  - contextualQuoteService.ts (Discipline Tracker analysis)
+  - tradesPageQuoteService.ts (My Trades analysis)
+- **UI Components**: 4 new quote components
+  - QuoteCard.tsx (toast + inline variants)
+  - QuoteOfTheDayWidget.tsx (dashboard widget)
+  - DisciplineTrackerQuote.tsx (contextual quote at top)
+  - TradesPageQuote.tsx (contextual quote at top)
+- **Context Provider**: QuoteSystemContext for global state management
+
 ---
 
 ## [1.5.0] - 2026-02-07
