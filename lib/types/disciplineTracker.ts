@@ -73,7 +73,7 @@ export function classifyOutcome(outcome: TradeOutcome | null | undefined): Outco
 export function getOutcomePnl(
   outcome: TradeOutcome | null | undefined,
   settings: DisciplineTrackerSettings,
-  tp3Amount?: number
+  tp3Amount?: number | null
 ): number {
   if (!outcome || outcome === '') return 0;
   
