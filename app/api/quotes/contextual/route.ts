@@ -13,6 +13,9 @@ import { incrementQuoteDisplayCount } from '@/lib/services/quoteService';
 // Cache for 30 seconds for better performance
 export const revalidate = 30;
 
+// Force dynamic rendering (requires auth headers)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/quotes/contextual
  * Get a contextual quote based on trading performance
