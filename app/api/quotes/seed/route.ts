@@ -10,7 +10,19 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tradingQuotes } from '@/lib/db/schema/tradingQuotes';
 import { eq } from 'drizzle-orm';
-import quotesData from '@/public/data/quotes.json';
+import quotesDataImport from '@/public/data/quotes.json';
+
+const quotesData = quotesDataImport as { quotes: Array<{
+  id: string;
+  enabled: boolean;
+  category: string;
+  weight: number;
+  textEn: string;
+  textBm: string;
+  author: string;
+  sourceType: string;
+  sourceUrl?: string;
+}> };
 
 /**
  * POST /api/quotes/seed
@@ -61,7 +73,6 @@ export async function POST(req: NextRequest) {
               textBm: quote.textBm,
               author: quote.author,
               sourceType: quote.sourceType,
-              sourceUrl: quote.sourceUrl,
               updatedAt: new Date(),
             })
             .where(eq(tradingQuotes.id, quote.id));
@@ -78,7 +89,6 @@ export async function POST(req: NextRequest) {
             textBm: quote.textBm,
             author: quote.author,
             sourceType: quote.sourceType,
-            sourceUrl: quote.sourceUrl || null,
             displayCount: 0,
             createdAt: new Date(),
             updatedAt: new Date(),

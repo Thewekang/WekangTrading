@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 // Query params schema
 const querySchema = z.object({
-  category: z.enum(['DISCIPLINE', 'LOSS', 'WIN', 'PATIENCE', 'CONFIDENCE', 'OVERTRADING', 'RISK', 'MENTAL', 'GENERAL']).optional(),
+  category: z.enum(['discipline', 'loss', 'win', 'patience', 'confidence', 'overtrading', 'risk', 'mental', 'general']).optional(),
   enabled: z.string().optional().transform((val) => val === 'true'),
   stats: z.string().optional().transform((val) => val === 'true'),
 });

@@ -33,7 +33,6 @@ interface Quote {
   textBm: string;
   author: string;
   sourceType: string;
-  sourceUrl: string | null;
   displayCount: number;
   createdAt: string;
   updatedAt: string;
@@ -74,13 +73,12 @@ export default function AdminQuotesPage() {
   const [formData, setFormData] = useState({
     id: '',
     enabled: true,
-    category: 'GENERAL' as QuoteCategory,
+    category: 'general' as QuoteCategory,
     weight: 5,
     textEn: '',
     textBm: '',
     author: '',
-    sourceType: 'ORIGINAL',
-    sourceUrl: '',
+    sourceType: 'original',
   });
 
   useEffect(() => {
@@ -278,7 +276,6 @@ export default function AdminQuotesPage() {
       textBm: quote.textBm,
       author: quote.author,
       sourceType: quote.sourceType,
-      sourceUrl: quote.sourceUrl || '',
     });
     setShowEditModal(true);
   };
@@ -292,19 +289,18 @@ export default function AdminQuotesPage() {
     setFormData({
       id: '',
       enabled: true,
-      category: 'GENERAL',
+      category: 'general',
       weight: 5,
       textEn: '',
       textBm: '',
       author: '',
-      sourceType: 'ORIGINAL',
-      sourceUrl: '',
+      sourceType: 'original',
     });
   };
 
   const categories: QuoteCategory[] = [
-    'DISCIPLINE', 'LOSS', 'WIN', 'PATIENCE', 'CONFIDENCE', 
-    'OVERTRADING', 'RISK', 'MENTAL', 'GENERAL'
+    'discipline', 'loss', 'win', 'patience', 'confidence', 
+    'overtrading', 'risk', 'mental', 'general'
   ];
 
   return (
@@ -583,28 +579,16 @@ export default function AdminQuotesPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Source Type</Label>
-                    <select
-                      value={formData.sourceType}
-                      onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md"
-                    >
-                      <option value="ORIGINAL">Original</option>
-                      <option value="BOOK">Book</option>
-                      <option value="ARTICLE">Article</option>
-                      <option value="INTERVIEW">Interview</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label>Source URL (optional)</Label>
-                    <Input
-                      type="url"
-                      value={formData.sourceUrl}
-                      onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
-                    />
-                  </div>
+                <div>
+                  <Label>Source Type</Label>
+                  <select
+                    value={formData.sourceType}
+                    onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  >
+                    <option value="original">Original</option>
+                    <option value="publicFigure">Public Figure</option>
+                  </select>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -701,28 +685,16 @@ export default function AdminQuotesPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Source Type</Label>
-                    <select
-                      value={formData.sourceType}
-                      onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md"
-                    >
-                      <option value="ORIGINAL">Original</option>
-                      <option value="BOOK">Book</option>
-                      <option value="ARTICLE">Article</option>
-                      <option value="INTERVIEW">Interview</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label>Source URL (optional)</Label>
-                    <Input
-                      type="url"
-                      value={formData.sourceUrl}
-                      onChange={(e) => setFormData({ ...formData, sourceUrl: e.target.value })}
-                    />
-                  </div>
+                <div>
+                  <Label>Source Type</Label>
+                  <select
+                    value={formData.sourceType}
+                    onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  >
+                    <option value="original">Original</option>
+                    <option value="publicFigure">Public Figure</option>
+                  </select>
                 </div>
 
                 <div className="flex items-center gap-2">

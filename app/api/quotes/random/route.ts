@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     const language = await getNextQuoteLanguage(userId);
 
     // Get random quote
-    const quote = await getRandomQuote({ userId, category, language });
+    const quote = await getRandomQuote({ userId, category });
 
     if (!quote) {
       return NextResponse.json(
