@@ -187,7 +187,7 @@ export function RealTimeTradeEntryForm() {
       
       // Success
       setSuccessMessage('✅ Trade recorded successfully!');
-      Show motivational quote based on trade result
+      // Show motivational quote based on trade result
       if (data.result === 'WIN') {
         showWinQuote();
       } else if (data.result === 'LOSS') {

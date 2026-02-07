@@ -26,6 +26,7 @@ import { ActiveStreaksWidget } from '@/components/dashboard/ActiveStreaksWidget'
 import { NextBadgesProgress } from '@/components/dashboard/NextBadgesProgress';
 import { MotivationalMessagesFeed } from '@/components/dashboard/MotivationalMessagesFeed';
 import { RankingCard } from '@/components/dashboard/RankingCard';
+import { QuoteOfTheDayWidget } from '@/components/quotes/QuoteOfTheDayWidget';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -102,6 +103,11 @@ export default async function DashboardPage() {
         {/* Achievement Showcase */}
         <div className="mb-6">
           <AchievementShowcase limit={4} />
+        </div>
+
+        {/* Quote of the Day Widget */}
+        <div className="mb-6">
+          <QuoteOfTheDayWidget />
         </div>
 
         {/* Gamification Widgets Row */}
