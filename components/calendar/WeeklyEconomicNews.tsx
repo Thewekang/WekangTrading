@@ -113,30 +113,30 @@ export default function WeeklyEconomicNews() {
         </CardTitle>
         <CardDescription>High-impact events for the next 7 days</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="max-h-[400px] overflow-y-auto">
         {events.length === 0 ? (
           <div className="py-4 text-center">
             <p className="text-sm text-muted-foreground">No high-impact events this week</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Object.entries(groupedEvents).map(([date, dateEvents]) => (
-              <div key={date} className="space-y-2">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase">
+              <div key={date} className="space-y-1.5">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {date}
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {dateEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="flex items-center gap-3 p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-2 p-1.5 border rounded hover:bg-muted/50 transition-colors"
                     >
-                      <span className="text-xl">{getCountryFlag(event.country)}</span>
+                      <span className="text-base">{getCountryFlag(event.country)}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{event.eventName}</p>
-                        <p className="text-xs text-muted-foreground">{formatTime(event.eventDate)}</p>
+                        <p className="font-medium text-xs truncate leading-tight">{event.eventName}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatTime(event.eventDate)}</p>
                       </div>
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
                         HIGH
                       </Badge>
                     </div>
