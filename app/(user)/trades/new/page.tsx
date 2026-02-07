@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { RealTimeTradeEntryForm } from '@/components/forms/RealTimeTradeEntryForm';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
+import { TradesPageQuote } from '@/components/quotes/TradesPageQuote';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -29,6 +30,9 @@ export default async function NewTradePage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* Contextual Quote - Pinned at Top */}
+        <TradesPageQuote />
+
         {/* Daily Loss Alert */}
         <DailyLossAlert className="mb-6" />
 

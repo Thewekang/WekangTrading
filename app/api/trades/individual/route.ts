@@ -100,24 +100,21 @@ export async function POST(request: NextRequest) {
       notes: validatedData.notes,
     });
     
-    // Check and award badges after trade creation
-    let newBadges: any[] = [];
-    try {
-      newBadges = await checkAndAwardBadges(session.user.id, 'TRADE_INSERT');
-    } catch (badgeError) {
-      // Don't fail trade creation if badge check fails
-      console.error('Badge check error (non-fatal):', badgeError);
-    }
-    
-    return NextResponse.json(
+    // Return immediately for fast UX
+    const response = NextResponse.json(
       { 
         success: true, 
         data: trade, 
-        badges: newBadges, // Include earned badges in response
         message: 'Trade created successfully' 
       },
       { status: 201 }
     );
+    
+    // Check badges asynchronously (non-blocking)
+    checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
+      .catch(error => console.error('Badge check error (non-fatal):', error));
+    
+    return response;
   } catch (error) {
     console.error('=== API ERROR ===');
     console.error('Error type:', error?.constructor?.name);

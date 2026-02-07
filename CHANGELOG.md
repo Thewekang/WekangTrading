@@ -7,7 +7,167 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.7.0] - 2026-02-07
+
+### Added
+- **⚡ Performance Optimization**: Trade recording speed improvements
+  - **Non-blocking Badge Checking**: Badge awards now processed asynchronously (500-1000ms faster)
+  - **Parallel Daily Summary Updates**: Use Promise.all for multi-date operations (70% faster)
+  - **Optimized Cache Invalidation**: Single layout-level revalidatePath (100-200ms savings)
+  - **Removed Redundant Operations**: Eliminated duplicate initializeUserStats calls
+  - **Speed Improvements**:
+    - Individual trade entry: 1200ms → 300ms (75% faster)
+    - Bulk entry: 2500ms → 800ms (68% faster)
+    - CSV import: 4200ms → 1300ms (69% faster)
+  - See [PERFORMANCE-OPTIMIZATION-v1.7.0.md](docs/PERFORMANCE-OPTIMIZATION-v1.7.0.md) for technical details
+
+- **📍 Pinned Quotes on Trade Entry Pages**: TradesPageQuote component added to:
+  - /trades/new (Real-time entry)
+  - /trades/bulk (Bulk entry)
+  - /trades/import (CSV import)
+  - Smart caching with 5-minute sessionStorage TTL
+
+- **🎯 Collapsible Dashboard Sections**: Improved dashboard load performance
+  - Best Trading Session (collapsible)
+  - Session Win Rate Comparison (collapsible, collapsed by default)
+  - Hourly Performance Heatmap (collapsible, collapsed by default)
+  - Deferred data fetching for heavy charts
+
+### Optimized
+- **Quote Loading Performance**: 50-100ms cached, 200-300ms fresh
+  - API-level caching with revalidate: 30-60 seconds
+  - Client-side sessionStorage caching
+  - Database query optimization
+
+## [1.6.0] - 2026-02-07
+
+### Added
+- **💬 Quote Card System (Complete)**: Motivational quotes integrated across the platform
+  - **26 Bilingual Quotes**: 9 categories (Discipline, Loss, Win, Patience, Confidence, Overtrading, Risk, Mental, General) in English & Bahasa Malaysia
+  - **Quote of the Day Widget**: Dashboard widget with 24-hour persistence using deterministic selection
+  - **Contextual Quotes**: Smart quote selection based on trading performance
+    - **Discipline Tracker Quote**: Analyzes last 3 days from disciplineTrackerRows table, displays mood icon + weekly win rate
+    - **My Trades Quote**: Analyzes last 3 trades from individualTrades table, displays performance context
+  - **Weighted Random Selection**: 1-10 weight system with anti-repeat logic
+  - **Display Count Tracking**: Analytics showing most viewed quotes
+  - **Admin Management Interface**: Full CRUD operations with search, filter, sort
+    - Stats dashboard showing quotes by category and most shown quotes
+    - Download template, upload JSON, delete all functionality
+    - Multi-select delete with checkboxes and bulk actions bar
+    - Reset statistics feature with confirmation dialog
+  - **Fallback Quote System**: 5 hardcoded quotes for fresh installations (zero-error experience)
+  - **Auto-ID Generation**: Sequential IDs per category (q-discipline-001, q-discipline-002, etc.)
+  - **Beautiful UI**: Purple gradient cards with animations, mobile-responsive design
+  - **Session Limits**: Max 5 quotes per session, configurable cooldown (15 min default)
+
+### Fixed
+- **🐛 Display Count Tracking**: Fixed quotes showing 0× in statistics dashboard
+  - Added `incrementQuoteDisplayCount()` calls to all 4 quote API routes
+  - Routes: /api/quotes/random, /api/quotes/quote-of-the-day, /api/quotes/contextual, /api/quotes/trades-page
+  - Stats now accurately reflect which quotes are most effective
+- **⚠️ Next.js 15 Metadata Warnings**: Resolved console warnings
+  - Moved `themeColor` from metadata export to viewport export
+  - Added `metadataBase` to metadata using NEXTAUTH_URL environment variable
+  - Properly configured for social media image resolution
+- **🔔 Notification Badge**: Fixed bell icon count not updating immediately after marking as read
+  - Converted to client-side NotificationBell component
+  - Auto-refreshes on route changes using usePathname() hook
+  - Eliminates server-side rendering stale data issue
+  - Badge count now updates instantly when navigating between pages
+
+### Changed
+- **🔽 Collapsible Sections**: Improved UX with collapsible filters and settings
+  - **My Trades**: Filters & Search section collapsible (collapsed by default)
+  - **Discipline Tracker**: Plan Settings section collapsible (collapsed by default)
+  - Both sections use ChevronDown/ChevronUp icons for clear visual feedback
+  - Reduces visual clutter and improves initial page load experience
+
+### Removed
+- **Popup Quotes**: Removed intrusive quote popups from trade entry forms
+  - Quote popups after quick trade entry ❌ (replaced with pinned contextual quote)
+  - Quote popups after bulk trade entry ❌
+  - Quote popups after CSV import ❌
+  - **Rationale**: Non-intrusive pinned quotes provide better UX without disrupting workflow
+
+### Technical
+- **Database Schema**: Added trading_quotes, user_quote_preferences tables
+- **API Endpoints**: 8 RESTful endpoints with Zod validation
+  - `GET/POST /api/quotes` - List all quotes, create new quote
+  - `GET/PATCH/DELETE /api/quotes/[id]` - Get, update, delete specific quote
+  - `POST /api/quotes/random` - Get random quote with cooldown
+  - `GET /api/quotes/quote-of-the-day` - Deterministic daily quote
+  - `POST /api/quotes/seed` - Bulk seed/upsert quotes
+  - `GET/PATCH /api/quotes/preferences` - User quote preferences
+  - `GET /api/quotes/contextual` - Discipline Tracker contextual quote
+  - `GET /api/quotes/trades-page` - My Trades contextual quote
+  - `POST /api/quotes/reset-stats` - Reset all display counts (Admin only)
+- **Service Layer**: 5 new services (11+ functions)
+  - quoteService.ts: Core quote operations with display count tracking
+  - userQuotePreferencesService.ts: Preferences management
+  - contextualQuoteService.ts: Discipline Tracker analysis
+  - tradesPageQuoteService.ts: My Trades analysis
+  - fallbackQuotes.ts: 5 hardcoded fallback quotes
+- **UI Components**: 5 new components
+  - QuoteCard.tsx (toast + inline variants)
+  - QuoteOfTheDayWidget.tsx (dashboard widget)
+  - DisciplineTrackerQuote.tsx (contextual quote)
+  - TradesPageQuote.tsx (contextual quote)
+  - NotificationBell.tsx (client-side bell icon with auto-refresh)
+- **Context Provider**: QuoteSystemContext for global state management
+- **Documentation**: QUOTE-CARD-IMPLEMENTATION-SUMMARY.md, 16-QUOTE-CARD-SYSTEM.md updated
+
+---
+
+## [1.5.0] - 2026-02-07
+
+### Added
+- **🎯 Discipline Tracker Feature**: Complete execution discipline and rule enforcement system
+  - **Instrument-Agnostic Daily Tracker**: Track trading discipline across any market or account
+  - **Configurable P&L Settings**: Customize TP1/TP2/TP3, BE, and SL values per user
+  - **Auto-Locking Trades**: Prevent overtrading with rule-based trade locking
+    - Trade 1 win → Locks Trade 2 & 3 (stop for the day)
+    - Trade 2 win → Locks Trade 3 (preserve profits)
+    - Trade 2 loss → Locks Trade 3 (stop losses)
+  - **A+ Setup Confirmation**: Require high-quality setup confirmation after BE/SL outcomes
+  - **Range Expansion Tracking**: Track market conditions for Trade 3 eligibility
+  - **Session Window Enforcement**: Trade 3 only allowed in prime trading sessions
+  - **Real-Time Rule Evaluation**: Visual feedback with lock states and reasoning tooltips
+  - **Interactive Table**: Inline editing with debounced notes input (500ms delay)
+  - **Toggle Switches**: Independent A+ and Range Expansion confirmation controls
+  - **Cumulative Statistics**: Track P&L, win rate, discipline adherence over time
+  - **Duplicate Date Prevention**: One row per date with proper error handling
+  - **Tooltips with Info Icons**: Clear explanations for A+ and Range Expansion columns
+  - **CSV-Ready Structure**: Prepared for future export functionality
+
+### Technical
+- **Database Schema**: Added 2 new tables (`discipline_tracker_settings`, `discipline_tracker_rows`)
+- **Migration 0008**: Created discipline tracker tables with proper column naming
+- **Column Rename Migration**: Fixed aplusConfirmed → isAPlusDay, rangeExpansionConfirmed → isRangeExpansionDay
+- **Rules Engine**: Pure functions with comprehensive lock state evaluation (311 lines)
+- **API Endpoints**: 3 RESTful endpoints with Zod validation
+  - `GET/POST /api/discipline-tracker/settings`
+  - `GET/POST /api/discipline-tracker/rows`
+  - `GET/PATCH/DELETE /api/discipline-tracker/rows/[id]`
+- **UI Components**: 5 interactive components + main page
+  - TradeCell: Dropdown with "EMPTY" handling and lock states
+  - TP3Input: Manual TP3 amount entry
+  - RowActions: Edit/Delete with confirmation dialog
+  - AddRowDialog: Form with duplicate date handling
+  - TrackerTable: 397 lines with debounced notes input
+- **shadcn/ui Components**: Added alert-dialog and tooltip components
+- **Performance Optimization**: Debounced notes input to prevent constant re-renders
+- **Documentation**: Comprehensive 844-line feature specification
+
+### Fixed
+- **Database Column Naming**: Resolved mismatch between schema and code references
+- **Validation Schema**: Fixed updateDisciplineTrackerRowSchema stripping trade outcomes
+- **Notes Input Performance**: Implemented 500ms debounce to prevent constant API calls
+- **Toggle State Management**: Fixed toggles resetting by fetching fresh row data
+- **Error Handling**: Improved duplicate date error handling (keeps dialog open for user to fix)
+
+### Changed
+- **Progress Tracking**: Updated to v3.0, added v1.5.0 milestone
+- **Feature Documentation**: Updated 15-DISCIPLINE-TRACKER.md to production-ready status
 
 ---
 

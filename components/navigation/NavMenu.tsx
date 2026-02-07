@@ -69,12 +69,13 @@ function NavDropdown({ label, icon, items }: NavDropdownProps) {
 export function DesktopNav() {
   return (
     <div className="hidden lg:flex items-center space-x-1">
-      <NavLink href="/dashboard">Dashboard</NavLink>
-      <NavLink href="/trades">Trades</NavLink>
+      <NavLink href="/dashboard">🏠 Dashboard</NavLink>
+      <NavLink href="/trades">💹 Trades</NavLink>
+      <NavLink href="/discipline-tracker">🛡️ Discipline</NavLink>
       
       <NavDropdown
         label="Performance"
-        icon="📊"
+        icon="📈"
         items={[
           { href: '/dashboard/achievements', label: 'Achievements', icon: '🏆' },
           { href: '/targets', label: 'Targets', icon: '🎯' },
@@ -118,8 +119,9 @@ export function MobileNav() {
       {isOpen && (
         <div className="absolute top-16 left-0 right-0 bg-white border-b shadow-lg z-50">
           <div className="container mx-auto px-4 py-4 space-y-2">
-            <NavLink href="/dashboard" className="block">Dashboard</NavLink>
-            <NavLink href="/trades" className="block">Trades</NavLink>
+            <NavLink href="/dashboard" className="block">🏠 Dashboard</NavLink>
+            <NavLink href="/trades" className="block">💹 Trades</NavLink>
+            <NavLink href="/discipline-tracker" className="block">🛡️ Discipline</NavLink>
             
             <div className="border-t pt-2 mt-2">
               <div className="text-xs font-semibold text-gray-500 px-3 mb-2">Performance</div>

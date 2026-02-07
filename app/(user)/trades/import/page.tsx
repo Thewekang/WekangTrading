@@ -18,6 +18,7 @@ import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { COMMON_TIMEZONES } from '@/lib/utils/timezones';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
+import { TradesPageQuote } from '@/components/quotes/TradesPageQuote';
 import type { Badge } from '@/lib/db/schema';
 
 export default function ImportTradesPage() {
@@ -165,6 +166,9 @@ export default function ImportTradesPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
+      {/* Contextual Quote - Pinned at Top */}
+      <TradesPageQuote />
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Import Trades from CSV</h1>
         <p className="mt-2 text-gray-600">

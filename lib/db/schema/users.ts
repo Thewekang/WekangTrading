@@ -14,6 +14,13 @@ export const users = sqliteTable('users', {
   inviteCodeId: text('invite_code_id'),
   resetCount: integer('reset_count').notNull().default(0),
   preferredTimezone: text('preferred_timezone').notNull().default('Asia/Kuala_Lumpur'),
+  // Quote system preferences
+  showQuotes: integer('show_quotes', { mode: 'boolean' }).notNull().default(true),
+  quotesCooldownMinutes: integer('quotes_cooldown_minutes').notNull().default(15),
+  lastQuoteShownAt: integer('last_quote_shown_at', { mode: 'timestamp' }),
+  lastQuoteId: text('last_quote_id'),
+  lastQuoteLanguage: text('last_quote_language', { enum: ['en', 'bm'] }).default('en'),
+  quoteShowCount: integer('quote_show_count').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({

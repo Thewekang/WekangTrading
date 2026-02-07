@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
   const databaseName = process.env.DATABASE_URL?.includes('wekangtrading-prod') 
     ? 'Turso (Production)' 
     : 'Turso (Staging)';
-  const version = '1.3.1';
+  const version = '1.7.0';
 
   return (
     <div className="space-y-6">
