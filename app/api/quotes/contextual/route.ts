@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getContextualQuote } from '@/lib/services/contextualQuoteService';
+import { incrementQuoteDisplayCount } from '@/lib/services/quoteService';
 
 /**
  * GET /api/quotes/contextual
@@ -28,6 +29,11 @@ export async function GET(req: NextRequest) {
 
     // Get contextual quote
     const result = await getContextualQuote(userId);
+
+    // Increment display count for analytics (if quote exists)
+    if (result.quote?.id) {
+      await incrementQuoteDisplayCount(result.quote.id);
+    }
 
     return NextResponse.json({
       success: true,

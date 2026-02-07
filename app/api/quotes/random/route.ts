@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getRandomQuote } from '@/lib/services/quoteService';
+import { getRandomQuote, incrementQuoteDisplayCount } from '@/lib/services/quoteService';
 import { 
   canShowQuote, 
   getNextQuoteLanguage, 
@@ -105,6 +105,9 @@ export async function POST(req: NextRequest) {
 
     // Update user's last shown quote
     await updateLastQuoteShown(userId, quote.id, language);
+
+    // Increment display count for analytics
+    await incrementQuoteDisplayCount(quote.id);
 
     // Get remaining quotes for this session
     const remainingQuotes = await getRemainingQuotesForSession(userId);

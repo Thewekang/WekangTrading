@@ -13,8 +13,8 @@ import { z } from 'zod';
 // Query params schema
 const querySchema = z.object({
   category: z.enum(['discipline', 'loss', 'win', 'patience', 'confidence', 'overtrading', 'risk', 'mental', 'general']).optional(),
-  enabled: z.string().optional().transform((val) => val === 'true'),
-  stats: z.string().optional().transform((val) => val === 'true'),
+  enabled: z.string().optional().transform((val) => val === undefined || val === null ? undefined : val === 'true'),
+  stats: z.string().optional().transform((val) => val === undefined || val === null ? undefined : val === 'true'),
 });
 
 /**
@@ -34,10 +34,14 @@ export async function GET(req: NextRequest) {
 
     // Parse query params
     const { searchParams } = new URL(req.url);
+    const categoryParam = searchParams.get('category');
+    const enabledParam = searchParams.get('enabled');
+    const statsParam = searchParams.get('stats');
+    
     const validation = querySchema.safeParse({
-      category: searchParams.get('category'),
-      enabled: searchParams.get('enabled'),
-      stats: searchParams.get('stats'),
+      category: categoryParam || undefined,
+      enabled: enabledParam || undefined,
+      stats: statsParam || undefined,
     });
 
     if (!validation.success) {
@@ -171,6 +175,57 @@ export async function POST(req: NextRequest) {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Failed to create quote',
+        },
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/quotes
+ * Delete all quotes (admin only)
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
+        { status: 401 }
+      );
+    }
+
+    // Check admin role
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } },
+        { status: 403 }
+      );
+    }
+
+    // Delete all quotes
+    const { deleteAllQuotes } = await import('@/lib/services/quoteService');
+    const deletedCount = await deleteAllQuotes();
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: { deletedCount },
+        message: `Successfully deleted ${deletedCount} quotes`,
+      },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('[Delete All Quotes Error]', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to delete quotes',
         },
       },
       { status: 500 }

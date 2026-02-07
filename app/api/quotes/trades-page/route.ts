@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getTradesPageQuote } from '@/lib/services/tradesPageQuoteService';
+import { incrementQuoteDisplayCount } from '@/lib/services/quoteService';
 
 /**
  * GET /api/quotes/trades-page
@@ -26,6 +27,11 @@ export async function GET(req: NextRequest) {
 
     // Get trades page quote
     const result = await getTradesPageQuote(userId);
+
+    // Increment display count for analytics (if quote exists)
+    if (result.quote?.id) {
+      await incrementQuoteDisplayCount(result.quote.id);
+    }
 
     return NextResponse.json({
       success: true,

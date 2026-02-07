@@ -21,10 +21,7 @@ import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
 import TodayEconomicNews from '@/components/calendar/TodayEconomicNews';
 import WeeklyEconomicNews from '@/components/calendar/WeeklyEconomicNews';
-import { AchievementShowcase } from '@/components/dashboard/AchievementShowcase';
-import { ActiveStreaksWidget } from '@/components/dashboard/ActiveStreaksWidget';
-import { NextBadgesProgress } from '@/components/dashboard/NextBadgesProgress';
-import { MotivationalMessagesFeed } from '@/components/dashboard/MotivationalMessagesFeed';
+import { CollapsibleAchievementsSection } from '@/components/dashboard/CollapsibleAchievementsSection';
 import { RankingCard } from '@/components/dashboard/RankingCard';
 import { QuoteOfTheDayWidget } from '@/components/quotes/QuoteOfTheDayWidget';
 
@@ -100,22 +97,13 @@ export default async function DashboardPage() {
         {/* Daily Loss Alert */}
         <DailyLossAlert className="mb-6" />
 
-        {/* Achievement Showcase */}
-        <div className="mb-6">
-          <AchievementShowcase limit={4} />
-        </div>
-
         {/* Quote of the Day Widget */}
         <div className="mb-6">
           <QuoteOfTheDayWidget />
         </div>
 
-        {/* Gamification Widgets Row */}
-        <div className="grid gap-6 lg:grid-cols-3 mb-6">
-          <ActiveStreaksWidget />
-          <NextBadgesProgress limit={3} />
-          <MotivationalMessagesFeed limit={5} />
-        </div>
+        {/* Collapsible Achievements Section */}
+        <CollapsibleAchievementsSection />
 
         {/* Economic News Widgets */}
         <div className="grid gap-6 lg:grid-cols-2 mb-6">

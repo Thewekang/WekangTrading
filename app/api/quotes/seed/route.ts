@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tradingQuotes } from '@/lib/db/schema/tradingQuotes';
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import quotesDataImport from '@/public/data/quotes.json';
 
 const quotesData = quotesDataImport as Array<{
@@ -24,8 +24,37 @@ const quotesData = quotesDataImport as Array<{
 }>;
 
 /**
+ * Generate unique quote ID based on category and running number
+ * Format: q-{category}-{number} (e.g., q-discipline-001)
+ */
+async function generateQuoteId(category: string): Promise<string> {
+  // Get all existing quotes for this category
+  const existingQuotes = await db
+    .select({ id: tradingQuotes.id })
+    .from(tradingQuotes)
+    .where(like(tradingQuotes.id, `q-${category}-%`))
+    .all();
+
+  // Extract numbers from existing IDs
+  const numbers = existingQuotes
+    .map(q => {
+      const match = q.id.match(/q-\w+-(\d+)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter(n => !isNaN(n));
+
+  // Get next number (max + 1, or 1 if no existing quotes)
+  const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+
+  // Format with leading zeros (3 digits)
+  const paddedNumber = nextNumber.toString().padStart(3, '0');
+
+  return `q-${category}-${paddedNumber}`;
+}
+
+/**
  * POST /api/quotes/seed
- * Re-seed quotes from JSON file (admin only)
+ * Re-seed quotes from JSON file or uploaded data (admin only)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -46,18 +75,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Try to get quotes from request body, fallback to default JSON file
+    let quotesToSeed = quotesData;
+    try {
+      const body = await req.json();
+      if (body.quotes && Array.isArray(body.quotes)) {
+        quotesToSeed = body.quotes;
+      }
+    } catch (e) {
+      // No body or invalid JSON, use default quotes.json
+    }
+
     let inserted = 0;
     let updated = 0;
     let errors = 0;
 
     // Process each quote
-    for (const quote of quotesData) {
+    for (const quote of quotesToSeed) {
       try {
+        // Generate ID if not provided
+        let quoteId = quote.id;
+        if (!quoteId) {
+          quoteId = await generateQuoteId(quote.category);
+        }
+
         // Check if quote exists
         const existingQuote = await db
           .select()
           .from(tradingQuotes)
-          .where(eq(tradingQuotes.id, quote.id))
+          .where(eq(tradingQuotes.id, quoteId))
           .get();
 
         if (existingQuote) {
@@ -74,13 +120,13 @@ export async function POST(req: NextRequest) {
               sourceType: quote.sourceType,
               updatedAt: new Date(),
             })
-            .where(eq(tradingQuotes.id, quote.id));
+            .where(eq(tradingQuotes.id, quoteId));
           
           updated++;
         } else {
           // Insert new quote
           await db.insert(tradingQuotes).values({
-            id: quote.id,
+            id: quoteId,
             enabled: quote.enabled,
             category: quote.category,
             weight: quote.weight,
@@ -96,7 +142,7 @@ export async function POST(req: NextRequest) {
           inserted++;
         }
       } catch (error) {
-        console.error(`Error processing quote ${quote.id}:`, error);
+        console.error(`Error processing quote:`, error);
         errors++;
       }
     }
@@ -104,7 +150,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        total: quotesData.length,
+        total: quotesToSeed.length,
         inserted,
         updated,
         errors,

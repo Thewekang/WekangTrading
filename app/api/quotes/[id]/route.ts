@@ -16,9 +16,12 @@ import { updateQuoteSchema } from '@/lib/validations/quote';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params (Next.js 15 requirement)
+    const { id } = await params;
+
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
@@ -28,7 +31,7 @@ export async function GET(
       );
     }
 
-    const quote = await getQuoteById(params.id);
+    const quote = await getQuoteById(id);
 
     if (!quote) {
       return NextResponse.json(
@@ -63,9 +66,12 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params (Next.js 15 requirement)
+    const { id } = await params;
+
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
@@ -84,7 +90,7 @@ export async function PATCH(
     }
 
     // Check if quote exists
-    const existingQuote = await getQuoteById(params.id);
+    const existingQuote = await getQuoteById(id);
     if (!existingQuote) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Quote not found' } },
@@ -111,7 +117,7 @@ export async function PATCH(
     }
 
     // Update quote
-    const updatedQuote = await updateQuote(params.id, validation.data);
+    const updatedQuote = await updateQuote(id, validation.data);
 
     return NextResponse.json({
       success: true,
@@ -140,9 +146,12 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params (Next.js 15 requirement)
+    const { id } = await params;
+
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
@@ -161,7 +170,7 @@ export async function DELETE(
     }
 
     // Check if quote exists
-    const existingQuote = await getQuoteById(params.id);
+    const existingQuote = await getQuoteById(id);
     if (!existingQuote) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Quote not found' } },
@@ -170,7 +179,7 @@ export async function DELETE(
     }
 
     // Delete quote
-    await deleteQuote(params.id);
+    await deleteQuote(id);
 
     return NextResponse.json({
       success: true,

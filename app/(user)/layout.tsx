@@ -7,10 +7,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TimezoneProvider } from '@/contexts/TimezoneContext';
 import { QuoteSystemProvider } from '@/contexts/QuoteSystemContext';
 import { db } from '@/lib/db';
-import { users, motivationalMessages } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { Bell } from 'lucide-react';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { DesktopNav, MobileNav } from '@/components/navigation/NavMenu';
+import { NotificationBell } from '@/components/navigation/NotificationBell';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -26,18 +26,6 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
     .get();
   
   const userTimezone = user?.preferredTimezone || 'Asia/Kuala_Lumpur';
-
-  // Get unread notification count
-  const unreadMessages = await db
-    .select({ count: motivationalMessages.id })
-    .from(motivationalMessages)
-    .where(and(
-      eq(motivationalMessages.userId, session.user.id),
-      eq(motivationalMessages.isRead, false)
-    ))
-    .all();
-  
-  const unreadCount = unreadMessages.length;
 
   return (
     <TimezoneProvider userTimezone={userTimezone}>
@@ -57,14 +45,7 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
                 <div className="flex items-center space-x-3">
                   <MobileNav />
                   {/* Notification Bell */}
-                  <Link href="/notifications" className="relative">
-                    <Bell className="h-5 w-5 text-gray-600 hover:text-gray-900" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
-                    )}
-                  </Link>
+                  <NotificationBell />
                   <span className="text-sm text-gray-600 hidden sm:inline">
                     {session.user.name}
                   </span>

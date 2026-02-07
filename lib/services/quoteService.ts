@@ -8,6 +8,7 @@ import { tradingQuotes, users } from '@/lib/db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import type { QuoteCategory } from '@/lib/validations/quote';
 import { selectWeightedRandom, filterAntiRepeat } from '@/lib/utils/weightedRandom';
+import { getFallbackQuote, getFallbackQuoteOfTheDay } from '@/lib/constants/fallbackQuotes';
 
 const ANTI_REPEAT_HISTORY = 10; // Don't repeat same quote within last 10 shows
 
@@ -71,7 +72,10 @@ export async function getRandomQuote(options: {
     .where(and(...conditions))
     .all();
 
-  if (availableQuotes.length === 0) return null;
+  if (availableQuotes.length === 0) {
+    // Return fallback quote if database is empty
+    return getFallbackQuote(category) as any;
+  }
 
   // Apply anti-repeat logic if userId provided
   if (antiRepeat && userId) {
@@ -108,7 +112,10 @@ export async function getQuoteOfTheDay(): Promise<typeof tradingQuotes.$inferSel
     .where(eq(tradingQuotes.enabled, true))
     .all();
 
-  if (availableQuotes.length === 0) return null;
+  if (availableQuotes.length === 0) {
+    // Return fallback quote if database is empty
+    return getFallbackQuoteOfTheDay() as any;
+  }
 
   // Use current date as seed for deterministic selection
   const today = new Date();
@@ -156,6 +163,14 @@ export async function updateQuote(
 export async function deleteQuote(id: string) {
   await db.delete(tradingQuotes)
     .where(eq(tradingQuotes.id, id));
+}
+
+/**
+ * Delete all quotes
+ */
+export async function deleteAllQuotes() {
+  const result = await db.delete(tradingQuotes);
+  return result.rowsAffected || 0;
 }
 
 /**

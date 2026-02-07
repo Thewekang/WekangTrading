@@ -7,18 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.6.0] - 2026-02-07
 
 ### Added
-- **💬 Quote Card System (v1.1.0)**: Motivational quotes integrated across the platform
-  - **26 Bilingual Quotes**: 9 categories (Discipline, Risk Management, Patience, Consistency, Emotional Control, Learning, Confidence, Gratitude, Focus) in English & Bahasa Malaysia
+- **💬 Quote Card System (Complete)**: Motivational quotes integrated across the platform
+  - **26 Bilingual Quotes**: 9 categories (Discipline, Loss, Win, Patience, Confidence, Overtrading, Risk, Mental, General) in English & Bahasa Malaysia
   - **Quote of the Day Widget**: Dashboard widget with 24-hour persistence using deterministic selection
   - **Contextual Quotes**: Smart quote selection based on trading performance
     - **Discipline Tracker Quote**: Analyzes last 3 days from disciplineTrackerRows table, displays mood icon + weekly win rate
     - **My Trades Quote**: Analyzes last 3 trades from individualTrades table, displays performance context
   - **Weighted Random Selection**: 1-10 weight system with anti-repeat logic
-  - **Admin Management**: Full CRUD interface for quotes with search, filter, sort, and bulk re-seed
+  - **Display Count Tracking**: Analytics showing most viewed quotes
+  - **Admin Management Interface**: Full CRUD operations with search, filter, sort
+    - Stats dashboard showing quotes by category and most shown quotes
+    - Download template, upload JSON, delete all functionality
+    - Multi-select delete with checkboxes and bulk actions bar
+    - Reset statistics feature with confirmation dialog
+  - **Fallback Quote System**: 5 hardcoded quotes for fresh installations (zero-error experience)
+  - **Auto-ID Generation**: Sequential IDs per category (q-discipline-001, q-discipline-002, etc.)
   - **Beautiful UI**: Purple gradient cards with animations, mobile-responsive design
+  - **Session Limits**: Max 5 quotes per session, configurable cooldown (15 min default)
+
+### Fixed
+- **🐛 Display Count Tracking**: Fixed quotes showing 0× in statistics dashboard
+  - Added `incrementQuoteDisplayCount()` calls to all 4 quote API routes
+  - Routes: /api/quotes/random, /api/quotes/quote-of-the-day, /api/quotes/contextual, /api/quotes/trades-page
+  - Stats now accurately reflect which quotes are most effective
+- **⚠️ Next.js 15 Metadata Warnings**: Resolved console warnings
+  - Moved `themeColor` from metadata export to viewport export
+  - Added `metadataBase` to metadata using NEXTAUTH_URL environment variable
+  - Properly configured for social media image resolution
+- **🔔 Notification Badge**: Fixed bell icon count not updating immediately after marking as read
+  - Converted to client-side NotificationBell component
+  - Auto-refreshes on route changes using usePathname() hook
+  - Eliminates server-side rendering stale data issue
+  - Badge count now updates instantly when navigating between pages
 
 ### Changed
 - **🔽 Collapsible Sections**: Improved UX with collapsible filters and settings
@@ -35,27 +58,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Rationale**: Non-intrusive pinned quotes provide better UX without disrupting workflow
 
 ### Technical
-- **Database Schema**: Added trading_quotes table (11 fields)
-- **API Endpoints**: 7 RESTful endpoints
+- **Database Schema**: Added trading_quotes, user_quote_preferences tables
+- **API Endpoints**: 8 RESTful endpoints with Zod validation
   - `GET/POST /api/quotes` - List all quotes, create new quote
   - `GET/PATCH/DELETE /api/quotes/[id]` - Get, update, delete specific quote
-  - `POST /api/quotes/random` - Get random quote with filters
+  - `POST /api/quotes/random` - Get random quote with cooldown
   - `GET /api/quotes/quote-of-the-day` - Deterministic daily quote
   - `POST /api/quotes/seed` - Bulk seed/upsert quotes
   - `GET/PATCH /api/quotes/preferences` - User quote preferences
-  - `POST /api/quotes/contextual` - Discipline Tracker contextual quote
-  - `POST /api/quotes/trades-page` - My Trades contextual quote
-- **Service Layer**: 4 new services
-  - quoteService.ts (11 functions for quote operations)
-  - userQuotePreferencesService.ts (preferences management)
-  - contextualQuoteService.ts (Discipline Tracker analysis)
-  - tradesPageQuoteService.ts (My Trades analysis)
-- **UI Components**: 4 new quote components
+  - `GET /api/quotes/contextual` - Discipline Tracker contextual quote
+  - `GET /api/quotes/trades-page` - My Trades contextual quote
+  - `POST /api/quotes/reset-stats` - Reset all display counts (Admin only)
+- **Service Layer**: 5 new services (11+ functions)
+  - quoteService.ts: Core quote operations with display count tracking
+  - userQuotePreferencesService.ts: Preferences management
+  - contextualQuoteService.ts: Discipline Tracker analysis
+  - tradesPageQuoteService.ts: My Trades analysis
+  - fallbackQuotes.ts: 5 hardcoded fallback quotes
+- **UI Components**: 5 new components
   - QuoteCard.tsx (toast + inline variants)
   - QuoteOfTheDayWidget.tsx (dashboard widget)
-  - DisciplineTrackerQuote.tsx (contextual quote at top)
-  - TradesPageQuote.tsx (contextual quote at top)
+  - DisciplineTrackerQuote.tsx (contextual quote)
+  - TradesPageQuote.tsx (contextual quote)
+  - NotificationBell.tsx (client-side bell icon with auto-refresh)
 - **Context Provider**: QuoteSystemContext for global state management
+- **Documentation**: QUOTE-CARD-IMPLEMENTATION-SUMMARY.md, 16-QUOTE-CARD-SYSTEM.md updated
 
 ---
 

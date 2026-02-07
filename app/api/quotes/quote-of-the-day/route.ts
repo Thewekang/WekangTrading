@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getQuoteOfTheDay } from '@/lib/services/quoteService';
+import { getQuoteOfTheDay, incrementQuoteDisplayCount } from '@/lib/services/quoteService';
 
 /**
  * GET /api/quotes/quote-of-the-day
@@ -57,6 +57,9 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Increment display count for analytics
+    await incrementQuoteDisplayCount(quote.id);
 
     return NextResponse.json({
       success: true,

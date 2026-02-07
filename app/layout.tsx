@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: "WekangTrading - Professional Trading Performance Analytics",
   description: "Speed up your trading success! Real-time performance tracking, session analysis, and comprehensive analytics. Fast decisions, winning trades.",
   keywords: "trading journal, performance tracking, trade analytics, market session analysis, trading statistics, wekang trading",
@@ -20,10 +21,6 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#dc2626" },
-    { media: "(prefers-color-scheme: dark)", color: "#dc2626" },
-  ],
   openGraph: {
     title: "WekangTrading - Professional Trading Performance Analytics",
     description: "Speed up your trading success with real-time insights and comprehensive analytics",
@@ -43,6 +40,13 @@ export const metadata: Metadata = {
     description: "Speed up your trading success with real-time insights and comprehensive analytics",
     images: ["/og-image.png"],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#dc2626" },
+    { media: "(prefers-color-scheme: dark)", color: "#dc2626" },
+  ],
 };
 
 export default function RootLayout({

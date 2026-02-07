@@ -202,6 +202,8 @@ A **globally accessible motivational quote system** that displays trading wisdom
 - ✅ **Anti-Spam**: Cooldown periods and user preferences prevent annoyance
 - ✅ **Admin Managed**: Full CRUD interface for quote management
 - ✅ **Reusable**: Works across all pages without hardcoding
+- ✅ **Zero-Error**: Fallback quotes ensure system works on fresh installations
+- ✅ **Auto-ID Generation**: Quotes assigned sequential IDs by category
 
 ### Primary Use Cases
 
@@ -210,6 +212,8 @@ A **globally accessible motivational quote system** that displays trading wisdom
 3. **Dialog Enhancement**: Show quotes in large input dialogs (trade entry, bulk entry)
 4. **Quote of the Day**: Display rotating quote on dashboard (persistent for 24 hours)
 5. **Admin Control**: Manage quote library, enable/disable, adjust weights
+6. **Bulk Management**: Download/upload quotes in JSON format for easy customization
+7. **Fresh Installation**: System provides fallback quotes when database is empty
 
 ---
 
@@ -822,31 +826,34 @@ quoteEmitter.triggerQuote('loss', 'trade-saved');
 ---
 
 ### Phase 5: Admin Interface
-**Estimated Time**: 4 hours
+**Estimated Time**: 4 hours  
+**Status**: ✅ Complete (Enhanced)
 
-- [ ] Create admin quotes management page
-  - [ ] Table view with all quotes
-  - [ ] Add new quote form
-  - [ ] Edit quote modal
-  - [ ] Delete confirmation
-  - [ ] Enable/disable toggle (inline)
-  - [ ] Weight adjustment slider
-  - [ ] Category filter/search
-  - [ ] Preview card button
-- [ ] Create quote form component
-  - [ ] Both language inputs
-  - [ ] Weight slider
-  - [ ] Category dropdown
-  - [ ] Author input
-  - [ ] Source type select
-- [ ] Add "Reset to Defaults" button (re-seed)
+- [x] Create admin quotes management page
+  - [x] Table view with all quotes
+  - [x] Add new quote form (modal)
+  - [x] Edit quote modal
+  - [x] Delete confirmation (AlertDialog)
+  - [x] Enable/disable toggle (inline Switch)
+  - [x] Sortable columns (ID, category, weight, displayCount, author)
+  - [x] Category filter/search
+  - [x] Stats dashboard (total, enabled, by category)
+- [x] Quote bulk management features
+  - [x] **Auto-generated IDs**: System assigns `q-{category}-{number}` format
+  - [x] **Download Template**: 2-quote JSON sample (7 fields, no ID)
+  - [x] **Download All Quotes**: Export all quotes without IDs
+  - [x] **Upload JSON**: Bulk import with auto-ID assignment
+  - [x] **Delete All**: Remove all quotes with confirmation
+- [x] Quote ID generation system
+  - [x] Pattern: `q-{category}-{number}` with 3-digit padding
+  - [x] Sequential numbering per category
+  - [x] Queries existing IDs to find next available number
 
 **Deliverables**:
-- `app/(admin)/admin/quotes/page.tsx` (NEW - follows existing admin page structure)
-- `components/admin/QuoteForm.tsx` (NEW)
-- `components/admin/QuoteTable.tsx` (NEW)
-- `components/admin/QuotePreview.tsx` (NEW)
-- Update admin navigation if needed
+- `app/(admin)/admin/quotes/page.tsx` ✅ (Full CRUD + bulk operations)
+- `app/api/quotes/seed/route.ts` ✅ (Auto-ID generation logic)
+- `lib/services/quoteService.ts` ✅ (CRUD + deleteAllQuotes)
+- Update admin Settings dropdown ✅
 
 ---
 
