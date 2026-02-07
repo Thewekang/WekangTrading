@@ -60,7 +60,7 @@ export const OUTCOME_COLORS = {
  * Helper to determine outcome type
  */
 export function classifyOutcome(outcome: TradeOutcome | null | undefined): OutcomeType {
-  if (!outcome || outcome === '') return 'empty';
+  if (!outcome || outcome === 'EMPTY') return 'empty';
   if (outcome === 'TP1' || outcome === 'TP2' || outcome === 'TP3') return 'win';
   if (outcome === 'SL') return 'loss';
   if (outcome === 'BE') return 'be';
@@ -75,7 +75,7 @@ export function getOutcomePnl(
   settings: DisciplineTrackerSettings,
   tp3Amount?: number | null
 ): number {
-  if (!outcome || outcome === '') return 0;
+  if (!outcome || outcome === 'EMPTY') return 0;
   
   switch (outcome) {
     case 'SL':

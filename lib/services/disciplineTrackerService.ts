@@ -86,32 +86,29 @@ export async function getUserRows(
   userId: string,
   filter?: DisciplineTrackerFilter
 ): Promise<DisciplineTrackerRow[]> {
-  let query = db.select().from(disciplineTrackerRows).where(eq(disciplineTrackerRows.userId, userId));
+  // Build conditions array
+  const conditions = [eq(disciplineTrackerRows.userId, userId)];
 
   // Apply month filter
   if (filter?.month) {
     const [year, month] = filter.month.split('-');
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
     const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-
-    query = query.where(
-      and(
-        eq(disciplineTrackerRows.userId, userId),
-        gte(disciplineTrackerRows.tradeDate, startDate),
-        lte(disciplineTrackerRows.tradeDate, endDate)
-      )
-    ) as any;
+    
+    conditions.push(gte(disciplineTrackerRows.tradeDate, startDate));
+    conditions.push(lte(disciplineTrackerRows.tradeDate, endDate));
   }
 
   // Apply search filter
   if (filter?.search && filter.search.trim() !== '') {
-    query = query.where(
-      and(
-        eq(disciplineTrackerRows.userId, userId),
-        like(disciplineTrackerRows.notes, `%${filter.search}%`)
-      )
-    ) as any;
+    conditions.push(like(disciplineTrackerRows.notes, `%${filter.search}%`));
   }
+
+  // Build query with all conditions
+  let query = db
+    .select()
+    .from(disciplineTrackerRows)
+    .where(and(...conditions));
 
   // Apply sorting
   const sortBy = filter?.sortBy || 'date-desc';
@@ -204,29 +201,23 @@ export async function dateExists(userId: string, tradeDate: Date, excludeId?: st
   const endOfDay = new Date(tradeDate);
   endOfDay.setHours(23, 59, 59, 999);
 
-  let query = db
-    .select({ id: disciplineTrackerRows.id })
-    .from(disciplineTrackerRows)
-    .where(
-      and(
-        eq(disciplineTrackerRows.userId, userId),
-        gte(disciplineTrackerRows.tradeDate, startOfDay),
-        lte(disciplineTrackerRows.tradeDate, endOfDay)
-      )
-    );
+  // Build conditions
+  const conditions = [
+    eq(disciplineTrackerRows.userId, userId),
+    gte(disciplineTrackerRows.tradeDate, startOfDay),
+    lte(disciplineTrackerRows.tradeDate, endOfDay)
+  ];
 
   // Exclude specific row if updating
   if (excludeId) {
-    query = query.where(
-      and(
-        eq(disciplineTrackerRows.userId, userId),
-        gte(disciplineTrackerRows.tradeDate, startOfDay),
-        lte(disciplineTrackerRows.tradeDate, endOfDay),
-        sql`${disciplineTrackerRows.id} != ${excludeId}`
-      )
-    ) as any;
+    conditions.push(sql`${disciplineTrackerRows.id} != ${excludeId}`);
   }
 
-  const existing = await query.limit(1);
+  const existing = await db
+    .select({ id: disciplineTrackerRows.id })
+    .from(disciplineTrackerRows)
+    .where(and(...conditions))
+    .limit(1);
+
   return existing.length > 0;
 }
