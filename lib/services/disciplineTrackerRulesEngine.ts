@@ -87,7 +87,7 @@ export function evaluateDayRow(
     }
     // Rule: If Trade 1 = BE → Trade 2 allowed ONLY if A+ Confirmed
     else if (trade1Type === 'be') {
-      if (row.aplusConfirmed) {
+      if (row.isAPlusDay) {
         evaluation.allowedTrade2 = true;
         evaluation.lockReasonTrade2 = '';
       } else {
@@ -97,7 +97,7 @@ export function evaluateDayRow(
     }
     // Rule: If Trade 1 = SL → Trade 2 allowed ONLY if A+ Confirmed
     else if (trade1Type === 'loss') {
-      if (row.aplusConfirmed) {
+      if (row.isAPlusDay) {
         evaluation.allowedTrade2 = true;
         evaluation.lockReasonTrade2 = '';
       } else {
@@ -151,7 +151,7 @@ export function evaluateDayRow(
     const isTrade1BE = trade1Type === 'be';
     const isTrade2BE = trade2Type === 'be';
     const noLosses = evaluation.losses === 0;
-    const rangeExpansion = row.rangeExpansionConfirmed;
+    const rangeExpansion = row.isRangeExpansionDay;
     const primeSession = row.sessionWindow === 'prime';
 
     if (!isTrade1BE || !isTrade2BE) {

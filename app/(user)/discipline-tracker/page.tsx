@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { SettingsPanel } from '@/components/discipline-tracker/SettingsPanel';
 import { StatsDisplay } from '@/components/discipline-tracker/StatsDisplay';
 import { FilterBar } from '@/components/discipline-tracker/FilterBar';
-import { Button } from '@/components/ui/button';
-import { Plus, Shield } from 'lucide-react';
+import { TrackerTable } from '@/components/discipline-tracker/TrackerTable';
+import { AddRowDialog } from '@/components/discipline-tracker/AddRowDialog';
+import { Shield } from 'lucide-react';
 import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/schema';
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
+import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTracker';
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
 import { toast } from 'sonner';
 
@@ -24,6 +26,7 @@ export default function DisciplineTrackerPage() {
     winRate: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // Fetch settings and rows on mount
   useEffect(() => {
@@ -112,6 +115,104 @@ export default function DisciplineTrackerPage() {
     }
   };
 
+  const handleAddRow = async (input: DisciplineTrackerRowInput) => {
+    try {
+      const res = await fetch('/api/discipline-tracker/rows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setRows([data.data, ...rows]);
+        setFilteredRows([data.data, ...filteredRows]);
+        toast.success('Day added successfully');
+        setAddDialogOpen(false);
+      } else {
+        // Handle specific error codes
+        if (data.error?.code === 'DUPLICATE_DATE') {
+          toast.error('A row for this date already exists');
+        } else {
+          toast.error(data.error?.message || 'Failed to add row');
+        }
+        // Don't throw - let the dialog stay open for user to fix
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to add row:', error);
+      toast.error('An unexpected error occurred');
+    }
+  };
+
+  const handleUpdateRow = async (id: string, updates: Partial<DisciplineTrackerRow>) => {
+    try {
+      const res = await fetch(`/api/discipline-tracker/rows/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setRows(rows.map((r) => (r.id === id ? data.data : r)));
+        setFilteredRows(filteredRows.map((r) => (r.id === id ? data.data : r)));
+        // Don't show toast on every update to avoid noise
+      } else {
+        throw new Error(data.error?.message || 'Failed to update row');
+      }
+    } catch (error) {
+      console.error('Failed to update row:', error);
+      toast.error('Failed to update row');
+      throw error;
+    }
+  };
+
+  const handleDeleteRow = async (id: string) => {
+    try {
+      const res = await fetch(`/api/discipline-tracker/rows/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setRows(rows.filter((r) => r.id !== id));
+        setFilteredRows(filteredRows.filter((r) => r.id !== id));
+        toast.success('Day deleted successfully');
+      } else {
+        throw new Error(data.error?.message || 'Failed to delete row');
+      }
+    } catch (error) {
+      console.error('Failed to delete row:', error);
+      toast.error('Failed to delete row');
+      throw error;
+    }
+  };
+
+  const handleDuplicateRow = async (row: DisciplineTrackerRow) => {
+    try {
+      // Create new row with same settings but incremented date
+      const newDate = new Date(row.tradeDate);
+      newDate.setDate(newDate.getDate() + 1);
+
+      const input: DisciplineTrackerRowInput = {
+        tradeDate: newDate.toISOString().split('T')[0],
+        sessionWindow: row.sessionWindow,
+        isAPlusDay: row.isAPlusDay,
+        isRangeExpansionDay: row.isRangeExpansionDay,
+        notes: row.notes || undefined,
+      };
+
+      await handleAddRow(input);
+    } catch (error) {
+      console.error('Failed to duplicate row:', error);
+      toast.error('Failed to duplicate row');
+    }
+  };
+
   if (isLoading || !settings) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -145,18 +246,22 @@ export default function DisciplineTrackerPage() {
       {/* Stats Display */}
       <StatsDisplay stats={stats} />
 
-      {/* Table Section - Placeholder for now */}
-      <div className="border-2 border-dashed rounded-lg p-12 text-center">
-        <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-        <h3 className="text-lg font-semibold mb-2">Tracker Table Coming Soon</h3>
-        <p className="text-muted-foreground mb-6">
-          The interactive table with trade entry, rule enforcement, and visual feedback will be implemented next.
-        </p>
-        <Button size="lg">
-          <Plus className="h-5 w-5 mr-2" />
-          Add New Day
-        </Button>
-      </div>
+      {/* Tracker Table */}
+      <TrackerTable
+        rows={filteredRows}
+        settings={settings}
+        onUpdate={handleUpdateRow}
+        onDelete={handleDeleteRow}
+        onDuplicate={handleDuplicateRow}
+        onAddRow={() => setAddDialogOpen(true)}
+      />
+
+      {/* Add Row Dialog */}
+      <AddRowDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onSubmit={handleAddRow}
+      />
 
       {/* Debug Info */}
       <div className="text-xs text-muted-foreground">

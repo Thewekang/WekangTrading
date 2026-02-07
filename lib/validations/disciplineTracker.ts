@@ -3,7 +3,7 @@ import { z } from 'zod';
 /**
  * Trade outcome enum
  */
-export const tradeOutcomeEnum = z.enum(['', 'TP3', 'TP2', 'TP1', 'BE', 'SL']);
+export const tradeOutcomeEnum = z.enum(['', 'EMPTY', 'TP3', 'TP2', 'TP1', 'BE', 'SL']);
 export type TradeOutcome = z.infer<typeof tradeOutcomeEnum>;
 
 /**
@@ -44,26 +44,36 @@ export type DisciplineTrackerSettingsInput = z.infer<typeof disciplineTrackerSet
  * Discipline Tracker Row Schema
  */
 export const disciplineTrackerRowSchema = z.object({
-  tradeDate: z.date(),
-  notes: z.string().max(500).optional().default(''),
-  trade1Outcome: tradeOutcomeEnum.default(''),
-  trade2Outcome: tradeOutcomeEnum.default(''),
-  trade3Outcome: tradeOutcomeEnum.default(''),
-  trade1Tp3Amount: z.number().optional().default(0),
-  trade2Tp3Amount: z.number().optional().default(0),
-  trade3Tp3Amount: z.number().optional().default(0),
-  aplusConfirmed: z.boolean().default(false),
-  rangeExpansionConfirmed: z.boolean().default(false),
+  tradeDate: z.string(), // YYYY-MM-DD format
+  notes: z.string().max(500).optional(),
   sessionWindow: sessionWindowEnum.default('non-prime'),
+  isAPlusDay: z.boolean().default(false),
+  isRangeExpansionDay: z.boolean().default(false),
 });
 
 export type DisciplineTrackerRowInput = z.infer<typeof disciplineTrackerRowSchema>;
 
 /**
+ * Update schema for row (includes all editable fields)
+ */
+export const updateDisciplineTrackerRowSchema = z.object({
+  tradeDate: z.date().optional(),
+  notes: z.string().max(500).optional(),
+  trade1Outcome: tradeOutcomeEnum.optional(),
+  trade2Outcome: tradeOutcomeEnum.optional(),
+  trade3Outcome: tradeOutcomeEnum.optional(),
+  trade1Tp3Amount: z.number().optional(),
+  trade2Tp3Amount: z.number().optional(),
+  trade3Tp3Amount: z.number().optional(),
+  isAPlusDay: z.boolean().optional(),
+  isRangeExpansionDay: z.boolean().optional(),
+  sessionWindow: sessionWindowEnum.optional(),
+}).partial();
+
+/**
  * Update schemas (all fields optional)
  */
 export const updateDisciplineTrackerSettingsSchema = disciplineTrackerSettingsSchema.partial();
-export const updateDisciplineTrackerRowSchema = disciplineTrackerRowSchema.partial();
 
 /**
  * Filter schema

@@ -76,17 +76,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
-    // Convert date string to Date object if needed
-    if (typeof body.tradeDate === 'string') {
-      body.tradeDate = new Date(body.tradeDate);
-    }
 
     // Validate input
     const validatedData = disciplineTrackerRowSchema.parse(body);
+    
+    // Convert date string to Date object for database
+    const tradeDate = new Date(validatedData.tradeDate);
 
     // Check for duplicate date
-    const exists = await dateExists(session.user.id, validatedData.tradeDate);
+    const exists = await dateExists(session.user.id, tradeDate);
     if (exists) {
       return NextResponse.json(
         {
@@ -100,8 +98,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create row
-    const newRow = await createRow(session.user.id, validatedData);
+    // Create row with proper data structure
+    const newRow = await createRow(session.user.id, {
+      tradeDate,
+      notes: validatedData.notes || '',
+      trade1Outcome: '',
+      trade2Outcome: '',
+      trade3Outcome: '',
+      trade1Tp3Amount: 0,
+      trade2Tp3Amount: 0,
+      trade3Tp3Amount: 0,
+      isAPlusDay: validatedData.isAPlusDay,
+      isRangeExpansionDay: validatedData.isRangeExpansionDay,
+      sessionWindow: validatedData.sessionWindow,
+    });
 
     return NextResponse.json(
       {

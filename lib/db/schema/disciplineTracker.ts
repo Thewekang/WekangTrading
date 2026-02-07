@@ -41,9 +41,9 @@ export const disciplineTrackerRows = sqliteTable('discipline_tracker_rows', {
   notes: text('notes').default(''),
   
   // Trade outcomes
-  trade1Outcome: text('trade1_outcome', { enum: ['', 'TP3', 'TP2', 'TP1', 'BE', 'SL'] }).default(''),
-  trade2Outcome: text('trade2_outcome', { enum: ['', 'TP3', 'TP2', 'TP1', 'BE', 'SL'] }).default(''),
-  trade3Outcome: text('trade3_outcome', { enum: ['', 'TP3', 'TP2', 'TP1', 'BE', 'SL'] }).default(''),
+  trade1Outcome: text('trade1_outcome', { enum: ['', 'EMPTY', 'TP3', 'TP2', 'TP1', 'BE', 'SL'] }).default(''),
+  trade2Outcome: text('trade2_outcome', { enum: ['', 'EMPTY', 'TP3', 'TP2', 'TP1', 'BE', 'SL'] }).default(''),
+  trade3Outcome: text('trade3_outcome', { enum: ['', 'EMPTY', 'TP3', 'TP2', 'TP1', 'BE', 'SL'] }).default(''),
   
   // TP3 manual amounts (used when TP3 mode is manual)
   trade1Tp3Amount: real('trade1_tp3_amount').default(0),
@@ -51,8 +51,8 @@ export const disciplineTrackerRows = sqliteTable('discipline_tracker_rows', {
   trade3Tp3Amount: real('trade3_tp3_amount').default(0),
   
   // Rule toggles
-  aplusConfirmed: integer('aplus_confirmed', { mode: 'boolean' }).notNull().default(false),
-  rangeExpansionConfirmed: integer('range_expansion_confirmed', { mode: 'boolean' }).notNull().default(false),
+  isAPlusDay: integer('is_aplus_day', { mode: 'boolean' }).notNull().default(false),
+  isRangeExpansionDay: integer('is_range_expansion_day', { mode: 'boolean' }).notNull().default(false),
   sessionWindow: text('session_window', { enum: ['prime', 'non-prime'] }).notNull().default('non-prime'),
   
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),

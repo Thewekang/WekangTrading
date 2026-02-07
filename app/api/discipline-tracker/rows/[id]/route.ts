@@ -15,7 +15,7 @@ import { ZodError } from 'zod';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -26,7 +26,8 @@ export async function GET(
       );
     }
 
-    const row = await getRowById(session.user.id, params.id);
+    const { id } = await params;
+    const row = await getRowById(session.user.id, id);
 
     if (!row) {
       return NextResponse.json(
@@ -51,7 +52,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -62,8 +63,10 @@ export async function PATCH(
       );
     }
 
+    const { id } = await params;
+
     // Check if row exists
-    const existingRow = await getRowById(session.user.id, params.id);
+    const existingRow = await getRowById(session.user.id, id);
     if (!existingRow) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Row not found' } },
@@ -83,7 +86,7 @@ export async function PATCH(
 
     // If date is being changed, check for duplicates
     if (validatedData.tradeDate) {
-      const exists = await dateExists(session.user.id, validatedData.tradeDate, params.id);
+      const exists = await dateExists(session.user.id, validatedData.tradeDate, id);
       if (exists) {
         return NextResponse.json(
           {
@@ -99,7 +102,7 @@ export async function PATCH(
     }
 
     // Update row
-    const updatedRow = await updateRow(session.user.id, params.id, validatedData);
+    const updatedRow = await updateRow(session.user.id, id, validatedData);
 
     return NextResponse.json({
       success: true,
@@ -135,7 +138,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -146,7 +149,8 @@ export async function DELETE(
       );
     }
 
-    await deleteRow(session.user.id, params.id);
+    const { id } = await params;
+    await deleteRow(session.user.id, id);
 
     return NextResponse.json({
       success: true,
