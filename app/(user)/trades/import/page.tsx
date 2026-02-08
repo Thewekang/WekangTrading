@@ -7,6 +7,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -169,11 +170,23 @@ export default function ImportTradesPage() {
       {/* Contextual Quote - Pinned at Top */}
       <TradesPageQuote />
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Import Trades from CSV</h1>
-        <p className="mt-2 text-gray-600">
-          Upload your trading history from a CSV file. Maximum 500 trades per file.
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Import Trades from CSV</h1>
+          <p className="mt-2 text-gray-600">
+            Upload your trading history from a CSV file. Maximum 500 trades per file.
+          </p>
+        </div>
+        <Link href="/trades">
+          <Button variant="outline" className="hidden sm:flex">← Back to Trades</Button>
+        </Link>
+      </div>
+
+      {/* Mobile Back Button */}
+      <div className="sm:hidden mb-4">
+        <Link href="/trades">
+          <Button variant="outline" className="w-full">← Back to Trades</Button>
+        </Link>
       </div>
 
       <Card>
