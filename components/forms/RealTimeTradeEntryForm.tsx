@@ -251,7 +251,7 @@ export function RealTimeTradeEntryForm() {
         
         {/* Trade Timestamp */}
         <div>
-          <Label htmlFor="tradeTimestamp">Trade Time *</Label>
+          <Label htmlFor="tradeTimestamp" className="text-sm sm:text-base font-medium">Trade Time *</Label>
           <Controller
             control={control}
             name="tradeTimestamp"
@@ -261,7 +261,7 @@ export function RealTimeTradeEntryForm() {
                 type="datetime-local"
                 value={isClient && field.value instanceof Date ? formatDateForInput(field.value) : ''}
                 onChange={(e) => field.onChange(new Date(e.target.value))}
-                className="mt-1 text-base"
+                className="mt-2 text-base min-h-[48px]"
               />
             )}
           />
@@ -272,13 +272,13 @@ export function RealTimeTradeEntryForm() {
 
         {/* Entry Timezone */}
         <div>
-          <Label htmlFor="entryTimezone">Entry Timezone</Label>
+          <Label htmlFor="entryTimezone" className="text-sm sm:text-base font-medium">Entry Timezone</Label>
           <select
             id="entryTimezone"
             value={entryTimezone}
             onChange={(e) => setEntryTimezone(e.target.value)}
             disabled={isSubmitting}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2.5 text-base min-h-[48px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
           >
             {COMMON_TIMEZONES.map((tz) => (
               <option key={tz.value} value={tz.value}>
@@ -366,11 +366,11 @@ export function RealTimeTradeEntryForm() {
 
         {/* SOP Type */}
         <div>
-          <Label htmlFor="sopTypeId">SOP Type</Label>
+          <Label htmlFor="sopTypeId" className="text-sm sm:text-base font-medium">SOP Type</Label>
           <select
             id="sopTypeId"
             {...register('sopTypeId')}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2.5 text-base min-h-[48px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
             disabled={loadingSopTypes}
           >
             <option value="">Others (No specific SOP)</option>
@@ -392,13 +392,13 @@ export function RealTimeTradeEntryForm() {
 
         {/* Symbol (Optional) */}
         <div>
-          <Label htmlFor="symbol">Symbol (Optional)</Label>
+          <Label htmlFor="symbol" className="text-sm sm:text-base font-medium">Symbol (Optional)</Label>
           <Input
             id="symbol"
             type="text"
             placeholder="e.g. EURUSD, GBPJPY"
             {...register('symbol')}
-            className="mt-1 text-base uppercase"
+            className="mt-2 text-base uppercase min-h-[48px]"
             maxLength={10}
             onChange={(e) => {
               e.target.value = e.target.value.toUpperCase();
@@ -412,7 +412,7 @@ export function RealTimeTradeEntryForm() {
 
         {/* Profit/Loss USD */}
         <div>
-          <Label htmlFor="profitLossUsd">Amount (USD) *</Label>
+          <Label htmlFor="profitLossUsd" className="text-sm sm:text-base font-medium">Amount (USD) *</Label>
           <Input
             id="profitLossUsd"
             type="number"
@@ -423,7 +423,7 @@ export function RealTimeTradeEntryForm() {
               valueAsNumber: true,
               onChange: () => debouncedValidation('profitLossUsd')
             })}
-            className="mt-1 text-base" // Larger text for mobile
+            className="mt-2 text-base text-lg min-h-[48px]"
           />
           <p className="mt-1 text-xs text-gray-500">Enter amount as positive number (auto-calculated based on WIN/LOSS)</p>
           {errors.profitLossUsd && (
@@ -433,14 +433,14 @@ export function RealTimeTradeEntryForm() {
 
         {/* Notes (Optional) */}
         <div>
-          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Label htmlFor="notes" className="text-sm sm:text-base font-medium">Notes (Optional)</Label>
           <textarea
             id="notes"
             {...register('notes')}
-            rows={3}
+            rows={4}
             maxLength={500}
             placeholder="Any observations, patterns, or learnings..."
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-3 text-base min-h-[100px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation resize-y"
           />
           {errors.notes && (
             <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
@@ -448,11 +448,11 @@ export function RealTimeTradeEntryForm() {
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 min-h-[50px] text-base font-semibold"
+            className="flex-1 min-h-[52px] text-base sm:text-lg font-semibold touch-manipulation"
           >
             {isSubmitting ? 'Recording...' : '🚀 Record Trade'}
           </Button>
@@ -460,7 +460,7 @@ export function RealTimeTradeEntryForm() {
             type="button"
             variant="outline"
             onClick={() => router.push('/trades')}
-            className="sm:w-auto min-h-[50px]"
+            className="sm:w-auto min-h-[52px] touch-manipulation"
           >
             View All Trades
           </Button>
