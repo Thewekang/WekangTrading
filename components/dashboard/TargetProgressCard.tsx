@@ -26,31 +26,31 @@ const TargetProgressCard = memo(({ target }: TargetProgressCardProps) => {
 
   return (
     <Link href="/targets">
-      <div className={`${status.bg} ${status.border} border-2 rounded-lg p-5 hover:shadow-md transition-shadow cursor-pointer`}>
+      <div className={`${status.bg} ${status.border} border-2 rounded-lg p-3 sm:p-4 md:p-5 hover:shadow-md transition-shadow cursor-pointer`}>
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-2 sm:mb-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">{target.targetType}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h3 className="text-xs sm:text-sm font-semibold text-gray-900">{target.targetType}</h3>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5">
               {progress.daysRemaining} days left
             </p>
           </div>
-          <span className={`text-lg ${status.text}`}>{status.icon}</span>
+          <span className={`text-base sm:text-lg ${status.text}`}>{status.icon}</span>
         </div>
 
         {/* Mini Progress Bars */}
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           {/* Win Rate */}
           <div>
-            <div className="flex items-center justify-between text-xs mb-1">
+            <div className="flex items-center justify-between text-[10px] sm:text-xs mb-0.5 sm:mb-1">
               <span className="text-gray-600">Win Rate</span>
               <span className="font-semibold text-gray-900">
                 {progress.currentWinRate}% / {target.targetWinRate}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5">
               <div
-                className={`h-1.5 rounded-full ${
+                className={`h-1 sm:h-1.5 rounded-full ${
                   progress.winRateProgress >= 100 
                     ? 'bg-green-500' 
                     : progress.isWinRateOnTrack 
@@ -64,15 +64,15 @@ const TargetProgressCard = memo(({ target }: TargetProgressCardProps) => {
 
           {/* SOP Rate */}
           <div>
-            <div className="flex items-center justify-between text-xs mb-1">
+            <div className="flex items-center justify-between text-[10px] sm:text-xs mb-0.5 sm:mb-1">
               <span className="text-gray-600">SOP</span>
               <span className="font-semibold text-gray-900">
                 {progress.currentSopRate}% / {target.targetSopRate}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5">
               <div
-                className={`h-1.5 rounded-full ${
+                className={`h-1 sm:h-1.5 rounded-full ${
                   progress.sopRateProgress >= 100 
                     ? 'bg-green-500' 
                     : progress.isSopRateOnTrack 
@@ -87,15 +87,15 @@ const TargetProgressCard = memo(({ target }: TargetProgressCardProps) => {
           {/* Profit (if set) */}
           {target.targetProfitUsd && progress.profitProgress !== null && (
             <div>
-              <div className="flex items-center justify-between text-xs mb-1">
+              <div className="flex items-center justify-between text-[10px] sm:text-xs mb-0.5 sm:mb-1">
                 <span className="text-gray-600">Profit</span>
                 <span className="font-semibold text-gray-900">
                   ${progress.currentProfitUsd} / ${target.targetProfitUsd}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5">
                 <div
-                  className={`h-1.5 rounded-full ${
+                  className={`h-1 sm:h-1.5 rounded-full ${
                     progress.profitProgress >= 100 
                       ? 'bg-green-500' 
                       : (progress.isProfitOnTrack ?? false)

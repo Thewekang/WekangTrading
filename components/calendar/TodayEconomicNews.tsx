@@ -99,23 +99,23 @@ export default function TodayEconomicNews() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
+    <Card className="h-full">
+      <CardHeader className="p-3 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
           Today's Economic Events
         </CardTitle>
-        <CardDescription>High-impact events today - close positions before these</CardDescription>
+        <CardDescription className="text-xs sm:text-sm">High-impact events today - close positions before these</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 sm:p-6 pt-0">
         {events.length === 0 ? (
-          <div className="py-8 text-center space-y-2">
-            <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
-            <p className="text-lg font-semibold text-green-600">No news today</p>
-            <p className="text-sm text-muted-foreground">Safe to trade! ✅</p>
+          <div className="py-6 sm:py-8 text-center space-y-2">
+            <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12 text-green-600 mx-auto" />
+            <p className="text-base sm:text-lg font-semibold text-green-600">No news today</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Safe to trade! ✅</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {events.map((event) => {
               const countdown = getCountdown(event.eventDate);
               const isPassed = countdown === 'Passed';
@@ -123,24 +123,24 @@ export default function TodayEconomicNews() {
               return (
                 <div
                   key={event.id}
-                  className={`flex items-center justify-between p-3 border rounded-lg ${
+                  className={`flex items-center justify-between p-2 sm:p-3 border rounded-lg ${
                     isPassed ? 'opacity-50 bg-muted' : 'bg-card'
                   }`}
                 >
-                  <div className="flex items-center gap-3 flex-1">
-                    <span className="text-2xl">{getCountryFlag(event.country)}</span>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{event.eventName}</p>
-                      <p className="text-xs text-muted-foreground">{formatTime(event.eventDate)}</p>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                    <span className="text-xl sm:text-2xl flex-shrink-0">{getCountryFlag(event.country)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-xs sm:text-sm truncate">{event.eventName}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{formatTime(event.eventDate)}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     {isPassed ? (
-                      <Badge variant="secondary">Passed</Badge>
+                      <Badge variant="secondary" className="text-[10px] sm:text-xs">Passed</Badge>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-red-500" />
-                        <span className="text-sm font-mono font-bold text-red-500">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
+                        <span className="text-xs sm:text-sm font-mono font-bold text-red-500">
                           {countdown}
                         </span>
                       </div>
