@@ -18,6 +18,8 @@ import { NoTradesEmptyState, NoResultsEmptyState } from '@/components/ui/empty-s
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { TradesTableVirtualized } from '@/components/TradesTableVirtualized';
+import { TradeMobileView } from '@/components/trades/TradeMobileView';
+import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Trade {
@@ -42,6 +44,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { formatDate, timezone } = useTimezone();
+  const isMobile = useIsMobile();
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
   const [isLoading, setIsLoading] = useState(false);
@@ -432,27 +435,26 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   return (
     <>
       {/* 24-Hour Deletion Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl">ℹ️</span>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <span className="text-xl sm:text-2xl flex-shrink-0">ℹ️</span>
           <div>
-            <h3 className="font-semibold text-blue-900 mb-1">Trade Deletion Policy</h3>
-            <p className="text-sm text-blue-800">
-              You can delete trades within <strong>24 hours</strong> of creation. After 24 hours, trades are locked to maintain data integrity. 
-              The 🗑️ delete button will be disabled for older trades.
+            <h3 className="font-semibold text-blue-900 mb-1 text-sm sm:text-base">Trade Deletion Policy</h3>
+            <p className="text-xs sm:text-sm text-blue-800">
+              You can delete trades within <strong>24 hours</strong> of creation. After 24 hours, trades are locked to maintain data integrity.
             </p>
           </div>
         </div>
       </div>
 
       {/* Timezone Reminder */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 sm:p-3 mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-lg">🌍</span>
-          <p className="text-sm text-amber-900">
-            <strong>Timezone:</strong> All timestamps are displayed in <strong>{timezone}</strong> timezone.
-            {timezone !== 'UTC' && <span className="text-amber-700 ml-1">(Data is stored in UTC)</span>}
-            <a href="/settings" className="ml-2 text-amber-700 hover:text-amber-900 underline font-medium">
+          <span className="text-base sm:text-lg flex-shrink-0">🌍</span>
+          <p className="text-xs sm:text-sm text-amber-900">
+            <strong>Timezone:</strong> <strong>{timezone}</strong>
+            {timezone !== 'UTC' && <span className="text-amber-700 ml-1 hidden sm:inline">(Data stored in UTC)</span>}
+            <a href="/settings" className="ml-2 text-amber-700 hover:text-amber-900 underline font-medium block sm:inline mt-1 sm:mt-0">
               Change timezone
             </a>
           </p>
@@ -463,11 +465,11 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       <div className="border rounded-lg mb-4">
         <button
           onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="text-lg">🔍</span>
-            <h2 className="text-lg font-semibold">Filters & Search</h2>
+            <span className="text-base sm:text-lg">🔍</span>
+            <h2 className="text-base sm:text-lg font-semibold">Filters & Search</h2>
           </div>
           {isFiltersOpen ? (
             <ChevronUp className="h-5 w-5 text-muted-foreground" />
@@ -746,105 +748,149 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           </div>
         )}
         
-        {/* Use virtualized table for 100+ trades, regular table otherwise */}
-        {trades.length >= 100 ? (
-          <div className="p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                ⚡ <strong>Optimized View:</strong> Using virtualization for {trades.length} trades (70% faster)
-              </p>
+        {/* Mobile Card View vs Desktop Table View */}
+        {isMobile ? (
+          // Mobile: Card view
+          trades.length === 0 ? (
+            <div className="p-8 text-center">
+              {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
+                <>
+                  <div className="text-5xl mb-4">🔍</div>
+                  <p className="text-lg font-semibold text-gray-900 mb-2">No results found</p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    No trades match your current filters.
+                  </p>
+                  <Button onClick={handleClearFilters} variant="outline" size="sm">
+                    🔄 Clear Filters
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="text-5xl mb-4">📊</div>
+                  <p className="text-lg font-semibold text-gray-900 mb-2">No trades yet</p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Start tracking your performance
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link href="/trades/new">
+                      <Button size="sm" className="w-full">➕ Add Trade</Button>
+                    </Link>
+                    <Link href="/trades/bulk">
+                      <Button variant="outline" size="sm" className="w-full">📋 Bulk Entry</Button>
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
-            <TradesTableVirtualized 
+          ) : (
+            <TradeMobileView
               trades={trades}
+              formatDateTime={formatDateTime}
+              getSessionBadge={getSessionBadge}
               onDeleteTrade={openDeleteModal}
               canDeleteTrade={canDeleteTrade}
             />
-          </div>
+          )
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">P/L (USD)</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {trades.length === 0 ? (
+          // Desktop: Table view (existing code)
+          trades.length >= 100 ? (
+            <div className="p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  ⚡ <strong>Optimized View:</strong> Using virtualization for {trades.length} trades (70% faster)
+                </p>
+              </div>
+              <TradesTableVirtualized 
+                trades={trades}
+                onDeleteTrade={openDeleteModal}
+                canDeleteTrade={canDeleteTrade}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+              <thead className="bg-gray-50 border-b">
                 <tr>
-                  <td colSpan={8} className="px-4 py-12">
-                    {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
-                      <div className="text-center">
-                        <div className="text-5xl mb-4">🔍</div>
-                        <p className="text-lg font-semibold text-gray-900 mb-2">No results found</p>
-                        <p className="text-sm text-gray-600 mb-4">
-                          No trades match your current filters. Try adjusting your search criteria.
-                        </p>
-                        <Button onClick={handleClearFilters} variant="outline">
-                          🔄 Clear All Filters
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <div className="text-5xl mb-4">📊</div>
-                        <p className="text-lg font-semibold text-gray-900 mb-2">No trades yet</p>
-                        <p className="text-sm text-gray-600 mb-4">
-                          Start tracking your performance by adding your first trade
-                        </p>
-                        <div className="flex gap-3 justify-center">
-                          <Link href="/trades/new">
-                            <Button>➕ Add Trade</Button>
-                          </Link>
-                          <Link href="/trades/bulk">
-                            <Button variant="outline">📋 Bulk Entry</Button>
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </td>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">P/L (USD)</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
-              ) : (
-                trades.map((trade) => (
-                  <tr key={trade.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Link 
-                          href={`/trades/${trade.id}`}
-                          className="text-blue-600 hover:underline font-medium"
-                        >
-                          {formatDateTime(trade.tradeTimestamp)}
-                        </Link>
-                        {canDeleteTrade(trade) && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Can be deleted (within 24 hours)">
-                            🕒
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {getSessionBadge(trade.marketSession)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {trade.symbol ? (
-                        <span className="font-mono text-xs font-medium text-gray-700">
-                          {trade.symbol}
-                        </span>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {trades.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12">
+                      {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
+                        <div className="text-center">
+                          <div className="text-5xl mb-4">🔍</div>
+                          <p className="text-lg font-semibold text-gray-900 mb-2">No results found</p>
+                          <p className="text-sm text-gray-600 mb-4">
+                            No trades match your current filters. Try adjusting your search criteria.
+                          </p>
+                          <Button onClick={handleClearFilters} variant="outline">
+                            🔄 Clear All Filters
+                          </Button>
+                        </div>
                       ) : (
-                        <span className="text-gray-400 text-xs">—</span>
+                        <div className="text-center">
+                          <div className="text-5xl mb-4">📊</div>
+                          <p className="text-lg font-semibold text-gray-900 mb-2">No trades yet</p>
+                          <p className="text-sm text-gray-600 mb-4">
+                            Start tracking your performance by adding your first trade
+                          </p>
+                          <div className="flex gap-3 justify-center">
+                            <Link href="/trades/new">
+                              <Button>➕ Add Trade</Button>
+                            </Link>
+                            <Link href="/trades/bulk">
+                              <Button variant="outline">📋 Bulk Entry</Button>
+                            </Link>
+                          </div>
+                        </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm">
-                      {trade.result === 'WIN' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✅ WIN
+                  </tr>
+                ) : (
+                  trades.map((trade) => (
+                    <tr key={trade.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Link 
+                            href={`/trades/${trade.id}`}
+                            className="text-blue-600 hover:underline font-medium"
+                          >
+                            {formatDateTime(trade.tradeTimestamp)}
+                          </Link>
+                          {canDeleteTrade(trade) && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Can be deleted (within 24 hours)">
+                              🕒
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {getSessionBadge(trade.marketSession)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {trade.symbol ? (
+                          <span className="font-mono text-xs font-medium text-gray-700">
+                            {trade.symbol}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {trade.result === 'WIN' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            ✅ WIN
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -897,6 +943,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             </tbody>
           </table>
         </div>
+          )
         )}
         
         {/* Pagination Controls */}
