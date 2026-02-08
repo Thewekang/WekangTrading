@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { COMMON_TIMEZONES, getAllTimezones, getCurrentTimeInTimezone } from '@/lib/utils/timezones';
-import { User, Mail, Shield, Globe, Lock, Save } from 'lucide-react';
+import { User, Mail, Shield, Globe, Lock, Save, LogOut } from 'lucide-react';
 
 interface AccountSummary {
   totalTrades: number;
@@ -401,6 +401,25 @@ export default function SettingsPage() {
             {changingPassword ? 'Changing Password...' : 'Change Password'}
           </Button>
         </form>
+      </Card>
+
+      {/* Logout Section - Always visible */}
+      <Card className="p-6 mb-6 border-gray-200">
+        <h2 className="text-xl font-bold mb-4 flex items-center">
+          <LogOut className="mr-2 h-5 w-5" />
+          Sign Out
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Sign out of your account on this device.
+        </p>
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
+          onClick={() => window.location.href = '/api/auth/signout'}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
       </Card>
 
       {/* Account Actions - Only show for non-admin users */}

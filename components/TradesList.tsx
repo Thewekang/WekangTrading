@@ -78,7 +78,19 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(initialTrades.length);
-  const [pageSize, setPageSize] = useState(50);
+  
+  // Load pageSize from localStorage before setting initial state
+  const getInitialPageSize = () => {
+    if (typeof window !== 'undefined') {
+      const savedPageSize = localStorage.getItem('tradesPageSize');
+      if (savedPageSize) {
+        return parseInt(savedPageSize, 10);
+      }
+    }
+    return 50; // Default
+  };
+  
+  const [pageSize, setPageSize] = useState(getInitialPageSize());
   
   // Summary statistics (from ALL filtered trades, not just current page)
   const [summaryStats, setSummaryStats] = useState({
@@ -118,22 +130,16 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     if (urlMaxPL) setMaxProfitLoss(urlMaxPL);
   }, [searchParams]);
   
-  // Load pageSize from localStorage on mount
-  useEffect(() => {
-    const savedPageSize = localStorage.getItem('tradesPageSize');
-    if (savedPageSize) {
-      setPageSize(parseInt(savedPageSize, 10));
-    }
-  }, []);
-  
   // Fetch initial pagination data on mount
   useEffect(() => {
     handleApplyFilters(1);
-  }, [pageSize]); // Re-fetch when pageSize changes
+  }, []); // Only run once on mount
   
   // Save pageSize to localStorage when changed
   useEffect(() => {
-    localStorage.setItem('tradesPageSize', pageSize.toString());
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tradesPageSize', pageSize.toString());
+    }
   }, [pageSize]);
 
   // Helper function to format date/time using user's timezone
