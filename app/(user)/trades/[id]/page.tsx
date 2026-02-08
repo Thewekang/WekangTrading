@@ -7,6 +7,7 @@ import { individualTrades, sopTypes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { DeleteTradeButton } from '@/components/trades/DeleteTradeButton';
 
 export default async function TradeDetailPage({ params }: { params: { id: string } }) {
   const session = await auth();
@@ -171,16 +172,24 @@ export default async function TradeDetailPage({ params }: { params: { id: string
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-            <Link href={`/trades/${trade.id}/edit`} className="flex-1">
-              <Button variant="outline" className="w-full">
-                ✏️ Edit Trade
-              </Button>
-            </Link>
-            <Link href="/trades" className="flex-1">
-              <Button variant="outline" className="w-full">
-                Back to List
-              </Button>
-            </Link>
+            {canDelete ? (
+              <>
+                <Link href="/trades" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    Back to List
+                  </Button>
+                </Link>
+                <div className="flex-1">
+                  <DeleteTradeButton tradeId={trade.id} />
+                </div>
+              </>
+            ) : (
+              <Link href="/trades" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Back to List
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
