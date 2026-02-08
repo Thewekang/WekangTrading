@@ -11,6 +11,7 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { DesktopNav, MobileNav } from '@/components/navigation/NavMenu';
 import { NotificationBell } from '@/components/navigation/NotificationBell';
+import { BottomNav } from '@/components/navigation/BottomNav';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -56,11 +57,12 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
               </div>
             </div>
           </nav>
-          <main>
+          <main className="pb-16 lg:pb-0">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
           </main>
+          <BottomNav />
           <ToastContainer />
         </div>
       </QuoteSystemProvider>
