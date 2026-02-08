@@ -46,6 +46,8 @@ export function MonthlyPerformanceView() {
   const [loading, setLoading] = useState(true);
   const [dailyPerformance, setDailyPerformance] = useState<DailyPerformance[]>([]);
   const [monthlyPerformance, setMonthlyPerformance] = useState<MonthlyPerformance[]>([]);
+  const [scale, setScale] = useState(1);
+  const [lastDistance, setLastDistance] = useState(0);
   const [summary, setSummary] = useState<PerformanceSummary>({
     profitLoss: 0,
     totalTrades: 0,
@@ -152,6 +154,36 @@ export function MonthlyPerformanceView() {
     return new Date(year, month - 1, 1).getDay();
   };
 
+  const getDistance = (touches: TouchList) => {
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return Math.sqrt(
+      Math.pow(touch2.pageX - touch1.pageX, 2) +
+      Math.pow(touch2.pageY - touch1.pageY, 2)
+    );
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      setLastDistance(getDistance(e.touches));
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = getDistance(e.touches);
+      if (lastDistance > 0) {
+        const ratio = distance / lastDistance;
+        setScale(prevScale => Math.min(Math.max(0.5, prevScale * ratio), 2));
+      }
+      setLastDistance(distance);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setLastDistance(0);
+  };
+
   const renderMonthView = () => {
     const daysInMonth = getDaysInMonth(year, month);
     const firstDay = getFirstDayOfMonth(year, month);
@@ -215,20 +247,26 @@ export function MonthlyPerformanceView() {
         {/* Calendar header */}
         <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-4">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-center text-[10px] sm:text-sm font-semibold text-gray-600 bg-gray-100 py-1 sm:py-2 rounded">
+            <div key={day} className="text-center text-[9px] sm:text-sm font-semibold text-gray-600 bg-gray-100 py-1 sm:py-2 rounded">
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar body */}
-        <div className="space-y-1 sm:space-y-2">
+        {/* Calendar body - with pinch-to-zoom */}
+        <div 
+          className="space-y-1 sm:space-y-2 touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ transform: `scale(${scale})`, transformOrigin: 'top center', transition: 'transform 0.1s ease-out' }}
+        >
           {weeks.map((week, weekIdx) => (
             <div key={weekIdx} className="grid grid-cols-7 gap-1 sm:gap-2">
               {week.map((day, dayIdx) => (
                 <div
                   key={dayIdx}
-                  className={`min-h-[80px] sm:min-h-[120px] p-1.5 sm:p-3 rounded-lg border-2 ${
+                  className={`min-h-[70px] sm:min-h-[120px] p-1 sm:p-3 rounded-lg border-2 ${
                     day
                       ? day.totalTrades > 0
                         ? 'bg-white border-gray-300 hover:border-blue-400 hover:shadow-md transition-all'
@@ -239,28 +277,28 @@ export function MonthlyPerformanceView() {
                 >
                   {day && (
                     <div className="space-y-0.5 sm:space-y-1.5">
-                      <div className="text-[10px] sm:text-sm font-bold text-gray-700 mb-1 sm:mb-2">{day.date}</div>
+                      <div className="text-[9px] sm:text-sm font-bold text-gray-700 mb-0.5 sm:mb-2">{day.date}</div>
                       {day.totalTrades > 0 ? (
                         <>
-                          <div className="text-[9px] sm:text-xs space-y-0.5 sm:space-y-1">
-                            <div className="flex items-center justify-between bg-green-50 px-1 sm:px-2 py-0.5 sm:py-1 rounded border border-green-200">
-                              <span className="text-gray-600">Win:</span>
+                          <div className="text-[8px] sm:text-xs space-y-0.5 sm:space-y-1">
+                            <div className="flex items-center justify-between bg-green-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-green-200">
+                              <span className="text-gray-600">W:</span>
                               <span className="font-semibold text-green-700">{day.winRate.toFixed(0)}%</span>
                             </div>
-                            <div className="flex items-center justify-between bg-blue-50 px-1 sm:px-2 py-0.5 sm:py-1 rounded border border-blue-200">
-                              <span className="text-gray-600">SOP:</span>
+                            <div className="flex items-center justify-between bg-blue-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-blue-200">
+                              <span className="text-gray-600">S:</span>
                               <span className="font-semibold text-blue-700">{day.sopRate.toFixed(0)}%</span>
                             </div>
-                            <div className="flex items-center justify-between bg-orange-50 px-1 sm:px-2 py-0.5 sm:py-1 rounded border border-orange-200">
-                              <span className="text-gray-600">P/L:</span>
+                            <div className="flex items-center justify-between bg-orange-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-orange-200">
+                              <span className="text-gray-600">P:</span>
                               <span className={`font-bold ${getColorClass(day.profitLoss)}`}>
-                                {day.profitLoss >= 0 ? '+' : ''}{formatCurrency(day.profitLoss)}
+                                {day.profitLoss >= 0 ? '+' : ''}{Math.abs(day.profitLoss).toFixed(0)}
                               </span>
                             </div>
                           </div>
                         </>
                       ) : (
-                        <div className="text-[9px] sm:text-xs text-gray-400 text-center mt-2 sm:mt-4">No trades</div>
+                        <div className="text-[8px] sm:text-xs text-gray-400 text-center mt-1 sm:mt-4">No</div>
                       )}
                     </div>
                   )}
