@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { COMMON_TIMEZONES, getAllTimezones, getCurrentTimeInTimezone } from '@/lib/utils/timezones';
-import { User, Mail, Shield, Globe, Lock, Save } from 'lucide-react';
+import { User, Mail, Shield, Globe, Lock, Save, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 interface AccountSummary {
   totalTrades: number;
@@ -24,6 +25,7 @@ interface AccountSummary {
   totalTargets: number;
   totalBadges: number;
   totalNotifications: number;
+  totalDisciplineRows: number;
 }
 
 interface UserInfo {
@@ -403,6 +405,28 @@ export default function SettingsPage() {
         </form>
       </Card>
 
+      {/* Logout Section - Always visible */}
+      <Card className="p-6 mb-6 border-gray-200">
+        <h2 className="text-xl font-bold mb-4 flex items-center">
+          <LogOut className="mr-2 h-5 w-5" />
+          Sign Out
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Sign out of your account on this device.
+        </p>
+        <Button
+          variant="outline"
+          className="w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
+          onClick={async () => {
+            await signOut({ redirect: false });
+            window.location.href = '/login';
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
+      </Card>
+
       {/* Account Actions - Only show for non-admin users */}
       {userInfo?.role !== 'ADMIN' && (
         <Card className="p-6 mb-6 border-red-200">
@@ -437,8 +461,10 @@ export default function SettingsPage() {
               <li><strong>{accountSummary.totalTargets}</strong> performance targets</li>
               <li><strong>{accountSummary.totalBadges}</strong> earned badges (achievements)</li>
               <li><strong>{accountSummary.totalNotifications}</strong> notifications</li>
+              <li><strong>{accountSummary.totalDisciplineRows}</strong> discipline tracker entries</li>
               <li>All streaks (win, log, SOP)</li>
               <li>All user statistics</li>
+              <li>Discipline tracker settings</li>
             </ul>
             <p className="text-sm text-gray-600 mb-4">
               Your account and login will remain active. You can start fresh with new trades and earn badges again.

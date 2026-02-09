@@ -76,7 +76,7 @@ export const AchievementShowcase = memo(({ limit = 4 }: AchievementShowcaseProps
         <h2 className="text-xl font-bold">🏆 Recent Achievements</h2>
         <Link
           href="/dashboard/achievements"
-          className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+          className="text-sm text-blue-600 hover:text-blue-700 hover:underline active:text-blue-800 min-h-[44px] inline-flex items-center touch-manipulation"
         >
           View All {totalBadges} Badges →
         </Link>

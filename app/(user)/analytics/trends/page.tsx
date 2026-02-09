@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import { calculateMovingAverages } from '@/lib/utils/trendCalculations';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 // Dynamic imports for chart components (lazy loading)
 const TrendLineChart = dynamic(() => import('@/components/charts/TrendLineChart'), {
@@ -40,6 +41,12 @@ export default function TrendsPage() {
   const [hasNoData, setHasNoData] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState<'winRate' | 'sopRate' | 'profitLoss'>('winRate');
   const [selectedDays, setSelectedDays] = useState(30);
+  
+  // Collapsible sections state (all collapsed by default)
+  const [isMonthlyOpen, setIsMonthlyOpen] = useState(false);
+  const [isTrendIndicatorsOpen, setIsTrendIndicatorsOpen] = useState(false);
+  const [isDailyTrendsOpen, setIsDailyTrendsOpen] = useState(false);
+  const [isComparisonsOpen, setIsComparisonsOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -175,185 +182,235 @@ export default function TrendsPage() {
       </div>
 
       {/* Monthly Performance View - Enhanced */}
-      <div className="mb-8">
-        <MonthlyPerformanceView />
+      <div className="mb-6">
+        <button
+          onClick={() => setIsMonthlyOpen(!isMonthlyOpen)}
+          className="w-full bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">📅 Monthly Performance Calendar</h2>
+            {!isMonthlyOpen && <span className="text-sm text-gray-500">(Tap to expand)</span>}
+          </div>
+          {isMonthlyOpen ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+        </button>
+        {isMonthlyOpen && (
+          <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <MonthlyPerformanceView />
+          </div>
+        )}
       </div>
 
       {/* Trend Indicators */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Trend Indicators (30-Day)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {indicators.map((indicator) => (
-            <TrendIndicatorCard
-              key={indicator.metric}
-              metric={indicator.metric}
-              metricLabel={
-                indicator.metric === 'winRate' ? 'Win Rate' :
-                indicator.metric === 'sopRate' ? 'SOP Compliance' :
-                'Profit/Loss'
-              }
-              direction={indicator.direction}
-              changePercent={indicator.changePercent}
-              trend7Day={indicator.trend7Day}
-              trend30Day={indicator.trend30Day}
-              formatter={(value) => 
-                indicator.metric === 'profitLoss' 
-                  ? `$${value.toFixed(0)}` 
-                  : value.toFixed(1)
-              }
-            />
-          ))}
-        </div>
+      <div className="mb-6">
+        <button
+          onClick={() => setIsTrendIndicatorsOpen(!isTrendIndicatorsOpen)}
+          className="w-full bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">📊 Trend Indicators (30-Day)</h2>
+            {!isTrendIndicatorsOpen && <span className="text-sm text-gray-500">(Tap to expand)</span>}
+          </div>
+          {isTrendIndicatorsOpen ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+        </button>
+        {isTrendIndicatorsOpen && (
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {indicators.map((indicator) => (
+              <TrendIndicatorCard
+                key={indicator.metric}
+                metric={indicator.metric}
+                metricLabel={
+                  indicator.metric === 'winRate' ? 'Win Rate' :
+                  indicator.metric === 'sopRate' ? 'SOP Compliance' :
+                  'Profit/Loss'
+                }
+                direction={indicator.direction}
+                changePercent={indicator.changePercent}
+                trend7Day={indicator.trend7Day}
+                trend30Day={indicator.trend30Day}
+                formatter={(value) => 
+                  indicator.metric === 'profitLoss' 
+                    ? `$${value.toFixed(0)}` 
+                    : value.toFixed(1)
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Daily Trends Chart */}
-      <div className="mb-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h2 className="text-xl font-semibold text-gray-900">Daily Performance Trends</h2>
-            <div className="flex flex-wrap gap-3">
-              {/* Metric Selector */}
-              <select
-                value={selectedMetric}
-                onChange={(e) => setSelectedMetric(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="winRate">Win Rate</option>
-                <option value="sopRate">SOP Compliance</option>
-                <option value="profitLoss">Profit/Loss</option>
-              </select>
-
-              {/* Days Selector */}
-              <select
-                value={selectedDays}
-                onChange={(e) => setSelectedDays(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value={7}>Last 7 Days</option>
-                <option value={14}>Last 14 Days</option>
-                <option value={30}>Last 30 Days</option>
-                <option value={60}>Last 60 Days</option>
-                <option value={90}>Last 90 Days</option>
-              </select>
-            </div>
+      <div className="mb-6">
+        <button
+          onClick={() => setIsDailyTrendsOpen(!isDailyTrendsOpen)}
+          className="w-full bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">📈 Daily Performance Trends</h2>
+            {!isDailyTrendsOpen && <span className="text-sm text-gray-500">(Tap to expand)</span>}
           </div>
+          {isDailyTrendsOpen ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+        </button>
+        {isDailyTrendsOpen && (
+          <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+              <div className="flex flex-wrap gap-3">
+                {/* Metric Selector */}
+                <select
+                  value={selectedMetric}
+                  onChange={(e) => setSelectedMetric(e.target.value as any)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="winRate">Win Rate</option>
+                  <option value="sopRate">SOP Compliance</option>
+                  <option value="profitLoss">Profit/Loss</option>
+                </select>
 
-          {trends.length > 0 ? (
-            <TrendLineChart
-              data={getChartData()}
-              metricName={selectedMetric}
-              metricLabel={getMetricLabel()}
-              showMA7={selectedDays >= 7}
-              showMA30={selectedDays >= 30}
-              {...getMetricFormatter()}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              No data available for the selected period
+                {/* Days Selector */}
+                <select
+                  value={selectedDays}
+                  onChange={(e) => setSelectedDays(Number(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={7}>Last 7 Days</option>
+                  <option value={14}>Last 14 Days</option>
+                  <option value={30}>Last 30 Days</option>
+                  <option value={60}>Last 60 Days</option>
+                  <option value={90}>Last 90 Days</option>
+                </select>
+              </div>
             </div>
-          )}
-        </div>
+
+            {trends.length > 0 ? (
+              <TrendLineChart
+                data={getChartData()}
+                metricName={selectedMetric}
+                metricLabel={getMetricLabel()}
+                showMA7={selectedDays >= 7}
+                showMA30={selectedDays >= 30}
+                {...getMetricFormatter()}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-500">
+                No data available for the selected period
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Comparison Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Weekly Comparison */}
-        {weeklyComparison && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Week-Over-Week Comparison</h2>
-            <ComparisonChart
-              current={weeklyComparison.current}
-              previous={weeklyComparison.previous}
-              metric={selectedMetric}
-              metricLabel={getMetricLabel()}
-              {...getMetricFormatter()}
-            />
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-600 mb-1">Previous Week</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedMetric === 'profitLoss' 
-                      ? `$${weeklyComparison.previous[selectedMetric].toFixed(2)}`
-                      : `${weeklyComparison.previous[selectedMetric].toFixed(1)}%`
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 mb-1">Current Week</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedMetric === 'profitLoss' 
-                      ? `$${weeklyComparison.current[selectedMetric].toFixed(2)}`
-                      : `${weeklyComparison.current[selectedMetric].toFixed(1)}%`
-                    }
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-gray-600 mb-1">Change</p>
-                  <p className={`font-semibold ${
-                    weeklyComparison.changes[selectedMetric] > 0 ? 'text-green-600' : 
-                    weeklyComparison.changes[selectedMetric] < 0 ? 'text-red-600' : 
-                    'text-gray-600'
-                  }`}>
-                    {weeklyComparison.changes[selectedMetric] > 0 ? '+' : ''}
-                    {selectedMetric === 'profitLoss' 
-                      ? `$${weeklyComparison.changes[selectedMetric].toFixed(2)}`
-                      : `${weeklyComparison.changes[selectedMetric].toFixed(1)}%`
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
+      <div className="mb-6">
+        <button
+          onClick={() => setIsComparisonsOpen(!isComparisonsOpen)}
+          className="w-full bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">🔄 Period Comparisons</h2>
+            {!isComparisonsOpen && <span className="text-sm text-gray-500">(Tap to expand)</span>}
           </div>
-        )}
-
-        {/* Monthly Comparison */}
-        {monthlyComparison && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Month-Over-Month Comparison</h2>
-            <ComparisonChart
-              current={monthlyComparison.current}
-              previous={monthlyComparison.previous}
-              metric={selectedMetric}
-              metricLabel={getMetricLabel()}
-              {...getMetricFormatter()}
-            />
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-600 mb-1">Previous Month</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedMetric === 'profitLoss' 
-                      ? `$${monthlyComparison.previous[selectedMetric].toFixed(2)}`
-                      : `${monthlyComparison.previous[selectedMetric].toFixed(1)}%`
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 mb-1">Current Month</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedMetric === 'profitLoss' 
-                      ? `$${monthlyComparison.current[selectedMetric].toFixed(2)}`
-                      : `${monthlyComparison.current[selectedMetric].toFixed(1)}%`
-                    }
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-gray-600 mb-1">Change</p>
-                  <p className={`font-semibold ${
-                    monthlyComparison.changes[selectedMetric] > 0 ? 'text-green-600' : 
-                    monthlyComparison.changes[selectedMetric] < 0 ? 'text-red-600' : 
-                    'text-gray-600'
-                  }`}>
-                    {monthlyComparison.changes[selectedMetric] > 0 ? '+' : ''}
-                    {selectedMetric === 'profitLoss' 
-                      ? `$${monthlyComparison.changes[selectedMetric].toFixed(2)}`
-                      : `${monthlyComparison.changes[selectedMetric].toFixed(1)}%`
-                    }
-                  </p>
+          {isComparisonsOpen ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+        </button>
+        {isComparisonsOpen && (
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Weekly Comparison */}
+            {weeklyComparison && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Week-Over-Week Comparison</h3>
+                <ComparisonChart
+                  current={weeklyComparison.current}
+                  previous={weeklyComparison.previous}
+                  metric={selectedMetric}
+                  metricLabel={getMetricLabel()}
+                  {...getMetricFormatter()}
+                />
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 mb-1">Previous Week</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedMetric === 'profitLoss' 
+                          ? `$${weeklyComparison.previous[selectedMetric].toFixed(2)}`
+                          : `${weeklyComparison.previous[selectedMetric].toFixed(1)}%`
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 mb-1">Current Week</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedMetric === 'profitLoss' 
+                          ? `$${weeklyComparison.current[selectedMetric].toFixed(2)}`
+                          : `${weeklyComparison.current[selectedMetric].toFixed(1)}%`
+                        }
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-600 mb-1">Change</p>
+                      <p className={`font-semibold ${
+                        weeklyComparison.changes[selectedMetric] > 0 ? 'text-green-600' : 
+                        weeklyComparison.changes[selectedMetric] < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {weeklyComparison.changes[selectedMetric] > 0 ? '+' : ''}
+                        {selectedMetric === 'profitLoss' 
+                          ? `$${weeklyComparison.changes[selectedMetric].toFixed(2)}`
+                          : `${weeklyComparison.changes[selectedMetric].toFixed(1)}%`
+                        }
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Monthly Comparison */}
+            {monthlyComparison && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Month-Over-Month Comparison</h3>
+                <ComparisonChart
+                  current={monthlyComparison.current}
+                  previous={monthlyComparison.previous}
+                  metric={selectedMetric}
+                  metricLabel={getMetricLabel()}
+                  {...getMetricFormatter()}
+                />
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 mb-1">Previous Month</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedMetric === 'profitLoss' 
+                          ? `$${monthlyComparison.previous[selectedMetric].toFixed(2)}`
+                          : `${monthlyComparison.previous[selectedMetric].toFixed(1)}%`
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 mb-1">Current Month</p>
+                      <p className="font-semibold text-gray-900">
+                        {selectedMetric === 'profitLoss' 
+                          ? `$${monthlyComparison.current[selectedMetric].toFixed(2)}`
+                          : `${monthlyComparison.current[selectedMetric].toFixed(1)}%`
+                        }
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-600 mb-1">Change</p>
+                      <p className={`font-semibold ${
+                        monthlyComparison.changes[selectedMetric] > 0 ? 'text-green-600' : 
+                        monthlyComparison.changes[selectedMetric] < 0 ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {monthlyComparison.changes[selectedMetric] > 0 ? '+' : ''}
+                        {selectedMetric === 'profitLoss' 
+                          ? `$${monthlyComparison.changes[selectedMetric].toFixed(2)}`
+                          : `${monthlyComparison.changes[selectedMetric].toFixed(1)}%`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

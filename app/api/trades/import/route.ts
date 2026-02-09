@@ -174,7 +174,11 @@ export async function POST(request: NextRequest) {
     
     return response;
   } catch (error) {
-    console.error('[POST /api/trades/import]', error);
+    console.error('[POST /api/trades/import]', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
     
     if (error instanceof Error) {
       return NextResponse.json(

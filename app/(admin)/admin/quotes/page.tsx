@@ -671,8 +671,10 @@ export default function AdminQuotesPage() {
         ) : filteredAndSortedQuotes.length === 0 ? (
           <div className="p-8 text-center text-gray-600">No quotes found</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-center p-4 font-semibold text-sm text-gray-700 w-12">
@@ -766,6 +768,75 @@ export default function AdminQuotesPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {filteredAndSortedQuotes.map((quote) => (
+              <Card key={quote.id} className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedQuotes.includes(quote.id)}
+                      onChange={() => handleSelectQuote(quote.id)}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <span className="font-mono text-xs text-gray-600">{quote.id}</span>
+                  </div>
+                  <Switch
+                    checked={quote.enabled}
+                    onCheckedChange={() => handleToggleEnabled(quote)}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm leading-relaxed">{quote.textEn}</p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                      {quote.category}
+                    </span>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      quote.weight >= 8 ? 'bg-green-100 text-green-800' :
+                      quote.weight >= 5 ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      Weight: {quote.weight}
+                    </span>
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                      Shown: {quote.displayCount}x
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-gray-600">
+                    <strong>Author:</strong> {quote.author}
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEditModal(quote)}
+                      className="flex-1"
+                    >
+                      <Edit2 size={14} className="mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openDeleteModal(quote)}
+                      className="flex-1 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 size={14} className="mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
         )}
       </Card>
 

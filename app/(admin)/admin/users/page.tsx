@@ -289,7 +289,8 @@ export default function AdminUsersPage() {
         />
       </div>
 
-      <Card className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <Card className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b">
@@ -366,6 +367,83 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </Card>
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-4">
+        {filteredAndSortedUsers.map((user) => (
+          <Card key={user.id} className="p-4">
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{user.name}</h3>
+                  <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                </div>
+                <span className={`ml-2 flex-shrink-0 px-2 py-1 rounded text-xs ${
+                  user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {user.role}
+                </span>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-gray-50 p-2 rounded">
+                  <div className="text-gray-600">Trades</div>
+                  <div className="font-semibold text-gray-900">{user.stats?.totalTrades ?? 0}</div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <div className="text-gray-600">Win Rate</div>
+                  <div className="font-semibold text-gray-900">{((user.stats?.winRate ?? 0) * 100).toFixed(1)}%</div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <div className="text-gray-600">SOP Rate</div>
+                  <div className="font-semibold text-gray-900">{((user.stats?.sopRate ?? 0) * 100).toFixed(1)}%</div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <div className="text-gray-600">Net P&L</div>
+                  <div className={`font-semibold ${(user.stats?.netProfitLoss ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ${(user.stats?.netProfitLoss ?? 0).toFixed(0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reset Count */}
+              {(user.resetCount ?? 0) > 0 && (
+                <div className="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded">
+                  Account reset {user.resetCount}x
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 pt-2 border-t">
+                {user.role !== 'ADMIN' && (
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setShowPerformanceModal(true);
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs"
+                  >
+                    📊 Performance
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => openEditModal(user)} className="flex-1 text-xs">
+                  Edit
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => openResetPasswordModal(user)} className="flex-1 text-xs">
+                  Reset Pwd
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => openDeleteModal(user)} className="w-full text-xs">
+                  Delete User
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       {/* Create User Modal */}
       {showCreateModal && (

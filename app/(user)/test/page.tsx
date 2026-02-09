@@ -11,6 +11,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export default async function TestPage() {
   const session = await auth();
@@ -166,11 +167,9 @@ export default async function TestPage() {
                 <p className="text-sm text-gray-600 mb-3">
                   Logout and try accessing protected route
                 </p>
-                <Link href="/api/auth/signout">
-                  <Button size="sm" variant="outline" className="w-full">
+                <SignOutButton className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-10 sm:h-8 px-3 w-full">
                     Logout
-                  </Button>
-                </Link>
+                </SignOutButton>
               </div>
               <div className="bg-purple-50 p-4 rounded">
                 <h3 className="font-semibold mb-2">Not Found (404)</h3>

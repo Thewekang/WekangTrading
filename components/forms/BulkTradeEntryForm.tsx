@@ -287,14 +287,14 @@ export function BulkTradeEntryForm() {
                       type="time"
                       value={row.time}
                       onChange={(e) => handleUpdateRow(row.id, 'time', e.target.value)}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </td>
                   <td className="px-3 py-3">
                     <select
                       value={row.result}
                       onChange={(e) => handleUpdateRow(row.id, 'result', e.target.value)}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Select</option>
                       <option value="WIN">✅ WIN</option>
@@ -305,7 +305,7 @@ export function BulkTradeEntryForm() {
                     <select
                       value={row.sopFollowed === null ? '' : row.sopFollowed.toString()}
                       onChange={(e) => handleUpdateRow(row.id, 'sopFollowed', e.target.value === 'true')}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Select</option>
                       <option value="true">✓ Yes</option>
@@ -317,7 +317,7 @@ export function BulkTradeEntryForm() {
                       value={row.sopTypeId}
                       onChange={(e) => handleUpdateRow(row.id, 'sopTypeId', e.target.value)}
                       disabled={loadingSopTypes}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       <option value="">Others</option>
                       {sopTypes.map((sopType) => (
@@ -334,7 +334,7 @@ export function BulkTradeEntryForm() {
                       onChange={(e) => handleUpdateRow(row.id, 'symbol', e.target.value.toUpperCase())}
                       placeholder="e.g. EURUSD"
                       maxLength={10}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] uppercase touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </td>
                   <td className="px-3 py-3">
@@ -348,7 +348,7 @@ export function BulkTradeEntryForm() {
                         debouncedAmountValidation(row.id, e.target.value);
                       }}
                       placeholder="50.00"
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </td>
                   <td className="px-3 py-3">
@@ -358,13 +358,13 @@ export function BulkTradeEntryForm() {
                       onChange={(e) => handleUpdateRow(row.id, 'notes', e.target.value)}
                       placeholder="Optional notes..."
                       maxLength={500}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </td>
                   <td className="px-3 py-3 text-center">
                     <button
                       onClick={() => handleRemoveRow(row.id)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      className="text-red-600 hover:text-red-800 active:scale-95 text-sm font-medium min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
                       disabled={rows.length === 1}
                     >
                       ✕

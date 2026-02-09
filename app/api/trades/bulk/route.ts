@@ -102,7 +102,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.error('[POST /api/trades/bulk]', error);
+    console.error('[POST /api/trades/bulk]', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }

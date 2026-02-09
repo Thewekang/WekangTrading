@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 interface NavLinkProps {
   href: string;
@@ -45,7 +46,7 @@ function NavDropdown({ label, icon, items }: NavDropdownProps) {
   
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className={`flex items-center gap-1 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+      <DropdownMenuTrigger className={`flex items-center gap-1 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] touch-manipulation ${
         isActive ? 'bg-gray-100 text-gray-900' : ''
       }`}>
         {icon && <span>{icon}</span>}
@@ -138,6 +139,11 @@ export function MobileNav() {
             
             <div className="border-t pt-2 mt-2">
               <NavLink href="/settings" className="block">⚙️ Settings</NavLink>
+              <SignOutButton
+                className="block w-full text-left px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 hover:text-red-700 font-medium"
+              >
+                🚪 Sign Out
+              </SignOutButton>
             </div>
           </div>
         </div>

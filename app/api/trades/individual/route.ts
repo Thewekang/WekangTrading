@@ -64,7 +64,11 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[GET /api/trades/individual]', error);
+    console.error('[GET /api/trades/individual]', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }
@@ -116,12 +120,15 @@ export async function POST(request: NextRequest) {
     
     return response;
   } catch (error) {
-    console.error('=== API ERROR ===');
-    console.error('Error type:', error?.constructor?.name);
-    console.error('Error:', error);
+    // Safe logging - no sensitive data
+    const errorInfo = {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    };
     
     if (error instanceof ZodError) {
-      console.error('Zod validation errors:', error.issues);
+      console.error('[POST /api/trades/individual] Validation error:', errorInfo);
       return NextResponse.json(
         { success: false, error: { code: 'VALIDATION_ERROR', message: error.issues[0].message, details: error.issues } },
         { status: 400 }
@@ -131,6 +138,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       // Business logic errors (from service layer)
       if (error.message.includes('cannot exceed') || error.message.includes('cannot be')) {
+        console.error('[POST /api/trades/individual] Business logic error:', errorInfo);
         return NextResponse.json(
           { success: false, error: { code: 'VALIDATION_ERROR', message: error.message } },
           { status: 400 }
@@ -139,6 +147,7 @@ export async function POST(request: NextRequest) {
 
       // Database errors (generic)
       if (error.message.toLowerCase().includes('database') || error.message.toLowerCase().includes('unique constraint')) {
+        console.error('[POST /api/trades/individual] Database error:', errorInfo);
         return NextResponse.json(
           { success: false, error: { code: 'DATABASE_ERROR', message: 'Database operation failed' } },
           { status: 500 }
@@ -146,7 +155,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.error('[POST /api/trades/individual]', error);
+    console.error('[POST /api/trades/individual] Unexpected error:', errorInfo);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }

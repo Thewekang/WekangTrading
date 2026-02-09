@@ -42,7 +42,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    console.error('[GET /api/trades/individual/[id]]', error);
+    console.error('[GET /api/trades/individual/[id]]', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }
@@ -95,7 +99,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    console.error('[PATCH /api/trades/individual/[id]]', error);
+    console.error('[PATCH /api/trades/individual/[id]]', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }
@@ -129,7 +137,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    console.error('[DELETE /api/trades/individual/[id]]', error);
+    console.error('[DELETE /api/trades/individual/[id]]', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }

@@ -2,49 +2,54 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq, count as countFn } from 'drizzle-orm';
+import { auth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/utils/apiErrors';
 
 export async function GET() {
+  // Disable in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Debug endpoints disabled in production' },
+      { status: 404 }
+    );
+  }
+
+  // Require admin authentication
+  const session = await auth();
+  const adminError = requireAdmin(session);
+  if (adminError) return adminError;
+
   try {
-    // TODO: Implement Drizzle count query
     const [{ value: userCount }] = await db.select({ value: countFn() }).from(users);
     
-    // Check if admin exists
-    const [adminUser] = await db
-      .select({ id: users.id, email: users.email, role: users.role })
+    // Check if admin exists (no sensitive details)
+    const adminCount = await db
+      .select({ value: countFn() })
       .from(users)
-      .where(eq(users.email, 'admin@wekangtrading.com'))
-      .limit(1);
+      .where(eq(users.role, 'ADMIN'));
 
     return NextResponse.json({
       status: 'connected',
       database_working: true,
       total_users: userCount,
-      admin_exists: !!adminUser,
-      admin_details: adminUser ? {
-        email: adminUser.email,
-        role: adminUser.role,
-        id: adminUser.id
-      } : null,
+      total_admins: adminCount[0].value,
       timestamp: new Date().toISOString(),
       env: {
-        DATABASE_URL_set: !!process.env.DATABASE_URL,
-        DATABASE_URL_preview: process.env.DATABASE_URL?.substring(0, 40) + '...',
+        DATABASE_URL_configured: !!process.env.DATABASE_URL,
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
         NODE_ENV: process.env.NODE_ENV
       }
     });
   } catch (error: any) {
+    console.error('DB status check failed:', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
     return NextResponse.json({
       status: 'error',
       database_working: false,
-      error: error.message,
+      error: 'Database connection failed',
       timestamp: new Date().toISOString(),
-      env: {
-        DATABASE_URL_set: !!process.env.DATABASE_URL,
-        DATABASE_URL_preview: process.env.DATABASE_URL?.substring(0, 40) + '...',
-        NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-        NODE_ENV: process.env.NODE_ENV
-      }
     }, { status: 500 });
   }
 }

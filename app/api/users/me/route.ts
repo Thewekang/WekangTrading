@@ -59,7 +59,11 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Get user info error:', error);
+    console.error('Get user info error:', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get user info' } },
@@ -105,7 +109,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    console.error('Update user preferences error:', error);
+    console.error('Update user preferences error:', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to update preferences' } },

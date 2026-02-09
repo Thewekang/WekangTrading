@@ -76,23 +76,23 @@ export default async function DashboardPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Enhanced Hero Section with Logo */}
-        <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-blue-100">
-          <div className="flex flex-col md:flex-row items-center gap-6">
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-blue-100">
+          <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6">
             <div className="flex-shrink-0">
               <Image 
                 src="/logo.png" 
                 alt="Wekang Trading" 
-                width={96}
-                height={96}
-                className="object-contain drop-shadow-md" 
+                width={64}
+                height={64}
+                className="sm:w-[80px] sm:h-[80px] md:w-[96px] md:h-[96px] object-contain drop-shadow-md" 
                 priority
               />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2 text-slate-900">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2 text-slate-900">
                 Welcome back, {session.user.name}!
               </h1>
-              <p className="text-slate-600 text-lg">
+              <p className="text-slate-600 text-sm sm:text-base md:text-lg">
                 Track your trading performance and analyze your results
               </p>
             </div>
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
         <CollapsibleAchievementsSection />
 
         {/* Economic News Widgets */}
-        <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 mb-6">
           <TodayEconomicNews />
           <WeeklyEconomicNews />
         </div>
@@ -122,41 +122,41 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats Cards and Best SOP */}
-        <div className="grid gap-6 lg:grid-cols-3 mb-6">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 mb-6">
           {/* Stats Cards - 2 columns on large screens */}
-          <div className="lg:col-span-2 grid gap-6 md:grid-cols-2">
-            <div className="p-6 bg-white rounded-lg shadow border">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Total Trades</h3>
-              <p className="text-3xl font-bold">{totalTrades}</p>
-              <p className="text-sm text-muted-foreground mt-2">This month</p>
+          <div className="lg:col-span-2 grid gap-4 sm:gap-6 grid-cols-2">
+            <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">Total Trades</h3>
+              <p className="text-2xl sm:text-3xl font-bold">{totalTrades}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">This month</p>
             </div>
 
-            <div className="p-6 bg-white rounded-lg shadow border">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Win Rate</h3>
-              <p className={`text-3xl font-bold ${winRate >= 60 ? 'text-green-600' : winRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+            <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">Win Rate</h3>
+              <p className={`text-2xl sm:text-3xl font-bold ${winRate >= 60 ? 'text-green-600' : winRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {winRate.toFixed(1)}%
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {stats.totalWins} wins / {stats.totalLosses} losses
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+                {stats.totalWins}W / {stats.totalLosses}L
               </p>
             </div>
 
-            <div className="p-6 bg-white rounded-lg shadow border">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">SOP Compliance</h3>
-              <p className={`text-3xl font-bold ${sopRate >= 80 ? 'text-green-600' : sopRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+            <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">SOP Compliance</h3>
+              <p className={`text-2xl sm:text-3xl font-bold ${sopRate >= 80 ? 'text-green-600' : sopRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {sopRate.toFixed(1)}%
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {stats.totalSopFollowed} / {totalTrades} trades
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
+                {stats.totalSopFollowed} / {totalTrades}
               </p>
             </div>
 
-            <div className="p-6 bg-white rounded-lg shadow border">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Net P/L</h3>
-              <p className={`text-3xl font-bold ${netProfitLoss > 0 ? 'text-green-600' : netProfitLoss < 0 ? 'text-red-600' : ''}`}>
+            <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">Net P/L</h3>
+              <p className={`text-2xl sm:text-3xl font-bold ${netProfitLoss > 0 ? 'text-green-600' : netProfitLoss < 0 ? 'text-red-600' : ''}`}>
                 ${Math.abs(netProfitLoss).toFixed(2)}
               </p>
-              <p className="text-sm text-muted-foreground mt-2">This month</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">This month</p>
             </div>
           </div>
 
@@ -168,17 +168,17 @@ export default async function DashboardPage() {
 
         {/* Active Targets Progress */}
         {activeTargets.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">🎯 Active Targets</h2>
+          <div className="mb-6 sm:mb-8">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">🎯 Active Targets</h2>
               <Link
                 href="/targets"
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 View All →
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {activeTargets.map((target) => (
                 <TargetProgressCard key={target.id} target={target} />
               ))}
@@ -214,16 +214,16 @@ export default async function DashboardPage() {
 
         {/* Performance Legend - Compact */}
         {totalTrades > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-8">
-            <div className="flex flex-wrap items-center gap-4 text-xs">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-3 mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4 text-xs">
               <span className="font-medium text-gray-700">Legend:</span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <span className="text-green-600">● ≥60% Win</span>
                 <span className="text-yellow-600">● 50-59%</span>
                 <span className="text-red-600">● &lt;50%</span>
               </div>
-              <div className="h-3 w-px bg-gray-300" />
-              <div className="flex items-center gap-3">
+              <div className="hidden sm:block h-3 w-px bg-gray-300" />
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <span className="text-green-600">● ≥80% SOP</span>
                 <span className="text-yellow-600">● 60-79%</span>
                 <span className="text-red-600">● &lt;60%</span>

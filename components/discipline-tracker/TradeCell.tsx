@@ -14,6 +14,16 @@ interface TradeCellProps {
   tradeNumber: 1 | 2 | 3;
 }
 
+// Color mapping for inline styles to ensure background colors always show
+const OUTCOME_STYLES: Record<TradeOutcome, { bg: string; border: string; text: string }> = {
+  EMPTY: { bg: '#ffffff', border: '#d1d5db', text: '#111827' },
+  TP3: { bg: '#ecfdf5', border: '#34d399', text: '#064e3b' },
+  TP2: { bg: '#f0fdf4', border: '#4ade80', text: '#14532d' },
+  TP1: { bg: '#f7fee7', border: '#a3e635', text: '#365314' },
+  BE: { bg: '#fffbeb', border: '#fbbf24', text: '#78350f' },
+  SL: { bg: '#fef2f2', border: '#f87171', text: '#7f1d1d' },
+};
+
 export function TradeCell({
   value,
   onChange,
@@ -37,6 +47,8 @@ export function TradeCell({
     );
   }
 
+  const outcomeStyle = OUTCOME_STYLES[value] || OUTCOME_STYLES.EMPTY;
+
   return (
     <div className="relative">
       <Select
@@ -47,9 +59,13 @@ export function TradeCell({
         <SelectTrigger
           className={cn(
             'h-10 border-2 font-medium',
-            cellColor,
             isLocked && 'cursor-not-allowed opacity-50'
           )}
+          style={{
+            backgroundColor: outcomeStyle.bg,
+            borderColor: outcomeStyle.border,
+            color: outcomeStyle.text,
+          }}
           title={isLocked ? lockReason : undefined}
         >
           <SelectValue placeholder={`Trade ${tradeNumber}`} />

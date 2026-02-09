@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/utils/apiErrors';
-import { getUserStats } from '@/lib/services/adminStatsService';
+import { getAllUsersStats } from '@/lib/services/adminStatsService';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
     const adminError = requireAdmin(session);
     if (adminError) return adminError;
 
-    // Get ALL users (including admins) for user management page
+    // Get all users with complete stats including rankings
+    const usersWithStats = await getAllUsersStats();
+
+    // Get ALL users (including admins) for user metadata
     const allUsers = await db
       .select({
         id: users.id,
@@ -31,30 +34,22 @@ export async function GET(req: NextRequest) {
       .from(users)
       .orderBy(asc(users.createdAt));
 
-    // Get stats for each user
-    const usersWithStats = await Promise.all(
-      allUsers.map(async (user) => {
-        const stats = await getUserStats(user.id);
-        return {
-          userId: user.id,
-          userName: user.name || 'Unknown',
-          userEmail: user.email,
-          userRole: user.role,
-          resetCount: user.resetCount,
-          createdAt: user.createdAt,
-          totalTrades: stats.totalTrades,
-          totalWins: stats.totalWins,
-          totalLosses: stats.totalLosses,
-          winRate: stats.winRate,
-          sopRate: stats.sopRate,
-          netProfitLoss: stats.netProfitLoss,
-        };
-      })
-    );
+    // Merge stats with user metadata (keeps rank from getAllUsersStats)
+    const completeUsersData = usersWithStats.map((stats) => {
+      const userMetadata = allUsers.find((u) => u.id === stats.userId);
+      return {
+        ...stats,
+        userName: userMetadata?.name || 'Unknown',
+        userEmail: userMetadata?.email || 'Unknown',
+        userRole: userMetadata?.role || 'USER',
+        resetCount: userMetadata?.resetCount ?? 0,
+        createdAt: userMetadata?.createdAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      data: usersWithStats,
+      data: completeUsersData,
     });
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
