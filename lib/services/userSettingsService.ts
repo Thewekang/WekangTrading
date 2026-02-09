@@ -122,7 +122,10 @@ export async function resetUserAccount(userId: string): Promise<{
     .delete(userStats)
     .where(eq(userStats.userId, userId));
   
-  // 7. Delete motivational messages
+  // 7. Delete motivational messages (user-specific achievement notifications)
+  // NOTE: This is different from tradingQuotes (admin-managed quotes displayed to all users)
+  // motivationalMessages = user-specific notifications like "New Achievement Unlocked!", badge alerts, etc.
+  // tradingQuotes = admin-managed motivational quotes shown on dashboard (NOT user-specific, NOT deleted)
   await db
     .delete(motivationalMessages)
     .where(eq(motivationalMessages.userId, userId));
