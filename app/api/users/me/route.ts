@@ -62,7 +62,6 @@ export async function GET(req: NextRequest) {
     console.error('Get user info error:', {
       type: error?.constructor?.name,
       message: error instanceof Error ? error.message : 'Unknown error',
-      userId: session?.user?.id,
     });
 
     return NextResponse.json(
@@ -112,7 +111,6 @@ export async function PATCH(req: NextRequest) {
     console.error('Update user preferences error:', {
       type: error?.constructor?.name,
       message: error instanceof Error ? error.message : 'Unknown error',
-      userId: session?.user?.id,
     });
 
     return NextResponse.json(
