@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - 2026-02-10
+
+### Added
+- **🔒 Comprehensive Security Hardening**: Fixed 14 security vulnerabilities
+  - **CRITICAL**: Debug endpoints (env, db-status, check-db) now require admin authentication
+  - **CRITICAL**: Debug endpoints disabled in production (return 404)
+  - **CRITICAL**: Removed database URL previews from debug endpoints
+  - **CRITICAL**: Fixed password exposure in error logs
+  - **HIGH**: Added security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
+  - **HIGH**: Fixed error logging in 15+ API routes (safe metadata only, no sensitive data)
+  - **MEDIUM**: Middleware debug logs wrapped in development-only check
+
+### Fixed
+- **🔐 Sign-out Redirect Bug**: Fixed logout redirecting to localhost instead of current host
+  - Issue: NextAuth NEXTAUTH_URL caused redirects to localhost:3000 on remote access (e.g., 192.168.88.13:3000)
+  - Solution: Created SignOutButton component using `signOut({ redirect: false })` + manual redirect via `window.location.href`
+  - Replaced all sign-out links with SignOutButton in AdminNav, NavMenu, user layout, settings, test pages
+
+- **🔒 Login Password in URL**: Prevented password from appearing in URL and browser history
+  - Issue: Browser autofill created GET request exposing password in query parameters
+  - Solution: Added `method="post"` and proper autocomplete attributes to login form
+
+- **♻️ Reset Account Completeness**: Added discipline tracker data to reset account functionality
+  - Now deletes `discipline_tracker_rows` and `discipline_tracker_settings` tables
+  - Updated account summary to show discipline tracker entries count
+  - Fixed orphaned data issue where discipline tracker data wasn't cleaned during account reset
+
+- **🎨 Discipline Tracker Cell Colors**: Fixed trade outcome cells not displaying background colors
+  - Issue: SelectTrigger's default `bg-background` class overriding outcome colors
+  - Solution: Replaced Tailwind classes with inline styles for guaranteed color display
+  - Colors: TP3 (emerald), TP2 (green), TP1 (lime), BE (amber), SL (rose)
+
+### Documentation
+- **📝 Code Comments**: Added clarification distinguishing motivationalMessages (user-specific notifications) from tradingQuotes (admin-managed quotes)
+
+### Security
+- **🛡️ Debug Endpoints**: All require admin authentication, disabled in production
+- **🔐 Password Security**: Removed from error logs, URL parameters, and responses
+- **🔒 Security Headers**: Protection against clickjacking, MIME sniffing, unwanted permissions
+- **📊 Error Logging**: Standardized safe logging pattern `{ type, message, userId }` across all API routes
+
+---
+
 ## [1.7.0] - 2026-02-07
 
 ### Added
