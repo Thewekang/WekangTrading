@@ -53,7 +53,11 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Reset account error:', error);
+    console.error('Reset account error:', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to reset account' } },
@@ -85,7 +89,11 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Get account summary error:', error);
+    console.error('Get account summary error:', {
+      type: error?.constructor\?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get account summary' } },

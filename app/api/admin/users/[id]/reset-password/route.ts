@@ -24,13 +24,19 @@ export async function POST(
     const { id } = await params;
     const tempPassword = await resetUserPasswordByAdmin(id);
 
+    // SECURITY: Never log this response - contains plaintext password
+    // Frontend should display once, then force password change on first login
     return NextResponse.json({
       success: true,
       data: { temporaryPassword: tempPassword },
       message: 'Password reset successfully. Share this temporary password with the user.',
     });
   } catch (error) {
-    console.error('Error resetting password:', error);
+    console.error('Error resetting password:', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: (await params).id,
+    });
     const message = error instanceof Error ? error.message : 'Failed to reset password';
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message } },

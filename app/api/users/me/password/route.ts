@@ -56,7 +56,12 @@ export async function PATCH(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Change password error:', error);
+    // Log safely without full error object
+    console.error('Change password error:', {
+      type: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      userId: session?.user?.id,
+    });
 
     // Handle specific errors
     if (error.message === 'Current password is incorrect') {

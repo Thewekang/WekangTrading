@@ -6,9 +6,11 @@ export async function middleware(request: NextRequest) {
   const session = await auth();
   const { pathname } = request.nextUrl;
 
-  // Debug logging
-  console.log('[MIDDLEWARE] Path:', pathname);
-  console.log('[MIDDLEWARE] Session:', session ? `exists (role: ${session.user?.role})` : 'null');
+  // Debug logging (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[MIDDLEWARE] Path:', pathname);
+    console.log('[MIDDLEWARE] Session:', session ? `exists (role: ${session.user?.role})` : 'null');
+  }
 
   // Allow access to auth pages if not authenticated
   if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
