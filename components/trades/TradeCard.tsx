@@ -124,7 +124,7 @@ export function TradeCard({
         <div className="mb-3">
           <button
             onClick={() => setShowNotes(!showNotes)}
-            className="text-xs text-gray-600 hover:text-gray-900 font-medium"
+            className="text-xs text-gray-600 hover:text-gray-900 active:text-gray-900 font-medium min-h-[44px] px-2 -ml-2 rounded-md hover:bg-gray-50 active:bg-gray-100 touch-manipulation"
           >
             {showNotes ? '▼' : '▶'} Notes
           </button>

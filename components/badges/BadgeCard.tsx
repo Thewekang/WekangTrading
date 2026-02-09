@@ -49,7 +49,7 @@ export const BadgeCard = memo(({
         tierColors.border,
         'glow' in tierColors && tierColors.glow,
         sizeClasses[size],
-        onClick && 'cursor-pointer hover:scale-105 hover:shadow-lg',
+        onClick && 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-[0.97] touch-manipulation',
         !earned && 'opacity' in tierColors && tierColors.opacity
       )}
     >

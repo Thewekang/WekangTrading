@@ -7,7 +7,7 @@
  * Performance: Uses virtualization for 100+ trades (70% faster rendering)
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ import { useTimezone } from '@/contexts/TimezoneContext';
 import { TradesTableVirtualized } from '@/components/TradesTableVirtualized';
 import { TradeMobileView } from '@/components/trades/TradeMobileView';
 import { useIsMobile } from '@/lib/hooks/useMediaQuery';
+import { usePullToRefresh } from '@/lib/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '@/components/ui/PullToRefreshIndicator';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Trade {
@@ -48,6 +50,13 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Pull-to-refresh ref (set after handleApplyFilters is defined)
+  const refreshFnRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  
+  const { containerRef: pullRefreshRef, isPulling, isRefreshing, pullDistance, pullProgress } = usePullToRefresh({
+    onRefresh: () => refreshFnRef.current(),
+  });
   
   // Filter states
   const [startDate, setStartDate] = useState('');
@@ -212,6 +221,11 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       setIsLoading(false);
     }
   };
+
+  // Update pull-to-refresh ref to latest handleApplyFilters
+  useEffect(() => {
+    refreshFnRef.current = () => handleApplyFilters(currentPage);
+  }, [currentPage, pageSize, startDate, endDate, resultFilter, sessionFilter, sopFilter, minProfitLoss, maxProfitLoss]);
 
   // Clear filters
   const handleClearFilters = async () => {
@@ -439,7 +453,15 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   };
 
   return (
-    <>
+    <div ref={pullRefreshRef}>
+      {/* Pull-to-refresh indicator (mobile) */}
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        pullProgress={pullProgress}
+        isRefreshing={isRefreshing}
+        isPulling={isPulling}
+      />
+
       {/* 24-Hour Deletion Notice */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
         <div className="flex items-start gap-2 sm:gap-3">
@@ -591,7 +613,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
                 placeholder="Preset name..."
-                className="flex-1 rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <Button
                 onClick={handleSavePreset}
@@ -628,7 +650,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -639,7 +661,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -649,7 +671,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             <select 
               value={resultFilter}
               onChange={(e) => setResultFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All Results</option>
               <option value="WIN">Wins Only</option>
@@ -660,9 +682,9 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Session
             </label>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {['ASIA', 'EUROPE', 'US', 'ASIA_EUROPE_OVERLAP', 'EUROPE_US_OVERLAP'].map((session) => (
-                <label key={session} className="flex items-center">
+                <label key={session} className="flex items-center min-h-[44px] px-2 rounded-md hover:bg-gray-50 active:bg-gray-100 touch-manipulation cursor-pointer">
                   <input
                     type="checkbox"
                     checked={sessionFilter.includes(session)}
@@ -673,7 +695,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                         setSessionFilter(sessionFilter.filter(s => s !== session));
                       }
                     }}
-                    className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="mr-2 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm">
                     {session === 'ASIA' && '🌏 Asia'}
@@ -693,7 +715,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
             <select 
               value={sopFilter}
               onChange={(e) => setSopFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All</option>
               <option value="true">Followed</option>
@@ -709,7 +731,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               value={minProfitLoss}
               onChange={(e) => setMinProfitLoss(e.target.value)}
               placeholder="e.g., -100"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -721,7 +743,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               value={maxProfitLoss}
               onChange={(e) => setMaxProfitLoss(e.target.value)}
               placeholder="e.g., 100"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -981,7 +1003,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(parseInt(e.target.value, 10))}
                   disabled={isLoading}
-                  className="rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -1152,6 +1174,6 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           </Card>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -619,19 +619,19 @@ export default function AdminSopTypesPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="py-4 sm:py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">⚙️ SOP Types Management</h1>
-            <p className="text-gray-600">Configure trading SOP types for traders to categorize their trades</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">⚙️ SOP Types Management</h1>
+            <p className="text-sm sm:text-base text-gray-600">Configure trading SOP types for traders to categorize their trades</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border text-center sm:text-left">
               <Star size={16} className="inline fill-yellow-400 text-yellow-400 mr-1" />
               <span className="font-semibold">{pinnedCount}/3</span> Pinned
             </div>
-            <Button onClick={() => setShowCreateModal(true)}>
+            <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto min-h-[44px]">
               ➕ Create SOP Type
             </Button>
           </div>
@@ -652,13 +652,15 @@ export default function AdminSopTypesPage() {
             </Button>
           </Card>
         ) : (
-          <Card className="overflow-hidden">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <table className="w-full">
+          <>
+            {/* Desktop Table View */}
+            <Card className="hidden lg:block overflow-hidden">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr className="border-b">
                     <th className="text-left p-4 font-semibold w-12">
@@ -704,24 +706,22 @@ export default function AdminSopTypesPage() {
               const detailStatus = getDetailStatus(sopType);
               return (
                 <Card key={sopType.id} className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2 flex-1">
-                      <button
-                        onClick={() => handleTogglePin(sopType)}
-                        disabled={!sopType.isPinned && pinnedCount >= 3}
-                        className={`p-1 rounded transition-colors ${
-                          !sopType.isPinned && pinnedCount >= 3
-                            ? 'cursor-not-allowed opacity-40'
-                            : 'hover:bg-gray-100 cursor-pointer'
-                        }`}
-                      >
-                        <Star 
-                          size={18} 
-                          className={sopType.isPinned ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
-                        />
-                      </button>
-                      <h3 className="font-semibold text-base">{sopType.name}</h3>
-                    </div>
+                  <div className="flex items-start gap-2 mb-3">
+                    <button
+                      onClick={() => handleTogglePin(sopType)}
+                      disabled={!sopType.isPinned && pinnedCount >= 3}
+                      className={`flex-shrink-0 p-1 rounded transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                        !sopType.isPinned && pinnedCount >= 3
+                          ? 'cursor-not-allowed opacity-40'
+                          : 'hover:bg-gray-100 cursor-pointer'
+                      }`}
+                    >
+                      <Star 
+                        size={20} 
+                        className={sopType.isPinned ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                      />
+                    </button>
+                    <h3 className="font-semibold text-base leading-tight flex-1 pt-2">{sopType.name}</h3>
                   </div>
 
                   {sopType.description && (
@@ -747,7 +747,7 @@ export default function AdminSopTypesPage() {
                         size="sm" 
                         variant="outline" 
                         onClick={() => openEditModal(sopType)}
-                        className="flex-1"
+                        className="flex-1 min-h-[44px]"
                       >
                         Edit
                       </Button>
@@ -755,7 +755,7 @@ export default function AdminSopTypesPage() {
                         size="sm" 
                         variant={sopType.active ? 'outline' : 'default'}
                         onClick={() => handleToggleActive(sopType)}
-                        className="flex-1"
+                        className="flex-1 min-h-[44px]"
                       >
                         {sopType.active ? 'Deactivate' : 'Activate'}
                       </Button>
@@ -766,7 +766,7 @@ export default function AdminSopTypesPage() {
                           size="sm" 
                           variant="outline" 
                           onClick={() => handleClearDetailFromList(sopType)}
-                          className="flex-1 text-orange-600"
+                          className="flex-1 text-orange-600 min-h-[44px]"
                         >
                           Clear Detail
                         </Button>
@@ -775,7 +775,9 @@ export default function AdminSopTypesPage() {
                         size="sm" 
                         variant="outline" 
                         onClick={() => handleDelete(sopType.id)}
-                        className="flex-1 text-red-600 hover:bg-red-50"
+                        className={`text-red-600 hover:bg-red-50 min-h-[44px] ${
+                          sopType.detailEnabledShort || sopType.detailEnabledLong ? 'flex-1' : 'w-full'
+                        }`}
                       >
                         Delete
                       </Button>

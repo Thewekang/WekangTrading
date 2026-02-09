@@ -26,7 +26,7 @@ const TargetProgressCard = memo(({ target }: TargetProgressCardProps) => {
 
   return (
     <Link href="/targets">
-      <div className={`${status.bg} ${status.border} border-2 rounded-lg p-3 sm:p-4 md:p-5 hover:shadow-md transition-shadow cursor-pointer`}>
+      <div className={`${status.bg} ${status.border} border-2 rounded-lg p-3 sm:p-4 md:p-5 hover:shadow-md active:shadow-lg active:scale-[0.98] transition-all cursor-pointer touch-manipulation`}>
         {/* Header */}
         <div className="flex items-start justify-between mb-2 sm:mb-3">
           <div>

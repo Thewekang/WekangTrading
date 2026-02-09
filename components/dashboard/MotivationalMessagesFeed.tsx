@@ -111,7 +111,7 @@ export const MotivationalMessagesFeed = memo(({ limit = 5 }: MessageFeedProps) =
           <div
             key={message.id}
             className={cn(
-              'p-3 rounded-lg border cursor-pointer transition-colors',
+              'p-3 rounded-lg border cursor-pointer transition-all touch-manipulation active:scale-[0.98]',
               message.isRead 
                 ? 'bg-gray-50 border-gray-200' 
                 : 'bg-blue-50 border-blue-200'

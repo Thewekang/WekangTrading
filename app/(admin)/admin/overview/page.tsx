@@ -1,5 +1,7 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { getAdminDashboardStats, getAllUsersStats } from '@/lib/services/adminStatsService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Users, 
@@ -11,7 +13,9 @@ import {
   Award,
   AlertTriangle,
   TrendingDown,
-  Zap
+  Zap,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
 
@@ -20,9 +24,49 @@ const UserComparisonChart = dynamic(() => import('@/components/charts/UserCompar
   loading: () => <ChartSkeleton />
 });
 
-export default async function AdminDashboardPage() {
-  const stats = await getAdminDashboardStats();
-  const allUsers = await getAllUsersStats();
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<any>(null);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Collapsible states - priorities and leaderboard open by default, charts collapsed
+  const [isPrioritiesOpen, setIsPrioritiesOpen] = useState(true);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(true);
+  const [isWinRateChartOpen, setIsWinRateChartOpen] = useState(false);
+  const [isDisciplineChartOpen, setIsDisciplineChartOpen] = useState(false);
+  const [isProfitLossChartOpen, setIsProfitLossChartOpen] = useState(false);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/admin/stats');
+        const data = await response.json();
+        if (data.success) {
+          setStats(data.data);
+        }
+        
+        // Fetch all users stats separately
+        const usersResponse = await fetch('/api/admin/users');
+        const usersData = await usersResponse.json();
+        if (usersData.success) {
+          setAllUsers(usersData.data);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        <div className="text-center py-12">Loading...</div>
+      </div>
+    );
+  }
 
   // Coaching insights
   const topPerformer = allUsers[0];
@@ -103,15 +147,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Coaching Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Performance monitoring, benchmarking, and trader development insights
-        </p>
-      </div>
-
-      {/* Coaching Stats Grid */}
+      {/* Coaching Metrics Overview */}
       <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
         {coachingStats.map((stat) => {
           const Icon = stat.icon;
@@ -134,18 +170,22 @@ export default async function AdminDashboardPage() {
         })}
       </div>
 
-      {/* Coaching Priorities */}
+      {/* Coaching Priorities - Collapsible */}
       {needsAttention.length > 0 && (
         <Card className="border-red-200 bg-red-50">
-          <CardHeader className="p-4 sm:p-6">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base text-red-900">Priority: Traders Needing Attention</CardTitle>
+          <CardHeader className="p-4 sm:p-6 cursor-pointer" onClick={() => setIsPrioritiesOpen(!isPrioritiesOpen)}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-1">
+                <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                <CardTitle className="text-sm sm:text-base text-red-900">Priority: Traders Needing Attention</CardTitle>
+              </div>
+              {isPrioritiesOpen ? <ChevronUp className="h-5 w-5 text-red-600" /> : <ChevronDown className="h-5 w-5 text-red-600" />}
             </div>
             <p className="text-xs sm:text-sm text-red-700 mt-2">
               Win rates below 50% or SOP compliance below 65% - schedule coaching sessions
             </p>
           </CardHeader>
+          {isPrioritiesOpen && (
           <CardContent className="p-4 sm:p-6">
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
@@ -230,21 +270,26 @@ export default async function AdminDashboardPage() {
               ))}
             </div>
           </CardContent>
+          )}
         </Card>
       )}
 
-      {/* Performance Leaderboard */}
+      {/* Performance Leaderboard - Collapsible */}
       <Card>
-        <CardHeader>
+        <CardHeader className="cursor-pointer" onClick={() => setIsLeaderboardOpen(!isLeaderboardOpen)}>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Performance Leaderboard</CardTitle>
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                Performance Leaderboard
+                {isLeaderboardOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
                 Ranked by win rate (primary) and SOP compliance (secondary)
               </p>
             </div>
           </div>
         </CardHeader>
+        {isLeaderboardOpen && (
         <CardContent>
           {allUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
@@ -380,28 +425,78 @@ export default async function AdminDashboardPage() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
-      {/* Comparative Analysis Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UserComparisonChart
-          metric="winRate"
-          title="Win Rate Comparison"
-          description="Who's winning more trades?"
-        />
-        <UserComparisonChart
-          metric="sopRate"
-          title="Discipline Comparison"
-          description="Who's following the plan?"
-        />
-      </div>
-      <div className="grid grid-cols-1">
-        <UserComparisonChart
-          metric="profitLoss"
-          title="Profit/Loss Comparison"
-          description="Who's making money?"
-        />
-      </div>
+      {/* Comparative Analysis Charts - Collapsed by Default */}
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={() => setIsWinRateChartOpen(!isWinRateChartOpen)}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                Win Rate Comparison
+                {isWinRateChartOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">Who's winning more trades?</p>
+            </div>
+          </div>
+        </CardHeader>
+        {isWinRateChartOpen && (
+          <CardContent>
+            <UserComparisonChart
+              metric="winRate"
+              title="Win Rate Comparison"
+              description="Who's winning more trades?"
+            />
+          </CardContent>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={() => setIsDisciplineChartOpen(!isDisciplineChartOpen)}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                Discipline Comparison
+                {isDisciplineChartOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">Who's following the plan?</p>
+            </div>
+          </div>
+        </CardHeader>
+        {isDisciplineChartOpen && (
+          <CardContent>
+            <UserComparisonChart
+              metric="sopRate"
+              title="Discipline Comparison"
+              description="Who's following the plan?"
+            />
+          </CardContent>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={() => setIsProfitLossChartOpen(!isProfitLossChartOpen)}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                Profit/Loss Comparison
+                {isProfitLossChartOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">Who's making money?</p>
+            </div>
+          </div>
+        </CardHeader>
+        {isProfitLossChartOpen && (
+          <CardContent>
+            <UserComparisonChart
+              metric="profitLoss"
+              title="Profit/Loss Comparison"
+              description="Who's making money?"
+            />
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 }

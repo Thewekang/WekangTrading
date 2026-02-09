@@ -302,7 +302,7 @@ export function RealTimeTradeEntryForm() {
                 {...register('result')}
                 className="peer sr-only"
               />
-              <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 hover:border-gray-400">
+              <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
                 ✅ WIN
               </div>
             </label>
@@ -313,7 +313,7 @@ export function RealTimeTradeEntryForm() {
                 {...register('result')}
                 className="peer sr-only"
               />
-              <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-gray-400">
+              <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
                 ❌ LOSS
               </div>
             </label>
@@ -340,7 +340,7 @@ export function RealTimeTradeEntryForm() {
                     onChange={() => field.onChange(true)}
                     className="peer sr-only"
                   />
-                  <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:border-gray-400">
+                  <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
                     ✓ Followed SOP
                   </div>
                 </label>
@@ -352,7 +352,7 @@ export function RealTimeTradeEntryForm() {
                     onChange={() => field.onChange(false)}
                     className="peer sr-only"
                   />
-                  <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-700 hover:border-gray-400">
+                  <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
                     ✗ Broke SOP
                   </div>
                 </label>

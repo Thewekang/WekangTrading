@@ -45,7 +45,7 @@ function NavDropdown({ label, icon, items }: NavDropdownProps) {
   
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className={`flex items-center gap-1 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+      <DropdownMenuTrigger className={`flex items-center gap-1 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[44px] touch-manipulation ${
         isActive ? 'bg-gray-100 text-gray-900' : ''
       }`}>
         {icon && <span>{icon}</span>}
