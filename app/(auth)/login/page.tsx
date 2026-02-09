@@ -68,7 +68,7 @@ export default function LoginPage() {
           Sign in to your WekangTradingJournal account
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} method="post">
         <CardContent className="space-y-4">
           {error && (
             <div className="p-3 rounded-md bg-destructive/15 text-destructive text-sm">
@@ -82,6 +82,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder="your@email.com"
+              autoComplete="username"
               {...register('email')}
               disabled={isLoading}
             />
@@ -96,6 +97,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               placeholder="••••••••"
+              autoComplete="current-password"
               {...register('password')}
               disabled={isLoading}
             />
