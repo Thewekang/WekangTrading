@@ -697,6 +697,95 @@ export default function AdminSopTypesPage() {
               </table>
             </DndContext>
           </Card>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {sopTypes.map((sopType) => {
+              const detailStatus = getDetailStatus(sopType);
+              return (
+                <Card key={sopType.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2 flex-1">
+                      <button
+                        onClick={() => handleTogglePin(sopType)}
+                        disabled={!sopType.isPinned && pinnedCount >= 3}
+                        className={`p-1 rounded transition-colors ${
+                          !sopType.isPinned && pinnedCount >= 3
+                            ? 'cursor-not-allowed opacity-40'
+                            : 'hover:bg-gray-100 cursor-pointer'
+                        }`}
+                      >
+                        <Star 
+                          size={18} 
+                          className={sopType.isPinned ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                        />
+                      </button>
+                      <h3 className="font-semibold text-base">{sopType.name}</h3>
+                    </div>
+                  </div>
+
+                  {sopType.description && (
+                    <p className="text-sm text-gray-600 mb-3">{sopType.description}</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      sopType.active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {sopType.active ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${detailStatus.color}`}>
+                      {detailStatus.icon} {detailStatus.text}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-3 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => openEditModal(sopType)}
+                        className="flex-1"
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={sopType.active ? 'outline' : 'default'}
+                        onClick={() => handleToggleActive(sopType)}
+                        className="flex-1"
+                      >
+                        {sopType.active ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      {(sopType.detailEnabledShort || sopType.detailEnabledLong) && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleClearDetailFromList(sopType)}
+                          className="flex-1 text-orange-600"
+                        >
+                          Clear Detail
+                        </Button>
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleDelete(sopType.id)}
+                        className="flex-1 text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
         )}
 
         {/* Create Modal */}

@@ -29,13 +29,24 @@ interface PaginationMeta {
   totalPages: number;
 }
 
+// Helper function to get initial page size from localStorage
+const getInitialPageSize = () => {
+  if (typeof window !== 'undefined') {
+    const savedPageSize = localStorage.getItem('adminTradesPageSize');
+    if (savedPageSize) {
+      return parseInt(savedPageSize, 10);
+    }
+  }
+  return 50; // Default
+};
+
 export default function AdminTradesPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationMeta>({
     total: 0,
     page: 1,
-    pageSize: 50,
+    pageSize: getInitialPageSize(),
     totalPages: 0
   });
 
@@ -60,7 +71,14 @@ export default function AdminTradesPage() {
 
   useEffect(() => {
     fetchTrades();
-  }, [pagination.page, selectedUserId, selectedResult, selectedSession, dateFrom, dateTo, searchQuery]);
+  }, [pagination.page, pagination.pageSize, selectedUserId, selectedResult, selectedSession, dateFrom, dateTo, searchQuery]);
+  
+  // Save pageSize to localStorage when changed
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('adminTradesPageSize', pagination.pageSize.toString());
+    }
+  }, [pagination.pageSize]);
 
   const fetchUsers = async () => {
     try {
@@ -354,9 +372,25 @@ export default function AdminTradesPage() {
           </Card>
 
           {/* Pagination */}
-          <div className="flex justify-between items-center mt-4">
-            <div className="text-sm text-gray-600">
-              Showing {((pagination.page - 1) * pagination.pageSize) + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total} trades
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.pageSize) + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total} trades
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="page-size" className="text-sm text-gray-600">Per page:</Label>
+                <select
+                  id="page-size"
+                  value={pagination.pageSize}
+                  onChange={(e) => setPagination({ ...pagination, pageSize: parseInt(e.target.value), page: 1 })}
+                  className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button
