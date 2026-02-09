@@ -25,6 +25,7 @@ interface AccountSummary {
   totalTargets: number;
   totalBadges: number;
   totalNotifications: number;
+  totalDisciplineRows: number;
 }
 
 interface UserInfo {
@@ -460,8 +461,10 @@ export default function SettingsPage() {
               <li><strong>{accountSummary.totalTargets}</strong> performance targets</li>
               <li><strong>{accountSummary.totalBadges}</strong> earned badges (achievements)</li>
               <li><strong>{accountSummary.totalNotifications}</strong> notifications</li>
+              <li><strong>{accountSummary.totalDisciplineRows}</strong> discipline tracker entries</li>
               <li>All streaks (win, log, SOP)</li>
               <li>All user statistics</li>
+              <li>Discipline tracker settings</li>
             </ul>
             <p className="text-sm text-gray-600 mb-4">
               Your account and login will remain active. You can start fresh with new trades and earn badges again.
