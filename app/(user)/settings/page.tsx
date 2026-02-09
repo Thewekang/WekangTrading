@@ -416,7 +416,10 @@ export default function SettingsPage() {
         <Button
           variant="outline"
           className="w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={async () => {
+            await signOut({ redirect: false });
+            window.location.href = '/login';
+          }}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
