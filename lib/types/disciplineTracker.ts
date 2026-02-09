@@ -47,12 +47,12 @@ export type OutcomeType = 'win' | 'loss' | 'be' | 'empty';
  * Color palette for outcomes
  */
 export const OUTCOME_COLORS = {
-  empty: 'bg-gray-50 border-gray-200',
-  TP3: 'bg-emerald-100 border-emerald-300 text-emerald-900',
-  TP2: 'bg-green-100 border-green-300 text-green-900',
-  TP1: 'bg-lime-100 border-lime-300 text-lime-900',
-  BE: 'bg-amber-50 border-amber-200 text-amber-900',
-  SL: 'bg-rose-100 border-rose-300 text-rose-900',
+  empty: 'bg-white border-gray-300',
+  TP3: 'bg-emerald-50 border-emerald-400 text-emerald-900',
+  TP2: 'bg-green-50 border-green-400 text-green-900',
+  TP1: 'bg-lime-50 border-lime-400 text-lime-900',
+  BE: 'bg-amber-50 border-amber-400 text-amber-900',
+  SL: 'bg-rose-50 border-rose-400 text-rose-900',
   disabled: 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed opacity-50',
 } as const;
 
