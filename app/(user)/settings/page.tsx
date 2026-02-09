@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { COMMON_TIMEZONES, getAllTimezones, getCurrentTimeInTimezone } from '@/lib/utils/timezones';
 import { User, Mail, Shield, Globe, Lock, Save, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 
 interface AccountSummary {
   totalTrades: number;
@@ -415,7 +416,7 @@ export default function SettingsPage() {
         <Button
           variant="outline"
           className="w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
-          onClick={() => window.location.href = '/api/auth/signout'}
+          onClick={() => signOut({ callbackUrl: '/login' })}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out

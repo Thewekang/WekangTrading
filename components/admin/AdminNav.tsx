@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, TrendingUp, Calendar, Menu, X, Settings, ChevronDown, FileText, Ticket, Quote } from 'lucide-react';
 import SettingsDropdown from '@/components/admin/SettingsDropdown';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 interface AdminNavProps {
   userEmail: string;
@@ -60,12 +61,11 @@ export function AdminNav({ userEmail }: AdminNavProps) {
             <div className="hidden sm:block text-sm text-gray-600">
               {userEmail}
             </div>
-            <Link
-              href="/api/auth/signout"
+            <SignOutButton
               className="hidden sm:inline text-sm font-medium text-red-600 hover:text-red-800"
             >
               Sign out
-            </Link>
+            </SignOutButton>
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -184,12 +184,11 @@ export function AdminNav({ userEmail }: AdminNavProps) {
                 <div className="px-3 py-2 text-sm text-gray-600">
                   {userEmail}
                 </div>
-                <Link
-                  href="/api/auth/signout"
-                  className="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50"
+                <SignOutButton
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 w-full text-left"
                 >
                   Sign out
-                </Link>
+                </SignOutButton>
               </div>
             </div>
           </div>

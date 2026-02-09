@@ -12,6 +12,7 @@ import { eq } from 'drizzle-orm';
 import { DesktopNav, MobileNav } from '@/components/navigation/NavMenu';
 import { NotificationBell } from '@/components/navigation/NotificationBell';
 import { BottomNav } from '@/components/navigation/BottomNav';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -50,9 +51,9 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
                   <span className="text-sm text-gray-600 hidden sm:inline">
                     {session.user.name}
                   </span>
-                  <Link href="/api/auth/signout" className="text-sm text-red-600 hover:text-red-800 hidden sm:inline">
+                  <SignOutButton className="text-sm text-red-600 hover:text-red-800 hidden sm:inline">
                     Sign out
-                  </Link>
+                  </SignOutButton>
                 </div>
               </div>
             </div>
