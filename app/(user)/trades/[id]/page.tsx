@@ -9,12 +9,15 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { DeleteTradeButton } from '@/components/trades/DeleteTradeButton';
 
-export default async function TradeDetailPage({ params }: { params: { id: string } }) {
+export default async function TradeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
 
   if (!session) {
     redirect('/login');
   }
+
+  // Await params (Next.js 15)
+  const { id } = await params;
 
   // Fetch trade with SOP type
   const trade = await db
@@ -34,7 +37,7 @@ export default async function TradeDetailPage({ params }: { params: { id: string
     })
     .from(individualTrades)
     .leftJoin(sopTypes, eq(individualTrades.sopTypeId, sopTypes.id))
-    .where(eq(individualTrades.id, params.id))
+    .where(eq(individualTrades.id, id))
     .get();
 
   if (!trade) {

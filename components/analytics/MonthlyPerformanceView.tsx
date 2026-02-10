@@ -154,7 +154,7 @@ export function MonthlyPerformanceView() {
     return new Date(year, month - 1, 1).getDay();
   };
 
-  const getDistance = (touches: TouchList) => {
+  const getDistance = (touches: React.TouchList) => {
     const touch1 = touches[0];
     const touch2 = touches[1];
     return Math.sqrt(

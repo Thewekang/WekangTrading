@@ -16,6 +16,7 @@ interface TradeCellProps {
 
 // Color mapping for inline styles to ensure background colors always show
 const OUTCOME_STYLES: Record<TradeOutcome, { bg: string; border: string; text: string }> = {
+  '': { bg: '#ffffff', border: '#d1d5db', text: '#111827' }, // Empty string (same as EMPTY)
   EMPTY: { bg: '#ffffff', border: '#d1d5db', text: '#111827' },
   TP3: { bg: '#ecfdf5', border: '#34d399', text: '#064e3b' },
   TP2: { bg: '#f0fdf4', border: '#4ade80', text: '#14532d' },

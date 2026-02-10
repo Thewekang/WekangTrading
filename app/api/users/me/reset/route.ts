@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
     console.error('Reset account error:', {
       type: error?.constructor?.name,
       message: error instanceof Error ? error.message : 'Unknown error',
-      userId: session?.user?.id,
     });
 
     return NextResponse.json(
@@ -90,9 +89,8 @@ export async function GET(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Get account summary error:', {
-      type: error?.constructor\?.name,
+      type: error?.constructor?.name,
       message: error instanceof Error ? error.message : 'Unknown error',
-      userId: session?.user?.id,
     });
 
     return NextResponse.json(
