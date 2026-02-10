@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] - 2026-02-10
+## [Unreleased]
+
+---
+
+## [1.8.1] - 2026-02-10
+
+### Fixed
+- **🔧 Build Errors**: Fixed TypeScript compilation errors preventing Vercel deployment
+  - Fixed invalid escape sequence `\?` in error logging (app/api/users/me/reset/route.ts)
+  - Made params async for Next.js 15 compatibility (app/(user)/trades/[id]/page.tsx)
+  - Removed userId from catch block error logs where session was out of scope (8 API routes)
+  - Fixed TouchList type mismatch using React.TouchList (2 components)
+  - Added empty string `''` to OUTCOME_STYLES to match TradeOutcome enum (TradeCell)
+
+---
+
+## [1.8.0] - 2026-02-10
 
 ### Added
 - **🔒 Comprehensive Security Hardening**: Fixed 14 security vulnerabilities
