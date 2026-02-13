@@ -6,6 +6,7 @@ import { StatsDisplay } from '@/components/discipline-tracker/StatsDisplay';
 import { FilterBar } from '@/components/discipline-tracker/FilterBar';
 import { TrackerTable } from '@/components/discipline-tracker/TrackerTable';
 import { AddRowDialog } from '@/components/discipline-tracker/AddRowDialog';
+import { PaginationControls } from '@/components/discipline-tracker/PaginationControls';
 import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/schema';
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
@@ -13,6 +14,7 @@ import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTrac
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
 import { DisciplineTrackerQuote } from '@/components/quotes/DisciplineTrackerQuote';
 import { useDisciplineQuote } from '@/lib/hooks/useQuoteHooks';
+import { usePagination } from '@/lib/hooks/usePagination';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
@@ -31,6 +33,14 @@ export default function DisciplineTrackerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Pagination
+  const pagination = usePagination({
+    items: filteredRows,
+    storageKey: 'discipline-tracker-pagination',
+    defaultItemsPerPage: 10,
+    getItemDate: (row) => row.tradeDate,
+  });
 
   // Fetch settings and rows on mount
   useEffect(() => {
@@ -259,12 +269,28 @@ export default function DisciplineTrackerPage() {
 
       {/* Tracker Table */}
       <TrackerTable
-        rows={filteredRows}
+        rows={pagination.paginatedData}
         settings={settings}
         onUpdate={handleUpdateRow}
         onDelete={handleDeleteRow}
         onDuplicate={handleDuplicateRow}
         onAddRow={() => setAddDialogOpen(true)}
+      />
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        mode={pagination.mode}
+        itemsPerPage={pagination.itemsPerPage}
+        hasNextPage={pagination.hasNextPage}
+        hasPreviousPage={pagination.hasPreviousPage}
+        onPageChange={pagination.goToPage}
+        onNextPage={pagination.nextPage}
+        onPreviousPage={pagination.previousPage}
+        onModeChange={pagination.setMode}
+        onItemsPerPageChange={pagination.setItemsPerPage}
       />
 
       {/* Settings Panel - Collapsible */}
@@ -299,9 +325,11 @@ export default function DisciplineTrackerPage() {
       />
 
       {/* Debug Info */}
-      <div className="text-xs text-muted-foreground">
+      <div className="text-xs text-muted-foreground space-y-1">
         <p>Total rows in database: {rows.length}</p>
         <p>Filtered rows: {filteredRows.length}</p>
+        <p>Current page: {pagination.currentPage} of {pagination.totalPages}</p>
+        <p>Showing: {pagination.paginatedData.length} rows</p>
       </div>
     </div>
   );
