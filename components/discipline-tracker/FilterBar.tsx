@@ -50,13 +50,14 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-      {/* Quick Filters */}
-      <div className="flex gap-2">
+    <div className="space-y-4">
+      {/* Quick Filters - Stack on mobile, inline on larger screens */}
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={() => handleQuickFilter('this-month')}
+          className="flex-1 sm:flex-none"
         >
           <Calendar className="h-4 w-4 mr-2" />
           This Month
@@ -65,6 +66,7 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
           variant="outline"
           size="sm"
           onClick={() => handleQuickFilter('last-month')}
+          className="flex-1 sm:flex-none"
         >
           Last Month
         </Button>
@@ -72,45 +74,49 @@ export function FilterBar({ onFilterChange }: FilterBarProps) {
           variant="outline"
           size="sm"
           onClick={() => handleQuickFilter('all-time')}
+          className="flex-1 sm:flex-none"
         >
           All Time
         </Button>
       </div>
 
-      {/* Month Input */}
-      <div className="flex-1 min-w-[200px]">
-        <Input
-          type="month"
-          value={month}
-          onChange={(e) => handleMonthChange(e.target.value)}
-          placeholder="Select month"
-        />
-      </div>
-
-      {/* Search */}
-      <div className="flex-1 min-w-[200px]">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Filters Row */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Month Input */}
+        <div className="flex-1 min-w-[200px]">
           <Input
-            type="text"
-            placeholder="Search notes..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10"
+            type="month"
+            value={month}
+            onChange={(e) => handleMonthChange(e.target.value)}
+            placeholder="Select month"
           />
         </div>
-      </div>
 
-      {/* Sort */}
-      <Select value={sortBy} onValueChange={handleSortChange}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Sort by" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="date-desc">Date (Newest)</SelectItem>
-          <SelectItem value="date-asc">Date (Oldest)</SelectItem>
-        </SelectContent>
-      </Select>
+        {/* Search */}
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search notes..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {/* Sort */}
+        <Select value={sortBy} onValueChange={handleSortChange}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date-desc">Date (Newest)</SelectItem>
+            <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }

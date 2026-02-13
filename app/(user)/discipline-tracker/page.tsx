@@ -236,15 +236,15 @@ export default function DisciplineTrackerPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto py-4 sm:py-8 px-4 space-y-4 sm:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             Discipline Tracker
           </h1>
-          <p className="text-muted-foreground mt-1">Rules before results</p>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Rules before results</p>
         </div>
       </div>
 
