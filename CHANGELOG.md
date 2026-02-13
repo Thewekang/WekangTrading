@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Version**: Updated to 1.8.0
 
+### Fixed
+- **🐛 UI Fixes**: Resolved visual bugs in discipline tracker
+  - Fixed doubled icon in pagination mode selector (icon was rendering in both trigger and value)
+  - Removed debug info panel from production build (page size reduced from 25.7 kB to 25.5 kB)
+
 ### Technical
 - Created 3 new files: TrackerCardMobile.tsx (216 lines), PaginationControls.tsx (204 lines), usePagination.ts (226 lines)
 - Modified 3 files: discipline-tracker/page.tsx, TrackerTable.tsx, FilterBar.tsx
