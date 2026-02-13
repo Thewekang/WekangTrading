@@ -40,11 +40,6 @@ export function PaginationControls({
     return 'Page';
   };
 
-  const getModeIcon = (m: PaginationMode) => {
-    if (m === 'weekly') return <CalendarRange className="h-4 w-4" />;
-    if (m === 'monthly') return <Calendar className="h-4 w-4" />;
-    return <List className="h-4 w-4" />;
-  };
 
   return (
     <div className="space-y-4">
@@ -55,10 +50,7 @@ export function PaginationControls({
           <span className="text-sm text-muted-foreground whitespace-nowrap">View by:</span>
           <Select value={mode} onValueChange={(value) => onModeChange(value as PaginationMode)}>
             <SelectTrigger className="w-full sm:w-[180px]">
-              <div className="flex items-center gap-2">
-                {getModeIcon(mode)}
-                <SelectValue />
-              </div>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="per-page">
