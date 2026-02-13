@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.9.0] - 2026-02-14
+
 ### Added
 - **📱 Mobile Optimization for Discipline Tracker**: Complete responsive redesign for mobile devices
   - TrackerCardMobile component with vertical card layout for mobile (< 768px)
@@ -28,9 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smart date-based grouping for weekly and monthly views
   - Automatic page reset on mode or filter changes
   - Disabled states for unavailable navigation options
-
-### Changed
-- **Version**: Updated to 1.8.0
 
 ### Fixed
 - **🐛 UI Fixes**: Resolved visual bugs in discipline tracker
