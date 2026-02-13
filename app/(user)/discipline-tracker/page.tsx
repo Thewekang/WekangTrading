@@ -323,18 +323,6 @@ export default function DisciplineTrackerPage() {
         onOpenChange={setAddDialogOpen}
         onSubmit={handleAddRow}
       />
-
-      {/* Debug Info */}
-      <div className="text-xs text-muted-foreground space-y-1 p-4 border rounded-lg bg-muted/30">
-        <p className="font-semibold text-foreground mb-2">📊 Debug Info:</p>
-        <p>Total rows in database: {rows.length}</p>
-        <p>Filtered rows: {filteredRows.length}</p>
-        <p>Current page: {pagination.currentPage} of {pagination.totalPages}</p>
-        <p>Showing: {pagination.paginatedData.length} rows</p>
-        <p className="text-amber-600 mt-2">
-          💡 Tip: To test pagination with {filteredRows.length} items, set rows per page to 1 in the dropdown above
-        </p>
-      </div>
     </div>
   );
 }
