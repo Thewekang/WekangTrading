@@ -6,6 +6,7 @@ import { StatsDisplay } from '@/components/discipline-tracker/StatsDisplay';
 import { FilterBar } from '@/components/discipline-tracker/FilterBar';
 import { TrackerTable } from '@/components/discipline-tracker/TrackerTable';
 import { AddRowDialog } from '@/components/discipline-tracker/AddRowDialog';
+import { PaginationControls } from '@/components/discipline-tracker/PaginationControls';
 import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import type { DisciplineTrackerSettings, DisciplineTrackerRow } from '@/lib/db/schema';
 import type { AggregatedStats } from '@/lib/types/disciplineTracker';
@@ -13,6 +14,7 @@ import type { DisciplineTrackerRowInput } from '@/lib/validations/disciplineTrac
 import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
 import { DisciplineTrackerQuote } from '@/components/quotes/DisciplineTrackerQuote';
 import { useDisciplineQuote } from '@/lib/hooks/useQuoteHooks';
+import { usePagination } from '@/lib/hooks/usePagination';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
@@ -31,6 +33,14 @@ export default function DisciplineTrackerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Pagination
+  const pagination = usePagination({
+    items: filteredRows,
+    storageKey: 'discipline-tracker-pagination',
+    defaultItemsPerPage: 10,
+    getItemDate: (row) => row.tradeDate,
+  });
 
   // Fetch settings and rows on mount
   useEffect(() => {
@@ -236,15 +246,15 @@ export default function DisciplineTrackerPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto py-4 sm:py-8 px-4 space-y-4 sm:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             Discipline Tracker
           </h1>
-          <p className="text-muted-foreground mt-1">Rules before results</p>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Rules before results</p>
         </div>
       </div>
 
@@ -259,12 +269,28 @@ export default function DisciplineTrackerPage() {
 
       {/* Tracker Table */}
       <TrackerTable
-        rows={filteredRows}
+        rows={pagination.paginatedData}
         settings={settings}
         onUpdate={handleUpdateRow}
         onDelete={handleDeleteRow}
         onDuplicate={handleDuplicateRow}
         onAddRow={() => setAddDialogOpen(true)}
+      />
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        mode={pagination.mode}
+        itemsPerPage={pagination.itemsPerPage}
+        hasNextPage={pagination.hasNextPage}
+        hasPreviousPage={pagination.hasPreviousPage}
+        onPageChange={pagination.goToPage}
+        onNextPage={pagination.nextPage}
+        onPreviousPage={pagination.previousPage}
+        onModeChange={pagination.setMode}
+        onItemsPerPageChange={pagination.setItemsPerPage}
       />
 
       {/* Settings Panel - Collapsible */}
@@ -297,12 +323,6 @@ export default function DisciplineTrackerPage() {
         onOpenChange={setAddDialogOpen}
         onSubmit={handleAddRow}
       />
-
-      {/* Debug Info */}
-      <div className="text-xs text-muted-foreground">
-        <p>Total rows in database: {rows.length}</p>
-        <p>Filtered rows: {filteredRows.length}</p>
-      </div>
     </div>
   );
 }

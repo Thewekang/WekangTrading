@@ -18,6 +18,7 @@ import { Plus, Info } from 'lucide-react';
 import { TradeCell } from './TradeCell';
 import { TP3Input } from './TP3Input';
 import { RowActions } from './RowActions';
+import { TrackerCardMobile } from './TrackerCardMobile';
 import type { DisciplineTrackerRow, DisciplineTrackerSettings } from '@/lib/db/schema';
 import type { EvaluatedRow } from '@/lib/types/disciplineTracker';
 import { evaluateDayRow } from '@/lib/services/disciplineTrackerRulesEngine';
@@ -199,8 +200,29 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
+      {/* Mobile View - Cards (below md breakpoint) */}
+      <div className="md:hidden space-y-4">
+        {evaluatedRows.map((evaluatedRow) => {
+          const { ...row } = evaluatedRow;
+          return (
+            <TrackerCardMobile
+              key={row.id}
+              evaluatedRow={evaluatedRow}
+              settings={settings}
+              onTradeChange={handleTradeChange}
+              onToggleChange={handleToggleChange}
+              onSessionChange={handleSessionChange}
+              onNotesChange={handleNotesChange}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
+              notesValue={notesValues[row.id]}
+            />
+          );
+        })}
+      </div>
+
+      {/* Desktop View - Table (md breakpoint and above) */}
+      <div className="hidden md:block border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
           <TableHeader>
@@ -390,7 +412,7 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
             })}
           </TableBody>
         </Table>
-      </div>
+        </div>
       </div>
     </div>
   );
