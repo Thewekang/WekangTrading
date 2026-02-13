@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **📱 Mobile Optimization for Discipline Tracker**: Complete responsive redesign for mobile devices
+  - TrackerCardMobile component with vertical card layout for mobile (< 768px)
+  - Touch-friendly controls with 44px minimum tap targets
+  - Mobile-optimized FilterBar with flex-wrap layout and full-width inputs
+  - Responsive page header with adaptive text and icon sizes
+  - Seamless breakpoint switching between card (mobile) and table (desktop) layouts
+
+- **📊 Comprehensive Pagination System**: Multi-mode pagination with persistent preferences
+  - usePagination hook with localStorage persistence across sessions
+  - Three pagination modes:
+    - **Per-Page**: Configurable rows per page (10/25/50/100)
+    - **Weekly**: Groups trades by calendar week (Monday start)
+    - **Monthly**: Groups trades by calendar month
+  - PaginationControls component with mobile and desktop responsive layouts
+  - Navigation controls: Previous/Next (always), First/Last (desktop), Page numbers (desktop)
+  - Smart date-based grouping for weekly and monthly views
+  - Automatic page reset on mode or filter changes
+  - Disabled states for unavailable navigation options
+
+### Changed
+- **Version**: Updated to 1.8.0
+
+### Technical
+- Created 3 new files: TrackerCardMobile.tsx (216 lines), PaginationControls.tsx (204 lines), usePagination.ts (226 lines)
+- Modified 3 files: discipline-tracker/page.tsx, TrackerTable.tsx, FilterBar.tsx
+- Total changes: 9 files, 753 insertions, 46 deletions
+- Build impact: Discipline Tracker page 25.6 kB (199 kB First Load JS)
+- No breaking changes - seamless upgrade path
+
 ---
 
 ## [1.8.1] - 2026-02-10
