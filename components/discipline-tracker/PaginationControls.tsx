@@ -107,12 +107,13 @@ export function PaginationControls({
         </div>
       </div>
 
-      {/* Pagination Navigation */}
-      {totalPages > 1 && (
+      {/* Pagination Navigation - Always show if there are items */}
+      {totalItems > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Page Info */}
           <div className="text-sm text-muted-foreground order-2 sm:order-1">
             {getPageLabel()} {currentPage} of {totalPages}
+            {totalPages === 1 && <span className="text-xs ml-2">(All items on one page)</span>}
           </div>
 
           {/* Navigation Buttons */}
