@@ -1,5 +1,7 @@
 'use client';
 
+'use client';
+
 import { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { TradeCell } from './TradeCell';
+import { TP3Input } from './TP3Input';
 import { RowActions } from './RowActions';
 import type { DisciplineTrackerRow, DisciplineTrackerSettings } from '@/lib/db/schema';
 import type { EvaluatedRow } from '@/lib/types/disciplineTracker';
@@ -22,6 +25,11 @@ interface TrackerCardMobileProps {
     row: DisciplineTrackerRow,
     tradeNumber: 1 | 2 | 3,
     newOutcome: TradeOutcome
+  ) => Promise<void>;
+  onTP3AmountChange: (
+    rowId: string,
+    tradeNumber: 1 | 2 | 3,
+    amount: number
   ) => Promise<void>;
   onToggleChange: (
     rowId: string,
@@ -43,6 +51,7 @@ export function TrackerCardMobile({
   evaluatedRow,
   settings,
   onTradeChange,
+  onTP3AmountChange,
   onToggleChange,
   onSessionChange,
   onNotesChange,
@@ -51,6 +60,12 @@ export function TrackerCardMobile({
   notesValue,
 }: TrackerCardMobileProps) {
   const { evaluation, ...row } = evaluatedRow;
+  const showTP3InputTrade1 =
+    settings.tp3Mode === 'manual' && row.trade1Outcome === 'TP3';
+  const showTP3InputTrade2 =
+    settings.tp3Mode === 'manual' && row.trade2Outcome === 'TP3';
+  const showTP3InputTrade3 =
+    settings.tp3Mode === 'manual' && row.trade3Outcome === 'TP3';
 
   return (
     <Card className="w-full">
@@ -124,6 +139,16 @@ export function TrackerCardMobile({
               cellColor={evaluation.trade1Color}
               tradeNumber={1}
             />
+            {showTP3InputTrade1 && (
+              <div className="space-y-1">
+                <Label className="text-xs text-emerald-600">TP3 Amount ($)</Label>
+                <TP3Input
+                  value={row.trade1Tp3Amount || 0}
+                  onChange={(value) => onTP3AmountChange(row.id, 1, value)}
+                  isVisible={true}
+                />
+              </div>
+            )}
           </div>
 
           {/* Trade 2 */}
@@ -137,6 +162,16 @@ export function TrackerCardMobile({
               cellColor={evaluation.trade2Color}
               tradeNumber={2}
             />
+            {showTP3InputTrade2 && (
+              <div className="space-y-1">
+                <Label className="text-xs text-emerald-600">TP3 Amount ($)</Label>
+                <TP3Input
+                  value={row.trade2Tp3Amount || 0}
+                  onChange={(value) => onTP3AmountChange(row.id, 2, value)}
+                  isVisible={true}
+                />
+              </div>
+            )}
           </div>
 
           {/* Trade 3 */}
@@ -150,6 +185,16 @@ export function TrackerCardMobile({
               cellColor={evaluation.trade3Color}
               tradeNumber={3}
             />
+            {showTP3InputTrade3 && (
+              <div className="space-y-1">
+                <Label className="text-xs text-emerald-600">TP3 Amount ($)</Label>
+                <TP3Input
+                  value={row.trade3Tp3Amount || 0}
+                  onChange={(value) => onTP3AmountChange(row.id, 3, value)}
+                  isVisible={true}
+                />
+              </div>
+            )}
           </div>
         </div>
 
