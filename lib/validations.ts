@@ -81,8 +81,15 @@ export const individualTradeApiSchema = z.object({
 });
 
 export const bulkTradeEntrySchema = z.object({
-  tradeDate: z.coerce.date().refine((date) => date <= new Date(), {
-    message: 'Trade date cannot be in the future',
+  tradeDate: z.coerce.date().refine((date) => {
+    // Allow dates up to +1 day from current date to accommodate timezone differences
+    // Users in timezones ahead of UTC (e.g., UTC+8) may need to select "tomorrow" in UTC
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 1);
+    maxDate.setHours(23, 59, 59, 999); // End of day
+    return date <= maxDate;
+  }, {
+    message: 'Trade date cannot be more than 1 day in the future',
   }),
   trades: z.array(individualTradeApiSchema).min(1, 'At least one trade is required').max(100, 'Maximum 100 trades per bulk entry'),
 }).refine((data) => {

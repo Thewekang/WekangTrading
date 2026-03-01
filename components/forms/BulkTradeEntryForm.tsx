@@ -223,7 +223,7 @@ export function BulkTradeEntryForm() {
             type="date"
             value={tradeDate}
             onChange={(e) => setTradeDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
             className="mt-1 w-full sm:w-64"
           />
         </div>
