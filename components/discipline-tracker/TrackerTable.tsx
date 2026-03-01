@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Plus, Info } from 'lucide-react';
 import { TradeCell } from './TradeCell';
 import { TP3Input } from './TP3Input';
+import { OutcomeValueDisplay } from './OutcomeValueDisplay';
 import { RowActions } from './RowActions';
 import { TrackerCardMobile } from './TrackerCardMobile';
 import type { DisciplineTrackerRow, DisciplineTrackerSettings } from '@/lib/db/schema';
@@ -210,6 +211,7 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
               evaluatedRow={evaluatedRow}
               settings={settings}
               onTradeChange={handleTradeChange}
+              onTP3AmountChange={handleTP3AmountChange}
               onToggleChange={handleToggleChange}
               onSessionChange={handleSessionChange}
               onNotesChange={handleNotesChange}
@@ -229,10 +231,9 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
             <TableRow>
               <TableHead className="w-[120px]">Date</TableHead>
               <TableHead className="w-[150px]">Notes</TableHead>
-              <TableHead className="w-[120px]">Trade 1</TableHead>
-              <TableHead className="w-[120px]">Trade 2</TableHead>
-              <TableHead className="w-[120px]">Trade 3</TableHead>
-              <TableHead className="w-[100px]">TP3 $</TableHead>
+              <TableHead className="w-[140px]">Trade 1</TableHead>
+              <TableHead className="w-[140px]">Trade 2</TableHead>
+              <TableHead className="w-[140px]">Trade 3</TableHead>
               <TableHead className="w-[80px]">
                 <TooltipProvider>
                   <Tooltip>
@@ -268,11 +269,25 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
           <TableBody>
             {evaluatedRows.map((evaluatedRow) => {
               const { evaluation, ...row } = evaluatedRow;
-              const showTP3Input =
-                settings.tp3Mode === 'manual' &&
-                (row.trade1Outcome === 'TP3' ||
-                  row.trade2Outcome === 'TP3' ||
-                  row.trade3Outcome === 'TP3');
+              const showTP3InputTrade1 =
+                settings.tp3Mode === 'manual' && row.trade1Outcome === 'TP3';
+              const showTP3InputTrade2 =
+                settings.tp3Mode === 'manual' && row.trade2Outcome === 'TP3';
+              const showTP3InputTrade3 =
+                settings.tp3Mode === 'manual' && row.trade3Outcome === 'TP3';
+              
+              // Helper function to get outcome value from settings
+              const getOutcomeValue = (outcome: string | null) => {
+                if (!outcome || outcome === 'EMPTY' || outcome === '') return null;
+                switch (outcome) {
+                  case 'SL': return settings.slValue;
+                  case 'BE': return settings.beValue;
+                  case 'TP1': return settings.tp1Value;
+                  case 'TP2': return settings.tp2Value;
+                  case 'TP3': return settings.tp3Mode === 'fixed' ? (settings.tp3FixedValue || 240) : null;
+                  default: return null;
+                }
+              };
 
               return (
                 <TableRow key={row.id}>
@@ -293,46 +308,82 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
 
                   {/* Trade 1 */}
                   <TableCell>
-                    <TradeCell
-                      value={row.trade1Outcome || 'EMPTY'}
-                      onChange={(value) => handleTradeChange(row.id, row, 1, value)}
-                      isLocked={false}
-                      cellColor={evaluation.trade1Color}
-                      tradeNumber={1}
-                    />
+                    <div className="space-y-2">
+                      <TradeCell
+                        value={row.trade1Outcome || 'EMPTY'}
+                        onChange={(value) => handleTradeChange(row.id, row, 1, value)}
+                        isLocked={false}
+                        cellColor={evaluation.trade1Color}
+                        tradeNumber={1}
+                      />
+                      {showTP3InputTrade1 ? (
+                        <TP3Input
+                          value={row.trade1Tp3Amount || 0}
+                          onChange={(value) => handleTP3AmountChange(row.id, 1, value)}
+                          isVisible={true}
+                        />
+                      ) : (
+                        <OutcomeValueDisplay
+                          value={getOutcomeValue(row.trade1Outcome) || 0}
+                          isVisible={getOutcomeValue(row.trade1Outcome) !== null}
+                          outcome={row.trade1Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                        />
+                      )}
+                    </div>
                   </TableCell>
 
                   {/* Trade 2 */}
                   <TableCell>
-                    <TradeCell
-                      value={row.trade2Outcome || 'EMPTY'}
-                      onChange={(value) => handleTradeChange(row.id, row, 2, value)}
-                      isLocked={!evaluation.allowedTrade2}
-                      lockReason={evaluation.lockReasonTrade2}
-                      cellColor={evaluation.trade2Color}
-                      tradeNumber={2}
-                    />
+                    <div className="space-y-2">
+                      <TradeCell
+                        value={row.trade2Outcome || 'EMPTY'}
+                        onChange={(value) => handleTradeChange(row.id, row, 2, value)}
+                        isLocked={!evaluation.allowedTrade2}
+                        lockReason={evaluation.lockReasonTrade2}
+                        cellColor={evaluation.trade2Color}
+                        tradeNumber={2}
+                      />
+                      {showTP3InputTrade2 ? (
+                        <TP3Input
+                          value={row.trade2Tp3Amount || 0}
+                          onChange={(value) => handleTP3AmountChange(row.id, 2, value)}
+                          isVisible={true}
+                        />
+                      ) : (
+                        <OutcomeValueDisplay
+                          value={getOutcomeValue(row.trade2Outcome) || 0}
+                          isVisible={getOutcomeValue(row.trade2Outcome) !== null}
+                          outcome={row.trade2Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                        />
+                      )}
+                    </div>
                   </TableCell>
 
                   {/* Trade 3 */}
                   <TableCell>
-                    <TradeCell
-                      value={row.trade3Outcome || 'EMPTY'}
-                      onChange={(value) => handleTradeChange(row.id, row, 3, value)}
-                      isLocked={!evaluation.allowedTrade3}
-                      lockReason={evaluation.lockReasonTrade3}
-                      cellColor={evaluation.trade3Color}
-                      tradeNumber={3}
-                    />
-                  </TableCell>
-
-                  {/* TP3 Amount */}
-                  <TableCell>
-                    <TP3Input
-                      value={row.trade1Tp3Amount || 0}
-                      onChange={(value) => handleTP3AmountChange(row.id, 1, value)}
-                      isVisible={showTP3Input}
-                    />
+                    <div className="space-y-2">
+                      <TradeCell
+                        value={row.trade3Outcome || 'EMPTY'}
+                        onChange={(value) => handleTradeChange(row.id, row, 3, value)}
+                        isLocked={!evaluation.allowedTrade3}
+                        lockReason={evaluation.lockReasonTrade3}
+                        cellColor={evaluation.trade3Color}
+                        tradeNumber={3}
+                      />
+                      {showTP3InputTrade3 ? (
+                        <TP3Input
+                          value={row.trade3Tp3Amount || 0}
+                          onChange={(value) => handleTP3AmountChange(row.id, 3, value)}
+                          isVisible={true}
+                        />
+                      ) : (
+                        <OutcomeValueDisplay
+                          value={getOutcomeValue(row.trade3Outcome) || 0}
+                          isVisible={getOutcomeValue(row.trade3Outcome) !== null}
+                          outcome={row.trade3Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                        />
+                      )}
+                    </div>
                   </TableCell>
 
                   {/* A+ Confirmed */}

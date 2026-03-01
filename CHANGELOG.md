@@ -11,6 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.1] - 2026-03-02
+
+### Added
+- **💰 Auto-Display of Outcome Values**: Discipline tracker now shows configured P&L values for all trade outcomes
+  - Automatic display of TP2, TP1, BE, and SL values from settings (read-only with "(auto)" label)
+  - Values appear inline in same row as trade selector, matching TP3 input styling
+  - Color-coded by outcome type (emerald for TP3, green for TP2, lime for TP1, amber for BE, rose for SL)
+  - Implemented in both desktop table and mobile card views
+  - Helps users verify P&L without opening settings
+
+### Fixed
+- **🐛 TP3 Input Issues**: Resolved multiple issues with TP3 value entry in discipline tracker
+  - Fixed TP3 input only working for Trade 1 (now each trade has its own independent TP3 input)
+  - Added 500ms debouncing to allow proper editing and deletion of TP3 values
+  - Fixed backspace/delete issues where values would immediately reset to 0
+  - Each trade (1, 2, 3) now independently tracks its own TP3 amount in separate database fields
+  - Added TP3 input functionality to mobile view (was previously missing)
+
+- **📅 Bulk Trade Date Validation**: Fixed timezone-related date selection issues
+  - Added +1 day buffer to accommodate timezone differences (UTC-12 to UTC+14 range)
+  - Users in timezones ahead of UTC can now select their current local date
+  - Example: Users in UTC+8 at 11 PM can now select their current date (tomorrow in UTC)
+  - Updated both client-side (HTML date input max) and server-side (Zod validation)
+
+### Technical
+- Created OutcomeValueDisplay component with inline styling matching TP3Input
+- Modified TP3Input with local state management and debounced onChange
+- Updated TrackerTable and TrackerCardMobile for per-trade value displays
+- Enhanced bulkTradeEntrySchema validation to allow dates up to +1 day
+- Total changes: 5 files modified, 1 file created
+- No breaking changes
+
+---
+
 ## [1.9.0] - 2026-02-14
 
 ### Added
