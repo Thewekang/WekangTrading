@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Plus, Info } from 'lucide-react';
 import { TradeCell } from './TradeCell';
 import { TP3Input } from './TP3Input';
+import { OutcomeValueDisplay } from './OutcomeValueDisplay';
 import { RowActions } from './RowActions';
 import { TrackerCardMobile } from './TrackerCardMobile';
 import type { DisciplineTrackerRow, DisciplineTrackerSettings } from '@/lib/db/schema';
@@ -274,6 +275,19 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
                 settings.tp3Mode === 'manual' && row.trade2Outcome === 'TP3';
               const showTP3InputTrade3 =
                 settings.tp3Mode === 'manual' && row.trade3Outcome === 'TP3';
+              
+              // Helper function to get outcome value from settings
+              const getOutcomeValue = (outcome: string | null) => {
+                if (!outcome || outcome === 'EMPTY' || outcome === '') return null;
+                switch (outcome) {
+                  case 'SL': return settings.slValue;
+                  case 'BE': return settings.beValue;
+                  case 'TP1': return settings.tp1Value;
+                  case 'TP2': return settings.tp2Value;
+                  case 'TP3': return settings.tp3Mode === 'fixed' ? (settings.tp3FixedValue || 240) : null;
+                  default: return null;
+                }
+              };
 
               return (
                 <TableRow key={row.id}>
@@ -307,6 +321,11 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
                         onChange={(value) => handleTP3AmountChange(row.id, 1, value)}
                         isVisible={showTP3InputTrade1}
                       />
+                      <OutcomeValueDisplay
+                        value={getOutcomeValue(row.trade1Outcome) || 0}
+                        isVisible={getOutcomeValue(row.trade1Outcome) !== null}
+                        outcome={row.trade1Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                      />
                     </div>
                   </TableCell>
 
@@ -326,6 +345,11 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
                         onChange={(value) => handleTP3AmountChange(row.id, 2, value)}
                         isVisible={showTP3InputTrade2}
                       />
+                      <OutcomeValueDisplay
+                        value={getOutcomeValue(row.trade2Outcome) || 0}
+                        isVisible={getOutcomeValue(row.trade2Outcome) !== null}
+                        outcome={row.trade2Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                      />
                     </div>
                   </TableCell>
 
@@ -344,6 +368,11 @@ export function TrackerTable({ rows, settings, onUpdate, onDelete, onDuplicate, 
                         value={row.trade3Tp3Amount || 0}
                         onChange={(value) => handleTP3AmountChange(row.id, 3, value)}
                         isVisible={showTP3InputTrade3}
+                      />
+                      <OutcomeValueDisplay
+                        value={getOutcomeValue(row.trade3Outcome) || 0}
+                        isVisible={getOutcomeValue(row.trade3Outcome) !== null}
+                        outcome={row.trade3Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
                       />
                     </div>
                   </TableCell>

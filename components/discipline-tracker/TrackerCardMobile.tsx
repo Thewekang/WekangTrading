@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { TradeCell } from './TradeCell';
 import { TP3Input } from './TP3Input';
+import { OutcomeValueDisplay } from './OutcomeValueDisplay';
 import { RowActions } from './RowActions';
 import type { DisciplineTrackerRow, DisciplineTrackerSettings } from '@/lib/db/schema';
 import type { EvaluatedRow } from '@/lib/types/disciplineTracker';
@@ -66,6 +67,19 @@ export function TrackerCardMobile({
     settings.tp3Mode === 'manual' && row.trade2Outcome === 'TP3';
   const showTP3InputTrade3 =
     settings.tp3Mode === 'manual' && row.trade3Outcome === 'TP3';
+  
+  // Helper function to get outcome value from settings
+  const getOutcomeValue = (outcome: string | null) => {
+    if (!outcome || outcome === 'EMPTY' || outcome === '') return null;
+    switch (outcome) {
+      case 'SL': return settings.slValue;
+      case 'BE': return settings.beValue;
+      case 'TP1': return settings.tp1Value;
+      case 'TP2': return settings.tp2Value;
+      case 'TP3': return settings.tp3Mode === 'fixed' ? (settings.tp3FixedValue || 240) : null;
+      default: return null;
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -149,6 +163,16 @@ export function TrackerCardMobile({
                 />
               </div>
             )}
+            {getOutcomeValue(row.trade1Outcome) !== null && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Value</Label>
+                <OutcomeValueDisplay
+                  value={getOutcomeValue(row.trade1Outcome) || 0}
+                  isVisible={true}
+                  outcome={row.trade1Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                />
+              </div>
+            )}
           </div>
 
           {/* Trade 2 */}
@@ -172,6 +196,16 @@ export function TrackerCardMobile({
                 />
               </div>
             )}
+            {getOutcomeValue(row.trade2Outcome) !== null && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Value</Label>
+                <OutcomeValueDisplay
+                  value={getOutcomeValue(row.trade2Outcome) || 0}
+                  isVisible={true}
+                  outcome={row.trade2Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+                />
+              </div>
+            )}
           </div>
 
           {/* Trade 3 */}
@@ -192,6 +226,16 @@ export function TrackerCardMobile({
                   value={row.trade3Tp3Amount || 0}
                   onChange={(value) => onTP3AmountChange(row.id, 3, value)}
                   isVisible={true}
+                />
+              </div>
+            )}
+            {getOutcomeValue(row.trade3Outcome) !== null && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Value</Label>
+                <OutcomeValueDisplay
+                  value={getOutcomeValue(row.trade3Outcome) || 0}
+                  isVisible={true}
+                  outcome={row.trade3Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
                 />
               </div>
             )}
