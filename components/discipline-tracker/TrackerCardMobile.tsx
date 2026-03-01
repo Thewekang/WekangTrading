@@ -153,25 +153,18 @@ export function TrackerCardMobile({
               cellColor={evaluation.trade1Color}
               tradeNumber={1}
             />
-            {showTP3InputTrade1 && (
-              <div className="space-y-1">
-                <Label className="text-xs text-emerald-600">TP3 Amount ($)</Label>
-                <TP3Input
-                  value={row.trade1Tp3Amount || 0}
-                  onChange={(value) => onTP3AmountChange(row.id, 1, value)}
-                  isVisible={true}
-                />
-              </div>
-            )}
-            {getOutcomeValue(row.trade1Outcome) !== null && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Value</Label>
-                <OutcomeValueDisplay
-                  value={getOutcomeValue(row.trade1Outcome) || 0}
-                  isVisible={true}
-                  outcome={row.trade1Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
-                />
-              </div>
+            {showTP3InputTrade1 ? (
+              <TP3Input
+                value={row.trade1Tp3Amount || 0}
+                onChange={(value) => onTP3AmountChange(row.id, 1, value)}
+                isVisible={true}
+              />
+            ) : (
+              <OutcomeValueDisplay
+                value={getOutcomeValue(row.trade1Outcome) || 0}
+                isVisible={getOutcomeValue(row.trade1Outcome) !== null}
+                outcome={row.trade1Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+              />
             )}
           </div>
 
@@ -186,25 +179,18 @@ export function TrackerCardMobile({
               cellColor={evaluation.trade2Color}
               tradeNumber={2}
             />
-            {showTP3InputTrade2 && (
-              <div className="space-y-1">
-                <Label className="text-xs text-emerald-600">TP3 Amount ($)</Label>
-                <TP3Input
-                  value={row.trade2Tp3Amount || 0}
-                  onChange={(value) => onTP3AmountChange(row.id, 2, value)}
-                  isVisible={true}
-                />
-              </div>
-            )}
-            {getOutcomeValue(row.trade2Outcome) !== null && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Value</Label>
-                <OutcomeValueDisplay
-                  value={getOutcomeValue(row.trade2Outcome) || 0}
-                  isVisible={true}
-                  outcome={row.trade2Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
-                />
-              </div>
+            {showTP3InputTrade2 ? (
+              <TP3Input
+                value={row.trade2Tp3Amount || 0}
+                onChange={(value) => onTP3AmountChange(row.id, 2, value)}
+                isVisible={true}
+              />
+            ) : (
+              <OutcomeValueDisplay
+                value={getOutcomeValue(row.trade2Outcome) || 0}
+                isVisible={getOutcomeValue(row.trade2Outcome) !== null}
+                outcome={row.trade2Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+              />
             )}
           </div>
 
@@ -219,25 +205,18 @@ export function TrackerCardMobile({
               cellColor={evaluation.trade3Color}
               tradeNumber={3}
             />
-            {showTP3InputTrade3 && (
-              <div className="space-y-1">
-                <Label className="text-xs text-emerald-600">TP3 Amount ($)</Label>
-                <TP3Input
-                  value={row.trade3Tp3Amount || 0}
-                  onChange={(value) => onTP3AmountChange(row.id, 3, value)}
-                  isVisible={true}
-                />
-              </div>
-            )}
-            {getOutcomeValue(row.trade3Outcome) !== null && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Value</Label>
-                <OutcomeValueDisplay
-                  value={getOutcomeValue(row.trade3Outcome) || 0}
-                  isVisible={true}
-                  outcome={row.trade3Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
-                />
-              </div>
+            {showTP3InputTrade3 ? (
+              <TP3Input
+                value={row.trade3Tp3Amount || 0}
+                onChange={(value) => onTP3AmountChange(row.id, 3, value)}
+                isVisible={true}
+              />
+            ) : (
+              <OutcomeValueDisplay
+                value={getOutcomeValue(row.trade3Outcome) || 0}
+                isVisible={getOutcomeValue(row.trade3Outcome) !== null}
+                outcome={row.trade3Outcome as 'TP3' | 'TP2' | 'TP1' | 'BE' | 'SL'}
+              />
             )}
           </div>
         </div>

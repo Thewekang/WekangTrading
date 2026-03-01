@@ -18,19 +18,19 @@ const OUTCOME_COLORS = {
 
 export function OutcomeValueDisplay({ value, isVisible, outcome }: OutcomeValueDisplayProps) {
   if (!isVisible) {
-    return null;
+    return <div className="h-10 flex items-center justify-center text-sm text-muted-foreground">-</div>;
   }
 
   const colorClass = OUTCOME_COLORS[outcome];
   const sign = value >= 0 ? '+' : '';
 
   return (
-    <div className="flex items-center gap-1.5 h-8 px-3 bg-muted/30 rounded-md border border-border/50">
-      <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className={`text-sm font-medium ${colorClass}`}>
+    <div className="relative h-10 flex items-center px-3 rounded-md border border-border bg-muted/30">
+      <DollarSign className="h-4 w-4 text-muted-foreground mr-2" />
+      <span className={`font-medium ${colorClass} flex-1`}>
         {sign}{value.toFixed(2)}
       </span>
-      <span className="text-xs text-muted-foreground ml-auto">(auto)</span>
+      <span className="text-xs text-muted-foreground">(auto)</span>
     </div>
   );
 }
