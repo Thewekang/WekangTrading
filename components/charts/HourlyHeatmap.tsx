@@ -103,9 +103,16 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
   }, [data]);
 
   // Find best hour (with at least 2 trades)
-  const bestHour = useMemo(() => data
-    .filter(h => h.totalTrades >= 2)
-    .sort((a, b) => b.winRate - a.winRate)[0], [data]);
+  const bestHour = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return null;
+    }
+    const filtered = data.filter(h => h.totalTrades >= 2);
+    if (filtered.length === 0) {
+      return null;
+    }
+    return filtered.sort((a, b) => b.winRate - a.winRate)[0];
+  }, [data]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
