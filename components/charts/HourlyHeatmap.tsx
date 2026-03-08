@@ -246,13 +246,14 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
         <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="text-xs text-gray-600 mb-1">Total Hours Traded</div>
           <div className="font-semibold text-gray-900">
-            {data.filter(h => h.totalTrades > 0).length} / 24
+            {Array.isArray(data) ? data.filter(h => h.totalTrades > 0).length : 0} / 24
           </div>
         </div>
         <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
           <div className="text-xs text-gray-600 mb-1">Most Active Hour</div>
           <div className="font-semibold text-gray-900">
             {(() => {
+              if (!Array.isArray(data) || data.length === 0) return 'N/A';
               const mostActive = [...data].sort((a, b) => b.totalTrades - a.totalTrades)[0];
               return mostActive.totalTrades > 0 ? formatHour(mostActive.hour) : 'N/A';
             })()}
@@ -268,6 +269,7 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
           <div className="text-xs text-gray-600 mb-1">Avg Win Rate</div>
           <div className="font-semibold text-gray-900">
             {(() => {
+              if (!Array.isArray(data)) return '0.0%';
               const totalTrades = data.reduce((sum, h) => sum + h.totalTrades, 0);
               const totalWins = data.reduce((sum, h) => sum + h.totalWins, 0);
               const avgWinRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
