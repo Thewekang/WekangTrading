@@ -25,21 +25,33 @@ export function SessionComparisonChartWrapper({ userId, bestSession }: SessionCo
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchSessionStats = async () => {
       try {
-        const response = await fetch(`/api/stats/by-session?userId=${userId}&period=month`);
+        const response = await fetch(`/api/stats/by-session?userId=${userId}&period=all`, {
+          signal: abortController.signal
+        });
         const data = await response.json();
-        if (data.success) {
-          setSessionStats(data.data);
+        if (data.success && !abortController.signal.aborted) {
+          setSessionStats(data.data.sessions || []);
         }
       } catch (error) {
-        console.error('Failed to fetch session stats:', error);
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Failed to fetch session stats:', error);
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchSessionStats();
+    
+    return () => {
+      abortController.abort();
+    };
   }, [userId]);
 
   if (isLoading) {

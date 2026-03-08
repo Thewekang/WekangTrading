@@ -1,8 +1,8 @@
 # Admin Features Documentation
 
-**Document Version**: 2.0  
-**Last Updated**: January 18, 2026  
-**Status**: ✅ Production (v1.2.0)
+**Document Version**: 3.0  
+**Last Updated**: March 9, 2026  
+**Status**: ✅ Production (v1.10.0)
 
 ---
 
@@ -12,14 +12,15 @@
 2. [Admin Dashboard](#admin-dashboard)
 3. [User Management](#user-management)
 4. [Performance Monitoring](#performance-monitoring)
-5. [Coaching Tools](#coaching-tools)
-6. [Economic Calendar Management](#economic-calendar-management)
-7. [Cron Job Monitoring](#cron-job-monitoring)
-8. [Settings Dropdown Navigation](#settings-dropdown-navigation)
-9. [Admin Profile Editing](#admin-profile-editing)
-10. [Security & Authorization](#security--authorization)
-11. [API Endpoints](#api-endpoints)
-12. [Visual Reference](#visual-reference)
+5. [Discipline Tracker Monitoring](#discipline-tracker-monitoring)
+6. [Coaching Tools](#coaching-tools)
+7. [Economic Calendar Management](#economic-calendar-management)
+8. [Cron Job Monitoring](#cron-job-monitoring)
+9. [Settings Dropdown Navigation](#settings-dropdown-navigation)
+10. [Admin Profile Editing](#admin-profile-editing)
+11. [Security & Authorization](#security--authorization)
+12. [API Endpoints](#api-endpoints)
+13. [Visual Reference](#visual-reference)
 
 ---
 
@@ -219,6 +220,218 @@ WekangTradingJournal includes a comprehensive admin panel for monitoring team pe
 - 🟡 Warning: 70-90% of daily loss limit
 - 🔴 Critical: 90-100% of daily loss limit
 - 🚫 Limit Reached: Trading should stop
+
+---
+
+## Discipline Tracker Monitoring
+
+**Routes**:  
+- `/admin/discipline-tracker` - Team overview dashboard  
+- `/admin/users/[id]/discipline-tracker` - Individual trader monitoring  
+**Access**: ADMIN role only  
+**Version**: v1.10.0
+
+### Purpose
+
+Monitor team discipline trading performance across all users, tracking adherence to trading plans, rule violations, and individual trader progress over extended periods. The admin discipline tracker provides oversight without infringing on user privacy by showing summary metrics rather than replicating the user's personal tracker interface.
+
+---
+
+### Team Overview Dashboard
+
+**Route**: `/admin/discipline-tracker`
+
+#### Summary Statistics (4 Cards)
+
+1. **Active Traders**
+   - Count of users with discipline tracker data in selected period
+   - Excludes admins
+   - Shows engagement with discipline tracking
+
+2. **Win Days**
+   - Percentage of trading days that ended profitable
+   - Color-coded: Green (≥60%), Yellow (≥50%), Red (<50%)
+   - Team discipline effectiveness indicator
+
+3. **Total P&L**
+   - Combined profit/loss across all traders in selected period
+   - Shows team profitability from disciplined trading
+
+4. **Total Violations**
+   - Sum of all rule violations across team
+   - Indicates unauthorized trading (exceeding max trades, wrong session, etc.)
+   - Lower is better
+
+#### Timeline Grid View
+
+**Desktop Layout**: Timeline table (traders × days)
+
+**Columns**:
+- Trader name (clickable to view individual performance)
+- Daily columns showing last N days (configurable: 7/14/30)
+
+**Cell Display**:
+- Color-coded by daily outcome:
+  - 🟢 **Green**: Winning day
+  - 🔴 **Red**: Losing day
+  - 🟡 **Yellow**: Break-even day
+  - ⚪ **Gray**: No data (no trades)
+- Hover tooltip shows:
+  - Date
+  - Day P&L
+  - Win/Loss/BE counts
+  - Violations (if any)
+
+**Mobile Layout**: Card-based view
+- One card per trader
+- Timeline shown vertically within each card
+- Expandable for additional stats
+
+#### Expandable Trader Details
+
+Click arrow icon to expand inline statistics:
+- **Total P&L**: Net profit/loss for period
+- **Win Rate**: Percentage of winning trades
+- **Violations**: Count of rule violations
+- **Best Day**: Highest single-day P&L
+- **Worst Day**: Lowest single-day P&L
+
+#### Features
+
+- **Period Selection**: 7 days, 14 days (default), 30 days
+- **Timezone-Aware**: Dates displayed in admin's preferred timezone
+- **Real-Time**: Refreshes on data changes
+- **Privacy**: Admin users excluded from team view
+- **Navigation**: Click trader name to view individual performance
+
+---
+
+### Individual Trader Monitoring
+
+**Route**: `/admin/users/[id]/discipline-tracker`
+
+**Purpose**: Monitor specific trader's discipline performance over extended periods (up to all-time history)
+
+#### Summary Statistics (4 Cards)
+
+1. **Total P&L**
+   - Net profit/loss for selected period
+   - Color-coded: Green (profit), Red (loss)
+   - Shows total trading days below
+
+2. **Win Rate**
+   - Percentage of winning trades
+   - W/L/BE breakdown displayed
+   - Target: ≥60% for good performance
+
+3. **Total Trades**
+   - Count of all trades in period
+   - Average trades per day shown below
+   - Indicates activity level
+
+4. **Rule Violations**
+   - Count of unauthorized trades
+   - Color-coded: Green (0), Red (>0)
+   - Shows discipline adherence
+
+#### Time Range Selector
+
+Extended period options (beyond team view's 30-day limit):
+- Last 7 Days
+- Last Month
+- Last 3 Months
+- **Last 6 Months** ✨
+- **Last Year** ✨
+- **All Time** ✨
+
+**Use Case**: Long-term coaching and progress tracking
+
+#### Plan Configuration Display
+
+Shows trader's discipline plan settings:
+- Max Trades/Day
+- SL Value (stop loss)
+- TP1 Value (take profit 1)
+- TP2 Value (take profit 2)
+- TP3 Mode (fixed/dynamic)
+- TP3 Fixed Value (if applicable)
+- Win Rate Formula (exclude BE / include BE)
+
+**Purpose**: Understand trader's plan before analyzing results
+
+#### Daily Performance Summary Table
+
+**Simplified Admin View** (privacy-conscious design)
+
+**Columns**:
+1. **Date**: Clean format (e.g., "Mar 7, 2026")
+2. **Day P&L**: Daily profit/loss (color-coded)
+3. **Trades**: Total trade count for the day
+4. **W/L/BE**: Win/Loss/Breakeven breakdown
+5. **A+ Day**: Badge indicator (Yes if qualified)
+6. **Range Exp**: Range expansion day badge
+7. **Session**: Prime / Non-Prime badge
+8. **Violations**: Red badge if rule broken, green checkmark if compliant
+9. **Notes**: Truncated notes preview (max width)
+
+**Features**:
+- Sortable columns
+- Pagination for large datasets
+- No editing capabilities (read-only monitoring)
+- No full tracker interface replication (respects privacy)
+
+#### Privacy Design Principles
+
+**What Admins CAN See**:
+- Summary statistics (P&L, win rate, violations)
+- Daily outcomes (win/loss/BE)
+- Plan configuration
+- Performance trends over time
+- Notes (user-written)
+
+**What Admins CANNOT See**:
+- Full tracker editing interface
+- Trade-by-trade entry fields
+- Personal tracker workflow
+- Trade 1/2/3 individual outcome selectors
+
+**Rationale**: Admins need monitoring capability without accessing user's personal trading journal interface
+
+---
+
+### Navigation
+
+**Admin Nav Tab**: "Discipline" with Target icon (🎯)
+
+**Breadcrumb Flow**:
+1. `/admin/discipline-tracker` - Team overview
+2. Click trader name → `/admin/users/[id]/discipline-tracker` - Individual view
+3. Back to Team Overview link at top
+
+---
+
+### API Endpoints
+
+**Team Overview**:
+- `GET /api/admin/discipline-tracker/team-overview?days=14`
+- Returns: Array of users with timeline data
+- Protected: requireAdmin middleware
+
+**Individual User**:
+- `GET /api/admin/users/[id]/discipline-tracker/settings`
+- `GET /api/admin/users/[id]/discipline-tracker/rows`
+- Returns: User's plan settings and all-time rows
+- Protected: requireAdmin middleware
+
+---
+
+### Use Cases
+
+1. **Daily Team Check-in**: Review team performance grid each morning
+2. **Long-term Coaching**: Analyze individual trader over 6 months/1 year
+3. **Rule Violation Investigation**: Identify traders with frequent violations
+4. **Performance Trends**: Track improvement or regression over time
+5. **Plan Effectiveness**: Compare traders with similar plans
 
 ---
 

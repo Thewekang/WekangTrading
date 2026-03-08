@@ -37,13 +37,18 @@ const SESSION_LABELS: Record<string, string> = {
 
 const SessionComparisonChart = memo(({ data, bestSession }: SessionComparisonChartProps) => {
   // Transform data for chart
-  const chartData = useMemo(() => data.map(item => ({
-    name: SESSION_LABELS[item.session] || item.session,
-    session: item.session,
-    'Win Rate': item.winRate,
-    'Total Trades': item.totalTrades,
-    wins: item.totalWins,
-  })), [data]);
+  const chartData = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+    return data.map(item => ({
+      name: SESSION_LABELS[item.session] || item.session,
+      session: item.session,
+      'Win Rate': item.winRate,
+      'Total Trades': item.totalTrades,
+      wins: item.totalWins,
+    }));
+  }, [data]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -67,6 +72,18 @@ const SessionComparisonChart = memo(({ data, bestSession }: SessionComparisonCha
     }
     return null;
   };
+
+  // Show "No data" message if chartData is empty
+  if (chartData.length === 0) {
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+        <div className="text-center">
+          <p className="text-gray-500 text-lg mb-2">📊 No session data available</p>
+          <p className="text-gray-400 text-sm">Start logging trades to see session performance</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

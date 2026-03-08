@@ -38,9 +38,9 @@ export default async function DashboardPage() {
   // Fetch only critical stats for initial page load
   // sessionStats and hourlyStats will be fetched client-side on demand (in collapsible sections)
   const [stats, activeTargets, bestSop] = await Promise.all([
-    getPersonalStats(session.user.id, 'month'),
+    getPersonalStats(session.user.id, 'all'),
     getActiveTargetsWithProgress(session.user.id),
-    getBestSopType(session.user.id, 'month'),
+    getBestSopType(session.user.id, 'all'),
   ]);
 
   // Fallback to zeros if no data yet
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
             <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
               <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">Total Trades</h3>
               <p className="text-2xl sm:text-3xl font-bold">{totalTrades}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">This month</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">All time</p>
             </div>
 
             <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
@@ -156,13 +156,13 @@ export default async function DashboardPage() {
               <p className={`text-2xl sm:text-3xl font-bold ${netProfitLoss > 0 ? 'text-green-600' : netProfitLoss < 0 ? 'text-red-600' : ''}`}>
                 ${Math.abs(netProfitLoss).toFixed(2)}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">This month</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">All time</p>
             </div>
           </div>
 
           {/* Best SOP Card - 1 column on large screens */}
           <div className="lg:col-span-1">
-            <BestSopCard data={bestSop} period="month" />
+            <BestSopCard data={bestSop} period="all" />
           </div>
         </div>
 
@@ -236,7 +236,7 @@ export default async function DashboardPage() {
         {bestSession && (
           <CollapsibleChartSection
             title="Best Trading Session"
-            description={`Your highest win rate this month is during the ${bestSession} session with ${stats.bestSessionWinRate.toFixed(1)}% win rate`}
+            description={`Your highest win rate overall is during the ${bestSession} session with ${stats.bestSessionWinRate.toFixed(1)}% win rate`}
             icon="🎯"
             defaultOpen={false}
           >

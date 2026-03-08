@@ -24,26 +24,38 @@ export function HourlyHeatmapWrapper({ userId }: HourlyHeatmapWrapperProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchHourlyStats = async () => {
       try {
-        const response = await fetch(`/api/stats/by-hour?userId=${userId}&period=month`);
+        const response = await fetch(`/api/stats/by-hour?userId=${userId}&period=all`, {
+          signal: abortController.signal
+        });
         const data = await response.json();
-        if (data.success) {
-          setHourlyStats(data.data);
+        if (data.success && !abortController.signal.aborted) {
+          setHourlyStats(data.data.hours || []);
         }
       } catch (error) {
-        console.error('Failed to fetch hourly stats:', error);
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Failed to fetch hourly stats:', error);
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchHourlyStats();
+    
+    return () => {
+      abortController.abort();
+    };
   }, [userId]);
 
   if (isLoading) {
     return <ChartSkeleton />;
   }
 
-  return <HourlyHeatmap data={hourlyStats} userId={userId} period="month" />;
+  return <HourlyHeatmap data={hourlyStats} userId={userId} period="all" />;
 }
