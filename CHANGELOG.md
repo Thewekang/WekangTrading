@@ -11,6 +11,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.0] - 2026-03-09
+
+### Added
+- **👥 Admin Discipline Tracker**: Complete team monitoring system for discipline trading performance
+  - Team overview dashboard with 14-day timeline grid (configurable 7/14/30 days)
+  - Visual color-coded cells showing daily P&L and outcomes (green=win, red=loss, yellow=BE)
+  - Expandable traders with inline statistics (total P&L, win rate, violations)
+  - Desktop: Timeline grid table (traders × days), Mobile: Card-based layout
+  - Clickable trader names to view individual discipline performance
+  - Individual trader view with simplified admin monitoring interface
+  - Summary statistics cards: Total P&L, Win Rate, Total Trades, Rule Violations
+  - Daily performance summary table showing key metrics (date, P&L, W/L/BE, A+ day, session, violations)
+  - Time range selector: 7 days, 1 month, 3 months, 6 months, 1 year, all time
+  - Plan configuration display showing user's discipline tracker settings
+  - Privacy-conscious design: Admin monitoring without replicating user's personal tracker interface
+  - Timezone-aware date handling matching user timezone preferences
+  - Admin users excluded from team tracker display
+  - New "Discipline" tab in admin navigation with Target icon
+
+- **🔧 Admin API Endpoints**: New endpoints for discipline tracker administration
+  - `GET /api/admin/discipline-tracker/team-overview` - Fetch all users' discipline data for timeline grid
+  - `GET /api/admin/users/[id]/discipline-tracker/settings` - Fetch specific user's discipline settings
+  - `GET /api/admin/users/[id]/discipline-tracker/rows` - Fetch specific user's discipline rows (all time)
+  - All endpoints protected with `requireAdmin` middleware
+  - Automatic market session evaluation using discipline rules engine
+
+### Fixed
+- **🐛 Dashboard Widget Crashes**: Resolved multiple errors causing chart failures
+  - Fixed memory leaks in Session Win Rate Comparison and Hourly Performance Heatmap
+  - Added AbortController cleanup in useEffect hooks for proper component unmounting
+  - Fixed empty chart data by changing period from 'month' to 'all' in default filters
+  - Fixed date formatting being too verbose in table headers (now shows clean "Mar 7" format)
+
+- **⏰ Next.js 15 Async Params**: Updated route handlers for Next.js 15 requirements
+  - Changed params type signature from `{ params: { id: string } }` to `{ params: Promise<{ id: string }> }`
+  - Added proper `await params` destructuring in route handlers
+  - Fixes build-time type errors and runtime warnings
+
+### Technical
+- Created admin discipline tracker pages and components:
+  - `app/(admin)/admin/discipline-tracker/page.tsx` - Team timeline grid (5.59 kB)
+  - `app/(admin)/admin/users/[id]/discipline-tracker/page.tsx` - Individual user view (5.09 kB)
+  - `app/api/admin/discipline-tracker/team-overview/route.ts` - Team data API
+  - `app/api/admin/users/[id]/discipline-tracker/settings/route.ts` - User settings API
+  - `app/api/admin/users/[id]/discipline-tracker/rows/route.ts` - User rows API
+  - `components/admin/AdminNav.tsx` - Added Discipline tab
+- Added TimezoneProvider to admin layout for consistent timezone handling
+- Uses existing discipline tracker services (disciplineTrackerService, disciplineTrackerRulesEngine)
+- Total build size: 105 routes, 11.5s compile time
+- No breaking changes
+
+---
+
 ## [1.9.1] - 2026-03-02
 
 ### Added

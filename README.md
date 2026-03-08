@@ -6,8 +6,8 @@ Trading Performance Tracking System with Individual Trade Timing Analysis & Gami
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: ✅ Production Deployed (v1.7.0)  
-> **Current Version**: 1.7.0  
+> **Status**: ✅ Production Deployed (v1.10.0)  
+> **Current Version**: 1.10.0  
 > **Live URL**: https://wekangtrading.vercel.app  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso (LibSQL) + Drizzle ORM + NextAuth.js v5
@@ -36,6 +36,19 @@ Trading Performance Tracking System with Individual Trade Timing Analysis & Gami
 - **Points System**: Earn points to track overall progress
 - **Motivational Messages**: Contextual encouragement on achievements
 - **Achievement Gallery**: Visual badge collection display
+
+### 👥 Admin Features
+- **User Management**: Search, sort, and analyze individual users
+- **Performance Monitoring**: Dashboard with system-wide statistics and rankings
+- **Coaching Tools**: SOP analysis and best practices identification
+- **Economic Calendar**: Import and sync economic events
+- **Discipline Tracker Monitoring (v1.10.0)**:
+  - Team overview dashboard with 14-day timeline grid (configurable 7/14/30 days)
+  - Visual color-coded cells showing daily P&L and outcomes
+  - Individual trader monitoring with extended time ranges (6 months, 1 year, all time)
+  - Privacy-conscious design: admin monitoring without replicating user's personal interface
+  - Summary statistics and daily performance tracking
+  - Rule violation monitoring and plan configuration display
 
 ### User Experience
 - **Toast Notifications**: Non-blocking, modern UX feedback
