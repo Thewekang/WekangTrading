@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, TrendingUp, Calendar, Menu, X, Settings, ChevronDown, FileText, Ticket, Quote } from 'lucide-react';
+import { LayoutDashboard, Users, TrendingUp, Calendar, Menu, X, Settings, ChevronDown, FileText, Ticket, Quote, Target } from 'lucide-react';
 import SettingsDropdown from '@/components/admin/SettingsDropdown';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 
@@ -20,6 +20,7 @@ export function AdminNav({ userEmail }: AdminNavProps) {
     { href: '/admin/overview', icon: LayoutDashboard, label: 'Overview' },
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/trades', icon: TrendingUp, label: 'Trades' },
+    { href: '/admin/discipline-tracker', icon: Target, label: 'Discipline' },
     { href: '/admin/economic-calendar/view', icon: Calendar, label: 'Calendar' },
   ];
 

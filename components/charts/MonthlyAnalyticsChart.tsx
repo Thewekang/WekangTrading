@@ -26,6 +26,9 @@ interface MonthlyAnalyticsChartProps {
 }
 
 const MonthlyAnalyticsChart = memo(({ data, metric, year }: MonthlyAnalyticsChartProps) => {
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : [];
+  
   const getMetricConfig = useCallback(() => {
     switch (metric) {
       case 'winRate':
@@ -114,7 +117,7 @@ const MonthlyAnalyticsChart = memo(({ data, metric, year }: MonthlyAnalyticsChar
     <div className="w-full">
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
-          data={data}
+          data={safeData}
           margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -148,7 +151,7 @@ const MonthlyAnalyticsChart = memo(({ data, metric, year }: MonthlyAnalyticsChar
             radius={[8, 8, 0, 0]}
             maxBarSize={60}
           >
-            {data.map((entry, index) => (
+            {safeData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getBarColor(entry, index)} />
             ))}
           </Bar>
@@ -160,27 +163,27 @@ const MonthlyAnalyticsChart = memo(({ data, metric, year }: MonthlyAnalyticsChar
         <div className="bg-gray-50 rounded-lg p-3 text-center">
           <p className="text-xs text-gray-600 mb-1">Total Trades</p>
           <p className="text-lg font-bold text-gray-900">
-            {data.reduce((sum, m) => sum + m.totalTrades, 0)}
+            {safeData.reduce((sum, m) => sum + m.totalTrades, 0)}
           </p>
         </div>
         <div className="bg-green-50 rounded-lg p-3 text-center">
           <p className="text-xs text-gray-600 mb-1">Avg Win Rate</p>
           <p className="text-lg font-bold text-green-600">
-            {(data.reduce((sum, m) => sum + m.winRate, 0) / 12).toFixed(1)}%
+            {safeData.length > 0 ? (safeData.reduce((sum, m) => sum + m.winRate, 0) / 12).toFixed(1) : '0.0'}%
           </p>
         </div>
         <div className="bg-blue-50 rounded-lg p-3 text-center">
           <p className="text-xs text-gray-600 mb-1">Avg SOP Rate</p>
           <p className="text-lg font-bold text-blue-600">
-            {(data.reduce((sum, m) => sum + m.sopRate, 0) / 12).toFixed(1)}%
+            {safeData.length > 0 ? (safeData.reduce((sum, m) => sum + m.sopRate, 0) / 12).toFixed(1) : '0.0'}%
           </p>
         </div>
         <div className="bg-purple-50 rounded-lg p-3 text-center">
           <p className="text-xs text-gray-600 mb-1">Total P/L</p>
           <p className={`text-lg font-bold ${
-            data.reduce((sum, m) => sum + m.profitLoss, 0) >= 0 ? 'text-green-600' : 'text-red-600'
+            safeData.reduce((sum, m) => sum + m.profitLoss, 0) >= 0 ? 'text-green-600' : 'text-red-600'
           }`}>
-            ${data.reduce((sum, m) => sum + m.profitLoss, 0).toFixed(2)}
+            ${safeData.reduce((sum, m) => sum + m.profitLoss, 0).toFixed(2)}
           </p>
         </div>
       </div>

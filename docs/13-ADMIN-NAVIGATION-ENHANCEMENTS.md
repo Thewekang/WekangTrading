@@ -1,9 +1,9 @@
 # 13. Admin Navigation Enhancements
 
-**Document Version**: v1.0  
-**Last Updated**: January 18, 2026  
+**Document Version**: v1.1  
+**Last Updated**: March 9, 2026  
 **Status**: ✅ CURRENT  
-**Implementation**: v1.2.1 (Unreleased)  
+**Implementation**: v1.10.0  
 **Related Docs**: [08-ADMIN-FEATURES.md](08-ADMIN-FEATURES.md), [02-SYSTEM-ARCHITECTURE.md](02-SYSTEM-ARCHITECTURE.md)
 
 ---
@@ -112,6 +112,7 @@ import {
 | Overview | LayoutDashboard | Dashboard overview symbol | `/admin/overview` |
 | Users | Users | Multi-user management | `/admin/users` |
 | Trades | TrendingUp | Market activity/performance | `/admin/trades` |
+| Discipline | Target | Discipline tracking/goals | `/admin/discipline-tracker` |
 | Calendar | Calendar | Time-based events | `/admin/economic-calendar` |
 | **Settings** | Settings | Configuration/cog | *Dropdown trigger* |
 
@@ -122,6 +123,7 @@ import {
   LayoutDashboard, 
   Users, 
   TrendingUp, 
+  Target,
   Calendar, 
   Settings 
 } from 'lucide-react';
@@ -130,6 +132,7 @@ const navigationItems = [
   { name: 'Overview', href: '/admin/overview', icon: LayoutDashboard },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Trades', href: '/admin/trades', icon: TrendingUp },
+  { name: 'Discipline', href: '/admin/discipline-tracker', icon: Target },
   { name: 'Calendar', href: '/admin/economic-calendar', icon: Calendar },
 ];
 

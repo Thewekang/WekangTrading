@@ -74,13 +74,15 @@ export function UserComparisonChart({ metric, title, description }: UserComparis
   }
 
   // Prepare chart data
-  const chartData = data
-    .filter(u => u.totalTrades > 0)
-    .slice(0, 10) // Show top 10 users
-    .map(user => ({
-      name: user.userName.split(' ')[0], // First name only for brevity
-      value: metric === 'profitLoss' ? user.profitLoss : user[metric],
-    }));
+  const chartData = Array.isArray(data)
+    ? data
+        .filter(u => u.totalTrades > 0)
+        .slice(0, 10) // Show top 10 users
+        .map(user => ({
+          name: user.userName.split(' ')[0], // First name only for brevity
+          value: metric === 'profitLoss' ? user.profitLoss : user[metric],
+        }))
+    : [];
 
   // Determine bar color based on metric
   let barColor = '#8884d8';

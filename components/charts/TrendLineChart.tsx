@@ -34,6 +34,9 @@ const TrendLineChart = memo(({
   tooltipFormatter = (value) => value.toFixed(2),
 }: TrendLineChartProps) => {
   const chartData = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return [];
+    }
     return data.map(item => ({
       ...item,
       displayDate: format(parseISO(item.date), 'MMM d'),
