@@ -180,8 +180,18 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
         </div>
       )}
 
-      {/* Heatmap Chart */}
-      <ResponsiveContainer width="100%" height={350}>
+      {/* Empty State */}
+      {chartData.length === 0 ? (
+        <div className="h-[350px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+          <div className="text-center">
+            <p className="text-gray-500 text-lg mb-2">🕐 No hourly data available</p>
+            <p className="text-gray-400 text-sm">Start logging trades to see hourly performance</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Heatmap Chart */}
+          <ResponsiveContainer width="100%" height={350}>
         <BarChart 
           data={chartData} 
           margin={{ top: 20, right: 10, left: 10, bottom: 60 }}
@@ -278,6 +288,8 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 });

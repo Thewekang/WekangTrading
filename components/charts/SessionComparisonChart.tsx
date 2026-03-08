@@ -73,6 +73,18 @@ const SessionComparisonChart = memo(({ data, bestSession }: SessionComparisonCha
     return null;
   };
 
+  // Show "No data" message if chartData is empty
+  if (chartData.length === 0) {
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+        <div className="text-center">
+          <p className="text-gray-500 text-lg mb-2">📊 No session data available</p>
+          <p className="text-gray-400 text-sm">Start logging trades to see session performance</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <ResponsiveContainer width="100%" height={300}>
