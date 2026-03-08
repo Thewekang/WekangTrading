@@ -33,7 +33,7 @@ export function HourlyHeatmapWrapper({ userId }: HourlyHeatmapWrapperProps) {
         });
         const data = await response.json();
         if (data.success && !abortController.signal.aborted) {
-          setHourlyStats(data.data);
+          setHourlyStats(data.data.hours || []);
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {

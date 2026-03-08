@@ -68,7 +68,7 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
       const response = await fetch(`/api/stats/by-hour?period=${period}&timezone=${tz}`);
       const result = await response.json();
       if (result.success) {
-        setData(result.data.hours);
+        setData(result.data.hours || []);
       }
     } catch (error) {
       console.error('Failed to fetch hourly stats:', error);

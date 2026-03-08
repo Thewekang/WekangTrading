@@ -34,7 +34,7 @@ export function SessionComparisonChartWrapper({ userId, bestSession }: SessionCo
         });
         const data = await response.json();
         if (data.success && !abortController.signal.aborted) {
-          setSessionStats(data.data);
+          setSessionStats(data.data.sessions || []);
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
