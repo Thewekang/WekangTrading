@@ -87,15 +87,20 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: Hou
   const selectedTimezone = useMemo(() => TIMEZONES.find(tz => tz.value === timezone), [timezone]);
   
   // Transform data for chart
-  const chartData = useMemo(() => data.map(item => ({
-    hour: item.hour,
-    hourLabel: formatHour(item.hour),
-    hourShort: `${item.hour}:00`,
-    'Win Rate': item.winRate,
-    trades: item.totalTrades,
-    wins: item.totalWins,
-    hasTrades: item.totalTrades > 0,
-  })), [data]);
+  const chartData = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+    return data.map(item => ({
+      hour: item.hour,
+      hourLabel: formatHour(item.hour),
+      hourShort: `${item.hour}:00`,
+      'Win Rate': item.winRate,
+      trades: item.totalTrades,
+      wins: item.totalWins,
+      hasTrades: item.totalTrades > 0,
+    }));
+  }, [data]);
 
   // Find best hour (with at least 2 trades)
   const bestHour = useMemo(() => data

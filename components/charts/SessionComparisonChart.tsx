@@ -37,13 +37,18 @@ const SESSION_LABELS: Record<string, string> = {
 
 const SessionComparisonChart = memo(({ data, bestSession }: SessionComparisonChartProps) => {
   // Transform data for chart
-  const chartData = useMemo(() => data.map(item => ({
-    name: SESSION_LABELS[item.session] || item.session,
-    session: item.session,
-    'Win Rate': item.winRate,
-    'Total Trades': item.totalTrades,
-    wins: item.totalWins,
-  })), [data]);
+  const chartData = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+    return data.map(item => ({
+      name: SESSION_LABELS[item.session] || item.session,
+      session: item.session,
+      'Win Rate': item.winRate,
+      'Total Trades': item.totalTrades,
+      wins: item.totalWins,
+    }));
+  }, [data]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
