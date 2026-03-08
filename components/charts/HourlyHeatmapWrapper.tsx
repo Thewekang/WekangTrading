@@ -28,7 +28,7 @@ export function HourlyHeatmapWrapper({ userId }: HourlyHeatmapWrapperProps) {
     
     const fetchHourlyStats = async () => {
       try {
-        const response = await fetch(`/api/stats/by-hour?userId=${userId}&period=month`, {
+        const response = await fetch(`/api/stats/by-hour?userId=${userId}&period=all`, {
           signal: abortController.signal
         });
         const data = await response.json();
@@ -57,5 +57,5 @@ export function HourlyHeatmapWrapper({ userId }: HourlyHeatmapWrapperProps) {
     return <ChartSkeleton />;
   }
 
-  return <HourlyHeatmap data={hourlyStats} userId={userId} period="month" />;
+  return <HourlyHeatmap data={hourlyStats} userId={userId} period="all" />;
 }

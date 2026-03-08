@@ -29,7 +29,7 @@ export function SessionComparisonChartWrapper({ userId, bestSession }: SessionCo
     
     const fetchSessionStats = async () => {
       try {
-        const response = await fetch(`/api/stats/by-session?userId=${userId}&period=month`, {
+        const response = await fetch(`/api/stats/by-session?userId=${userId}&period=all`, {
           signal: abortController.signal
         });
         const data = await response.json();

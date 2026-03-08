@@ -44,7 +44,7 @@ const formatHour = (hour: number): string => {
   return `${hour - 12} PM`;
 };
 
-const HourlyHeatmap = memo(({ data: initialData, userId, period = 'month' }: HourlyHeatmapProps) => {
+const HourlyHeatmap = memo(({ data: initialData, userId, period = 'all' }: HourlyHeatmapProps) => {
   const [timezone, setTimezone] = useState<string>('0');
   const [data, setData] = useState<HourlyData[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
