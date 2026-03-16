@@ -81,7 +81,7 @@ export function RealTimeTradeEntryForm() {
   // Debounced validation for number inputs (300ms delay)
   const debouncedValidation = useDebouncedCallback(
     (fieldName: string) => {
-      trigger(fieldName as keyof IndividualTradeInput);
+      trigger(fieldName as any);
     },
     300
   );
