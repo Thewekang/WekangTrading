@@ -156,7 +156,12 @@ export function BulkTradeEntryForm() {
 
       // Parse date and time in selected import timezone, then convert to UTC
       const datetimeString = `${tradeDate}T${row.time}`;
+      console.log('🔍 Bulk Trade Conversion Debug:');
+      console.log('  - Input datetime string:', datetimeString);
+      console.log('  - Import timezone:', importTimezone);
       const tradeTimestamp = convertToUTC(datetimeString, importTimezone);
+      console.log('  - Converted UTC timestamp:', tradeTimestamp.toISOString());
+      console.log('  - Converted UTC readable:', tradeTimestamp.toUTCString());
 
       // Calculate profit/loss based on result
       let profitLoss = parseFloat(row.amount);
@@ -258,7 +263,10 @@ export function BulkTradeEntryForm() {
           <select
             id="importTimezone"
             value={importTimezone}
-            onChange={(e) => setImportTimezone(e.target.value)}
+            onChange={(e) => {
+              console.log('🌍 Import Timezone changed to:', e.target.value);
+              setImportTimezone(e.target.value);
+            }}
             className="mt-1 w-full sm:w-96 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {COMMON_TIMEZONES.map((tz) => (
@@ -269,6 +277,10 @@ export function BulkTradeEntryForm() {
           </select>
           <p className="mt-1 text-xs text-gray-500">
             All trade times will be interpreted as <strong>{importTimezone}</strong> and converted to UTC for storage.
+          </p>
+          {/* Debug - Current timezone state */}
+          <p className="mt-1 text-xs text-blue-600">
+            🔍 Current Import Timezone State: <strong>{importTimezone}</strong>
           </p>
         </div>
       </div>
