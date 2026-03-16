@@ -111,9 +111,11 @@ export function BulkTradeEntryForm() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    // Validate trade date
+    // Validate trade date FIRST
     if (!tradeDate) {
-      setErrorMessage('Please select a trade date');
+      setErrorMessage('❌ Trade Date is required! Please select a date at the top of the form.');
+      // Scroll to top to show the date field
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -121,24 +123,36 @@ export function BulkTradeEntryForm() {
     const filledRows = rows.filter(r => r.time.trim() !== '');
 
     if (filledRows.length === 0) {
-      setErrorMessage('Please enter at least one trade');
+      setErrorMessage('❌ Please enter at least one trade (fill in at least the Time field)');
       return;
     }
 
     // Validate each filled row
     const errors: string[] = [];
-    const trades = filledRows.map((row, index) => {
-      const rowNum = index + 1;
+    const rowErrors: { [key: number]: string[] } = {};
+    
+    filledRows.forEach((row, index) => {
+      const actualRowNum = rows.findIndex(r => r.id === row.id) + 1;
+      const missingFields: string[] = [];
 
       if (!row.result) {
-        errors.push(`Row ${rowNum}: Result is required`);
+        missingFields.push('Result');
       }
       if (row.sopFollowed === null) {
-        errors.push(`Row ${rowNum}: SOP selection is required`);
+        missingFields.push('SOP');
       }
       if (!row.amount || parseFloat(row.amount) === 0) {
-        errors.push(`Row ${rowNum}: Amount must be non-zero`);
+        missingFields.push('Amount');
       }
+
+      if (missingFields.length > 0) {
+        rowErrors[actualRowNum] = missingFields;
+        errors.push(`Row ${actualRowNum}: Missing ${missingFields.join(', ')}`);
+      }
+    });
+
+    const trades = filledRows.map((row, index) => {
+      const rowNum = index + 1;
 
       // Parse date and time in selected import timezone, then convert to UTC
       const datetimeString = `${tradeDate}T${row.time}`;
@@ -165,7 +179,12 @@ export function BulkTradeEntryForm() {
     });
 
     if (errors.length > 0) {
-      setErrorMessage(errors.join('; '));
+      const errorTitle = errors.length === 1 
+        ? '❌ Please complete the following required field:' 
+        : `❌ Please complete the following ${errors.length} required fields:`;
+      setErrorMessage(`${errorTitle}\n\n${errors.join('\n')}`);
+      // Scroll to top to show error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -263,7 +282,9 @@ export function BulkTradeEntryForm() {
 
       {errorMessage && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          {errorMessage}
+          <div className="whitespace-pre-line font-medium">
+            {errorMessage}
+          </div>
         </div>
       )}
 
