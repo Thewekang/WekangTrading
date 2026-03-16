@@ -218,14 +218,20 @@ export function BulkTradeEntryForm() {
       <div className="bg-white rounded-lg shadow-md p-6 border space-y-4">
         <div>
           <Label htmlFor="tradeDate">Trade Date *</Label>
-          <Input
+          <input
             id="tradeDate"
             type="date"
             value={tradeDate}
-            onChange={(e) => setTradeDate(e.target.value)}
+            onChange={(e) => {
+              console.log('Date selected:', e.target.value);
+              setTradeDate(e.target.value);
+            }}
             max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-            className="mt-1 w-full sm:w-64"
+            className="mt-1 w-full sm:w-64 flex min-h-[44px] rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
           />
+          {/* Debug info - remove after testing */}
+          {tradeDate && <p className="mt-1 text-xs text-green-600">✓ Date selected: {tradeDate}</p>}
+          {!tradeDate && <p className="mt-1 text-xs text-amber-600">← Please select a date to enable Save button</p>}
         </div>
         
         <div>
@@ -403,6 +409,17 @@ export function BulkTradeEntryForm() {
         >
           {isSubmitting ? 'Submitting...' : `💾 Save ${rows.filter(r => r.time).length} Trades`}
         </Button>
+        {/* Debug info - remove after testing */}
+        {!tradeDate && (
+          <span className="text-sm text-amber-600 self-center">
+            ⚠️ Button disabled: No trade date selected
+          </span>
+        )}
+        {isSubmitting && (
+          <span className="text-sm text-blue-600 self-center">
+            ⏳ Submitting...
+          </span>
+        )}
         <Button
           variant="outline"
           size="lg"
