@@ -231,11 +231,11 @@ export function RealTimeTradeEntryForm() {
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="font-semibold text-red-800 mb-2">Please fix the following errors:</p>
             <ul className="text-sm text-red-700 list-disc list-inside">
-              {errors.tradeTimestamp && <li>Trade timestamp: {errors.tradeTimestamp.message}</li>}
-              {errors.result && <li>Result: {errors.result.message}</li>}
-              {errors.sopFollowed && <li>SOP Compliance: {errors.sopFollowed.message}</li>}
-              {errors.profitLossUsd && <li>Profit/Loss: {errors.profitLossUsd.message}</li>}
-              {errors.notes && <li>Notes: {errors.notes.message}</li>}
+              {errors.tradeTimestamp && <li>Trade timestamp: {String(errors.tradeTimestamp.message)}</li>}
+              {errors.result && <li>Result: {String(errors.result.message)}</li>}
+              {errors.sopFollowed && <li>SOP Compliance: {String(errors.sopFollowed.message)}</li>}
+              {errors.profitLossUsd && <li>Profit/Loss: {String(errors.profitLossUsd.message)}</li>}
+              {errors.notes && <li>Notes: {String(errors.notes.message)}</li>}
             </ul>
           </div>
         )}
@@ -257,7 +257,7 @@ export function RealTimeTradeEntryForm() {
             )}
           />
           {errors.tradeTimestamp && (
-            <p className="mt-1 text-sm text-red-600">{errors.tradeTimestamp.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.tradeTimestamp.message)}</p>
           )}
         </div>
 
@@ -310,7 +310,7 @@ export function RealTimeTradeEntryForm() {
             </label>
           </div>
           {errors.result && (
-            <p className="mt-1 text-sm text-red-600">{errors.result.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.result.message)}</p>
           )}
         </div>
 
@@ -351,7 +351,7 @@ export function RealTimeTradeEntryForm() {
             )}
           />
           {errors.sopFollowed && (
-            <p className="mt-1 text-sm text-red-600">{errors.sopFollowed.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.sopFollowed.message)}</p>
           )}
         </div>
 
@@ -377,7 +377,7 @@ export function RealTimeTradeEntryForm() {
             </p>
           )}
           {errors.sopTypeId && (
-            <p className="mt-1 text-sm text-red-600">{errors.sopTypeId.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.sopTypeId.message)}</p>
           )}
         </div>
 
@@ -397,7 +397,7 @@ export function RealTimeTradeEntryForm() {
           />
           <p className="mt-1 text-xs text-gray-500">Trading pair or instrument (2-10 characters, uppercase)</p>
           {errors.symbol && (
-            <p className="mt-1 text-sm text-red-600">{errors.symbol.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.symbol.message)}</p>
           )}
         </div>
 
@@ -418,7 +418,7 @@ export function RealTimeTradeEntryForm() {
           />
           <p className="mt-1 text-xs text-gray-500">Enter amount as positive number (auto-calculated based on WIN/LOSS)</p>
           {errors.profitLossUsd && (
-            <p className="mt-1 text-sm text-red-600">{errors.profitLossUsd.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.profitLossUsd.message)}</p>
           )}
         </div>
 
@@ -434,7 +434,7 @@ export function RealTimeTradeEntryForm() {
             className="mt-2 w-full rounded-md border border-gray-300 px-3 py-3 text-base min-h-[100px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation resize-y"
           />
           {errors.notes && (
-            <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.notes.message)}</p>
           )}
         </div>
 
