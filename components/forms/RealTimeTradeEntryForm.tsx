@@ -13,11 +13,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { individualTradeSchema, IndividualTradeInput } from '@/lib/validations';
+import { individualTradeSchema } from '@/lib/validations';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
+import { z } from 'zod';
+
+// Form schema that accepts datetime-local string input
+const realTimeTradeFormSchema = individualTradeSchema.extend({
+  tradeTimestamp: z.union([
+    z.date(),
+    z.string().min(1, 'Trade time is required'),
+  ]),
+});
 
 interface SopType {
   id: string;
@@ -57,21 +66,22 @@ export function RealTimeTradeEntryForm() {
     watch,
     trigger,
     formState: { errors },
-  } = useForm<IndividualTradeInput>({
-    resolver: zodResolver(individualTradeSchema),
+  } = useForm<any>({
+    resolver: zodResolver(realTimeTradeFormSchema),
     defaultValues: {
       result: 'WIN',
       sopFollowed: undefined,
       sopTypeId: null,
       profitLossUsd: 0,
       notes: '',
+      tradeTimestamp: '', // Store as string initially
     },
   });
 
   // Debounced validation for number inputs (300ms delay)
   const debouncedValidation = useDebouncedCallback(
     (fieldName: string) => {
-      trigger(fieldName as keyof IndividualTradeInput);
+      trigger(fieldName as any);
     },
     300
   );
@@ -80,7 +90,8 @@ export function RealTimeTradeEntryForm() {
   useEffect(() => {
     setIsClient(true);
     const now = new Date();
-    setValue('tradeTimestamp', now);
+    // Format as datetime-local string
+    setValue('tradeTimestamp', formatDateForInput(now));
   }, [setValue]);
 
   // Fetch SOP types
@@ -121,33 +132,13 @@ export function RealTimeTradeEntryForm() {
         profitLoss = Math.abs(profitLoss);
       }
       
-      // Convert datetime-local input to UTC considering selected entry timezone
-      let utcTimestamp: Date;
-      if (data.tradeTimestamp instanceof Date) {
-        // Convert Date object to datetime-local string in entry timezone, then to UTC
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-          timeZone: entryTimezone,
-        });
-        const parts = formatter.formatToParts(data.tradeTimestamp);
-        const year = parts.find(p => p.type === 'year')?.value;
-        const month = parts.find(p => p.type === 'month')?.value;
-        const day = parts.find(p => p.type === 'day')?.value;
-        const hour = parts.find(p => p.type === 'hour')?.value;
-        const minute = parts.find(p => p.type === 'minute')?.value;
-        const datetimeString = `${year}-${month}-${day}T${hour}:${minute}`;
-        utcTimestamp = convertToUTC(datetimeString, entryTimezone);
-      } else if (typeof data.tradeTimestamp === 'string') {
-        // If it's a datetime-local string format, convert using selected entry timezone
-        utcTimestamp = convertToUTC(data.tradeTimestamp, entryTimezone);
-      } else {
-        utcTimestamp = new Date(data.tradeTimestamp);
-      }
+      // Convert datetime-local string to UTC using selected entry timezone
+      // The datetime-local input gives us a string like "2026-03-16T15:12"
+      // We interpret this as being in the selected Entry Timezone, then convert to UTC
+      const datetimeString = typeof data.tradeTimestamp === 'string' 
+        ? data.tradeTimestamp 
+        : formatDateForInput(data.tradeTimestamp);
+      const utcTimestamp = convertToUTC(datetimeString, entryTimezone);
       
       const submitData = {
         tradeTimestamp: utcTimestamp.toISOString(),
@@ -201,7 +192,7 @@ export function RealTimeTradeEntryForm() {
       });
       
       // Set new timestamp after reset
-      setValue('tradeTimestamp', new Date());
+      setValue('tradeTimestamp', formatDateForInput(new Date()));
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -240,11 +231,11 @@ export function RealTimeTradeEntryForm() {
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="font-semibold text-red-800 mb-2">Please fix the following errors:</p>
             <ul className="text-sm text-red-700 list-disc list-inside">
-              {errors.tradeTimestamp && <li>Trade timestamp: {errors.tradeTimestamp.message}</li>}
-              {errors.result && <li>Result: {errors.result.message}</li>}
-              {errors.sopFollowed && <li>SOP Compliance: {errors.sopFollowed.message}</li>}
-              {errors.profitLossUsd && <li>Profit/Loss: {errors.profitLossUsd.message}</li>}
-              {errors.notes && <li>Notes: {errors.notes.message}</li>}
+              {errors.tradeTimestamp && <li>Trade timestamp: {String(errors.tradeTimestamp.message)}</li>}
+              {errors.result && <li>Result: {String(errors.result.message)}</li>}
+              {errors.sopFollowed && <li>SOP Compliance: {String(errors.sopFollowed.message)}</li>}
+              {errors.profitLossUsd && <li>Profit/Loss: {String(errors.profitLossUsd.message)}</li>}
+              {errors.notes && <li>Notes: {String(errors.notes.message)}</li>}
             </ul>
           </div>
         )}
@@ -259,14 +250,14 @@ export function RealTimeTradeEntryForm() {
               <Input
                 id="tradeTimestamp"
                 type="datetime-local"
-                value={isClient && field.value instanceof Date ? formatDateForInput(field.value) : ''}
-                onChange={(e) => field.onChange(new Date(e.target.value))}
+                value={isClient ? field.value : ''}
+                onChange={(e) => field.onChange(e.target.value)}
                 className="mt-2 text-base min-h-[48px]"
               />
             )}
           />
           {errors.tradeTimestamp && (
-            <p className="mt-1 text-sm text-red-600">{errors.tradeTimestamp.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.tradeTimestamp.message)}</p>
           )}
         </div>
 
@@ -319,7 +310,7 @@ export function RealTimeTradeEntryForm() {
             </label>
           </div>
           {errors.result && (
-            <p className="mt-1 text-sm text-red-600">{errors.result.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.result.message)}</p>
           )}
         </div>
 
@@ -360,7 +351,7 @@ export function RealTimeTradeEntryForm() {
             )}
           />
           {errors.sopFollowed && (
-            <p className="mt-1 text-sm text-red-600">{errors.sopFollowed.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.sopFollowed.message)}</p>
           )}
         </div>
 
@@ -386,7 +377,7 @@ export function RealTimeTradeEntryForm() {
             </p>
           )}
           {errors.sopTypeId && (
-            <p className="mt-1 text-sm text-red-600">{errors.sopTypeId.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.sopTypeId.message)}</p>
           )}
         </div>
 
@@ -406,7 +397,7 @@ export function RealTimeTradeEntryForm() {
           />
           <p className="mt-1 text-xs text-gray-500">Trading pair or instrument (2-10 characters, uppercase)</p>
           {errors.symbol && (
-            <p className="mt-1 text-sm text-red-600">{errors.symbol.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.symbol.message)}</p>
           )}
         </div>
 
@@ -427,7 +418,7 @@ export function RealTimeTradeEntryForm() {
           />
           <p className="mt-1 text-xs text-gray-500">Enter amount as positive number (auto-calculated based on WIN/LOSS)</p>
           {errors.profitLossUsd && (
-            <p className="mt-1 text-sm text-red-600">{errors.profitLossUsd.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.profitLossUsd.message)}</p>
           )}
         </div>
 
@@ -443,7 +434,7 @@ export function RealTimeTradeEntryForm() {
             className="mt-2 w-full rounded-md border border-gray-300 px-3 py-3 text-base min-h-[100px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation resize-y"
           />
           {errors.notes && (
-            <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+            <p className="mt-1 text-sm text-red-600">{String(errors.notes.message)}</p>
           )}
         </div>
 
