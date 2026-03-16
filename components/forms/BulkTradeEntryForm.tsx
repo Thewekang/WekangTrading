@@ -156,12 +156,7 @@ export function BulkTradeEntryForm() {
 
       // Parse date and time in selected import timezone, then convert to UTC
       const datetimeString = `${tradeDate}T${row.time}`;
-      console.log('🔍 Bulk Trade Conversion Debug:');
-      console.log('  - Input datetime string:', datetimeString);
-      console.log('  - Import timezone:', importTimezone);
       const tradeTimestamp = convertToUTC(datetimeString, importTimezone);
-      console.log('  - Converted UTC timestamp:', tradeTimestamp.toISOString());
-      console.log('  - Converted UTC readable:', tradeTimestamp.toUTCString());
 
       // Calculate profit/loss based on result
       let profitLoss = parseFloat(row.amount);
@@ -246,16 +241,10 @@ export function BulkTradeEntryForm() {
             id="tradeDate"
             type="date"
             value={tradeDate}
-            onChange={(e) => {
-              console.log('Date selected:', e.target.value);
-              setTradeDate(e.target.value);
-            }}
+            onChange={(e) => setTradeDate(e.target.value)}
             max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
             className="mt-1 w-full sm:w-64 flex min-h-[44px] rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
           />
-          {/* Debug info - remove after testing */}
-          {tradeDate && <p className="mt-1 text-xs text-green-600">✓ Date selected: {tradeDate}</p>}
-          {!tradeDate && <p className="mt-1 text-xs text-amber-600">← Please select a date to enable Save button</p>}
         </div>
         
         <div>
@@ -263,10 +252,7 @@ export function BulkTradeEntryForm() {
           <select
             id="importTimezone"
             value={importTimezone}
-            onChange={(e) => {
-              console.log('🌍 Import Timezone changed to:', e.target.value);
-              setImportTimezone(e.target.value);
-            }}
+            onChange={(e) => setImportTimezone(e.target.value)}
             className="mt-1 w-full sm:w-96 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {COMMON_TIMEZONES.map((tz) => (
@@ -277,10 +263,6 @@ export function BulkTradeEntryForm() {
           </select>
           <p className="mt-1 text-xs text-gray-500">
             All trade times will be interpreted as <strong>{importTimezone}</strong> and converted to UTC for storage.
-          </p>
-          {/* Debug - Current timezone state */}
-          <p className="mt-1 text-xs text-blue-600">
-            🔍 Current Import Timezone State: <strong>{importTimezone}</strong>
           </p>
         </div>
       </div>
@@ -442,17 +424,6 @@ export function BulkTradeEntryForm() {
         >
           {isSubmitting ? 'Submitting...' : `💾 Save ${rows.filter(r => r.time).length} Trades`}
         </Button>
-        {/* Debug info - remove after testing */}
-        {!tradeDate && (
-          <span className="text-sm text-amber-600 self-center">
-            ⚠️ Button disabled: No trade date selected
-          </span>
-        )}
-        {isSubmitting && (
-          <span className="text-sm text-blue-600 self-center">
-            ⏳ Submitting...
-          </span>
-        )}
         <Button
           variant="outline"
           size="lg"

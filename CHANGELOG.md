@@ -11,6 +11,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.0] - 2026-03-16
+
+### Fixed
+- **🌍 CRITICAL: Timezone Conversion in Real-Time Trade Entry**
+  - Fixed Entry Timezone selection not being used for UTC conversion
+  - Changed datetime-local input storage from Date object to string to prevent browser timezone interpretation
+  - Simplified conversion flow: datetime-local string → interpret in Entry Timezone → convert to UTC
+  - Before: User enters time, selects timezone, but Date object was created in browser's local timezone
+  - After: Datetime string is correctly interpreted as being in the selected Entry Timezone
+  - Resolves: Trade timestamps stored with incorrect timezone offset
+
+- **✅ Bulk Trade Entry Validation**
+  - Added clear validation alerts showing exactly which required fields are missing
+  - Auto-scroll to top when validation fails to show error message
+  - Multi-line error formatting with field-by-field breakdown
+  - Shows count of total validation errors
+  - Example: "❌ Please complete the following 2 required fields: Row 1: Missing Result, SOP"
+
+- **📅 Bulk Trade Entry Date Input**
+  - Replaced shadcn Input component with native HTML date input for better compatibility
+  - Fixed date input state update issues that prevented Save button from enabling
+  - Maintains same styling with direct className application
+
+- **🔧 TypeScript Compilation Errors**
+  - Fixed error.message type issues in form validation display
+  - Wrapped all error.message accesses with String() for type safety
+  - Resolved: "Type 'FieldError' is not assignable to type 'ReactNode'"
+  - Build now passes: ✓ Compiled successfully, ✓ Linting and checking validity of types
+
+### Verified
+- **✅ Bulk Trade Entry Timezone Conversion**
+  - Confirmed Import Timezone selection correctly used for UTC conversion
+  - Verified: Trade entered at 15:15 in America/New_York → stored as 19:15 UTC (EDT = UTC-4)
+  - Market session calculated from UTC time (not user's local timezone)
+  - Example: 15:15 EDT → 19:15 UTC → US session (13:00-22:00 UTC range) ✓
+
+- **✅ Trades List Display**
+  - TIME column: Correctly converts UTC to user's timezone setting (Asia/Kuala_Lumpur)
+  - SESSION badge: Shows market session based on UTC time when trade was executed
+  - Trade entered at 19:15 UTC displays as "Mar 16, 2026, 03:15" in Asia/KL timezone (+8 hours)
+
+### Removed
+- Debug console.log statements from BulkTradeEntryForm
+- Debug indicators and status messages from production code
+- Temporary timezone state display elements
+
+---
+
 ## [1.10.0] - 2026-03-09
 
 ### Added
