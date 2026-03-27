@@ -45,7 +45,7 @@ interface TradesListProps {
 export function TradesList({ initialTrades, userId }: TradesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { formatDate, timezone } = useTimezone();
+  const { formatDate, timezone, datetimeLocalToUTC } = useTimezone();
   const isMobile = useIsMobile();
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
@@ -191,8 +191,17 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     
     try {
       const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
+      if (startDate) {
+        // Convert start of day in user's timezone to UTC ISO string
+        const startUTC = datetimeLocalToUTC(startDate + 'T00:00');
+        params.append('startDate', startUTC.toISOString());
+      }
+      if (endDate) {
+        // Convert end of day in user's timezone to UTC ISO string
+        const endUTC = datetimeLocalToUTC(endDate + 'T23:59');
+        endUTC.setSeconds(59, 999);
+        params.append('endDate', endUTC.toISOString());
+      }
       if (resultFilter) params.append('result', resultFilter);
       if (sessionFilter.length > 0) params.append('marketSessions', sessionFilter.join(','));
       if (sopFilter) params.append('sopFollowed', sopFilter);

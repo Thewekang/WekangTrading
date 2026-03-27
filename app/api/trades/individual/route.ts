@@ -32,9 +32,11 @@ export async function GET(request: NextRequest) {
 
     // Optional filters
     if (searchParams.get('startDate')) {
+      // Client sends UTC ISO string already converted from user's timezone
       filters.startDate = new Date(searchParams.get('startDate')!);
     }
     if (searchParams.get('endDate')) {
+      // Client sends UTC ISO string already converted from user's timezone
       filters.endDate = new Date(searchParams.get('endDate')!);
     }
     if (searchParams.get('result')) {
