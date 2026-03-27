@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.1] - 2026-03-28
+
+### Fixed
+- **🔍 Trades Page: Filter Not Returning Results**
+  - Root cause: `endDate` was parsed as `new Date('YYYY-MM-DD')` which JavaScript interprets as midnight UTC (`T00:00:00.000Z`), so the `WHERE trade_timestamp <= midnight` clause excluded every trade that occurred during that day
+  - All date-based filters were broken: Today, Last 7 Days, Last 30 Days, and manual date ranges all returned zero trades
+  - Fix applied in `app/api/trades/individual/route.ts` and `app/api/export/csv/route.ts`
+
+- **🌍 Trades Page: Date Filters Now Respect User Timezone**
+  - Date inputs (`startDate`, `endDate`) were treated as UTC midnight/end-of-day boundaries, ignoring the user's configured timezone setting
+  - A user in `Asia/Kuala_Lumpur` (UTC+8) picking March 28 would get `T00:00Z–T23:59Z` (UTC day) instead of `T16:00Z–T15:59Z` (the actual KL day in UTC)
+  - Fix: Client now converts date inputs to proper UTC ISO strings using `datetimeLocalToUTC` from `TimezoneContext` (which has the user's timezone already bound) before sending to API
+  - API routes now accept full ISO strings directly instead of appending UTC time strings
+
+  **Files changed:**
+  - `components/TradesList.tsx` — converts `startDate + 'T00:00'` and `endDate + 'T23:59'` using user timezone before API call
+  - `app/api/trades/individual/route.ts` — accepts pre-converted UTC ISO strings
+  - `app/api/export/csv/route.ts` — same fix for CSV export date range
+
+### Verified
+- **✅ Date Display in Trades Listing**
+  - Confirmed display already correctly uses `formatDate` from `useTimezone()` context in all views (desktop table, virtualized table, mobile card view)
+  - No changes were needed for display
+
+---
+
 ## [1.11.0] - 2026-03-16
 
 ### Fixed
