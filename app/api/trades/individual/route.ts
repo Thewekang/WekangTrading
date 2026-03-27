@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('maxProfitLoss')) {
       filters.maxProfitLoss = parseFloat(searchParams.get('maxProfitLoss')!);
     }
+    if (searchParams.get('symbol')) {
+      filters.symbol = searchParams.get('symbol')!;
+    }
 
     // Get trades
     const result = await getTrades(filters);
