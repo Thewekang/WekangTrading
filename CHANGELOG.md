@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.0] - 2026-03-28
+
+### Added
+- **💱 Symbol Filter on /trades Page**
+  - New Symbol input in Advanced Filters section (text input with datalist autocomplete)
+  - Autocomplete populated from `/api/stats/symbols` — user's own distinct traded symbols fetched silently on mount
+  - Case-insensitive partial match (`LIKE %value%`) so typing `EUR` matches `EURUSD`, `EURGBP`, etc.
+  - Symbol included in URL params, active filter badges, empty-state checks, and resets with Clear Filters
+
+- **📊 Symbol Performance Analytics on Dashboard**
+  - New `SymbolStatsCard` component on dashboard between stats cards and Active Targets
+  - Shows **🏆 Most Profitable** and **⚠️ Biggest Losses** symbol lists (up to 5 each)
+  - Each entry displays: ticker, total trades, win rate %, net P/L ($)
+  - Only shown when user has at least one trade with symbol logged
+  - Fetched server-side (`getSymbolStats`) in `Promise.all` with other dashboard data
+
+### Changed (Backend)
+- `GetTradesFilters` interface: added `symbol?: string` field
+- `getTrades` service: LIKE filter on `individualTrades.symbol`
+- `getUniqueSymbols(userId)`: select distinct non-null symbols (for autocomplete endpoint)
+- `getSymbolStats(userId, timeframe, limit)`: single `GROUP BY symbol` SQL aggregation returning top profitable/loss arrays
+- New API endpoint: `GET /api/stats/symbols` — returns user's distinct traded symbols
+- `GET /api/trades/individual`: parses `symbol` query param and passes to service
+
+---
+
 ## [1.11.1] - 2026-03-28
 
 ### Fixed
