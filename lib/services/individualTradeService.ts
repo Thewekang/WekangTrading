@@ -5,7 +5,7 @@
 
 import { db } from '../db';
 import { individualTrades, sopTypes } from '../db/schema';
-import { eq, and, desc, gte, lte, inArray, count } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, inArray, count, like, isNotNull } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { updateDailySummary } from './dailySummaryService';
 import { updateUserStatsFromTrades } from './badgeService';
@@ -42,6 +42,7 @@ interface GetTradesFilters {
   sopFollowed?: boolean;
   minProfitLoss?: number;
   maxProfitLoss?: number;
+  symbol?: string;
   page?: number;
   pageSize?: number;
 }
@@ -160,6 +161,7 @@ export async function getTrades(filters: GetTradesFilters) {
     sopFollowed,
     minProfitLoss,
     maxProfitLoss,
+    symbol,
     page = 1,
     pageSize = PAGINATION.PAGINATION_PAGE_SIZE,
   } = filters;
@@ -195,6 +197,9 @@ export async function getTrades(filters: GetTradesFilters) {
   }
   if (maxProfitLoss !== undefined) {
     conditions.push(lte(individualTrades.profitLossUsd, maxProfitLoss));
+  }
+  if (symbol) {
+    conditions.push(like(individualTrades.symbol, `%${symbol.toUpperCase()}%`));
   }
 
   const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0];
@@ -273,6 +278,17 @@ export async function getTrades(filters: GetTradesFilters) {
       sopRate,
     },
   };
+}
+
+/**
+ * Get unique symbols traded by a user (for filter autocomplete)
+ */
+export async function getUniqueSymbols(userId: string): Promise<string[]> {
+  const results = await db
+    .selectDistinct({ symbol: individualTrades.symbol })
+    .from(individualTrades)
+    .where(and(eq(individualTrades.userId, userId), isNotNull(individualTrades.symbol)));
+  return results.map(r => r.symbol!).sort();
 }
 
 /**

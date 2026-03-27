@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { getPersonalStats } from '@/lib/services/statsService';
+import { getPersonalStats, getSymbolStats } from '@/lib/services/statsService';
 import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
@@ -19,6 +19,7 @@ const WeeklyEconomicNews = dynamic(() => import('@/components/calendar/WeeklyEco
 });
 
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
+import { SymbolStatsCard } from '@/components/dashboard/SymbolStatsCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
 import { CollapsibleAchievementsSection } from '@/components/dashboard/CollapsibleAchievementsSection';
@@ -37,10 +38,11 @@ export default async function DashboardPage() {
 
   // Fetch only critical stats for initial page load
   // sessionStats and hourlyStats will be fetched client-side on demand (in collapsible sections)
-  const [stats, activeTargets, bestSop] = await Promise.all([
+  const [stats, activeTargets, bestSop, symbolStats] = await Promise.all([
     getPersonalStats(session.user.id, 'all'),
     getActiveTargetsWithProgress(session.user.id),
     getBestSopType(session.user.id, 'all'),
+    getSymbolStats(session.user.id, 'all'),
   ]);
 
   // Fallback to zeros if no data yet
@@ -165,6 +167,13 @@ export default async function DashboardPage() {
             <BestSopCard data={bestSop} period="all" />
           </div>
         </div>
+
+        {/* Symbol Performance Analytics */}
+        {symbolStats.all.length > 0 && (
+          <div className="mb-6">
+            <SymbolStatsCard data={symbolStats} />
+          </div>
+        )}
 
         {/* Active Targets Progress */}
         {activeTargets.length > 0 && (
