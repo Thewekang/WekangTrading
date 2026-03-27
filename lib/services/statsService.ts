@@ -7,7 +7,7 @@
 
 import { db } from '@/lib/db';
 import { dailySummaries, individualTrades } from '@/lib/db/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, isNotNull, sql, count } from 'drizzle-orm';
 import type { DailySummary } from '@/lib/db/schema/summaries';
 
 type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
@@ -408,4 +408,78 @@ export async function getHourlyStats(
       winRate: 0,
     }));
   }
+}
+
+// ============================================
+// SYMBOL STATS
+// ============================================
+
+export interface SymbolStat {
+  symbol: string;
+  totalTrades: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  netProfitLoss: number;
+}
+
+export interface SymbolStats {
+  topProfitable: SymbolStat[];
+  topLoss: SymbolStat[];
+  all: SymbolStat[];
+}
+
+/**
+ * Get per-symbol aggregated statistics
+ * Queries individual_trades directly since daily_summaries don't have symbol breakdown
+ */
+export async function getSymbolStats(
+  userId: string,
+  timeframe: 'week' | 'month' | 'year' | 'all' = 'all',
+  limit = 5
+): Promise<SymbolStats> {
+  const now = new Date();
+  let startDate: Date | undefined;
+
+  switch (timeframe) {
+    case 'week':  startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+    case 'month': startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+    case 'year':  startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+    default: startDate = undefined;
+  }
+
+  const conditions = [
+    eq(individualTrades.userId, userId),
+    isNotNull(individualTrades.symbol),
+  ];
+  if (startDate) conditions.push(gte(individualTrades.tradeTimestamp, startDate));
+
+  const rows = await db
+    .select({
+      symbol: individualTrades.symbol,
+      totalTrades: count(),
+      wins: sql<number>`cast(sum(case when ${individualTrades.result} = 'WIN' then 1 else 0 end) as integer)`,
+      netProfitLoss: sql<number>`sum(${individualTrades.profitLossUsd})`,
+    })
+    .from(individualTrades)
+    .where(and(...conditions))
+    .groupBy(individualTrades.symbol);
+
+  const all: SymbolStat[] = rows.map(r => {
+    const wins = Number(r.wins ?? 0);
+    const total = Number(r.totalTrades ?? 0);
+    return {
+      symbol: r.symbol!,
+      totalTrades: total,
+      wins,
+      losses: total - wins,
+      winRate: total > 0 ? Math.round((wins / total) * 1000) / 10 : 0,
+      netProfitLoss: Math.round(Number(r.netProfitLoss ?? 0) * 100) / 100,
+    };
+  });
+
+  const topProfitable = [...all].sort((a, b) => b.netProfitLoss - a.netProfitLoss).slice(0, limit);
+  const topLoss = [...all].sort((a, b) => a.netProfitLoss - b.netProfitLoss).slice(0, limit);
+
+  return { topProfitable, topLoss, all };
 }
