@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.1] - 2026-04-02
+
+### Fixed
+- **📥 CSV Import: False "Trade date cannot be in the future" Validation Error**
+  - Root cause: the future-date check in `csvParser.ts` used a strict real-time UTC comparison (`tradeDate > new Date()`). Users in UTC+ timezones (e.g. UTC+8/Malaysia) whose CSV timestamps were in UTC would have end-of-day trades (e.g. 18:xx–19:xx UTC) rejected when imported — because locally it was already the next day, yet those UTC hours had not elapsed yet from the server's UTC clock perspective.
+  - Fix: aligned the CSV parser's future-date threshold with the same +1 day grace window already used in `bulkTradeEntrySchema` (max allowed = end of tomorrow UTC). This prevents over-rejection of valid UTC-timestamped data imported by UTC+ users.
+  - **File changed:** `lib/utils/csvParser.ts`
+
+---
+
 ## [1.12.0] - 2026-03-28
 
 ### Added

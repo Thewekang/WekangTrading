@@ -133,12 +133,19 @@ function validateAndTransformRow(
   }
 
   // Check if date is in future (using UTC)
-  if (tradeDate && tradeDate > new Date()) {
-    errors.push({
-      row: rowNumber,
-      field: 'Date & time',
-      message: 'Trade date cannot be in the future',
-    });
+  // Allow up to +1 day to accommodate timezone differences (e.g. UTC+8 users importing UTC timestamps
+  // while their local date is already tomorrow relative to UTC)
+  if (tradeDate) {
+    const maxAllowedDate = new Date();
+    maxAllowedDate.setDate(maxAllowedDate.getDate() + 1);
+    maxAllowedDate.setHours(23, 59, 59, 999);
+    if (tradeDate > maxAllowedDate) {
+      errors.push({
+        row: rowNumber,
+        field: 'Date & time',
+        message: 'Trade date cannot be in the future',
+      });
+    }
   }
 
   // Validate Result
