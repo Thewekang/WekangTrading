@@ -20,6 +20,8 @@ export interface PersonalStats {
   totalSopFollowed: number;
   sopRate: number;
   totalProfitLossUsd: number;
+  totalCommissionUsd: number;
+  netProfitLossUsd: number;
   bestSession: MarketSession | null;
   bestSessionWinRate: number;
   sessionBreakdown: Record<MarketSession, { trades: number; wins: number; winRate: number }>;
@@ -88,6 +90,7 @@ export async function getPersonalStats(
       totalLosses: dailySummaries.totalLosses,
       totalSopFollowed: dailySummaries.totalSopFollowed,
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+      totalCommissionUsd: dailySummaries.totalCommissionUsd,
     })
     .from(dailySummaries)
     .where(and(...conditions))
@@ -99,6 +102,8 @@ export async function getPersonalStats(
   const totalLosses = summaries.reduce((sum, s) => sum + s.totalLosses, 0);
   const totalSopFollowed = summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0);
   const totalProfitLossUsd = summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0);
+  const totalCommissionUsd = summaries.reduce((sum, s) => sum + (s.totalCommissionUsd ?? 0), 0);
+  const netProfitLossUsd = totalProfitLossUsd + totalCommissionUsd;
 
   const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
@@ -170,6 +175,8 @@ export async function getPersonalStats(
     totalSopFollowed,
     sopRate: Math.round(sopRate * 10) / 10,
     totalProfitLossUsd: Math.round(totalProfitLossUsd * 100) / 100, // Round to cents
+    totalCommissionUsd: Math.round(totalCommissionUsd * 100) / 100,
+    netProfitLossUsd: Math.round(netProfitLossUsd * 100) / 100,
     bestSession,
     bestSessionWinRate: Math.round(bestWinRate * 10) / 10,
     sessionBreakdown,

@@ -12,7 +12,8 @@ export const dailySummaries = sqliteTable('daily_summaries', {
   totalLosses: integer('total_losses').notNull().default(0),
   totalSopFollowed: integer('total_sop_followed').notNull().default(0),
   totalSopNotFollowed: integer('total_sop_not_followed').notNull().default(0),
-  totalProfitLossUsd: real('total_profit_loss_usd').notNull().default(0),
+  totalProfitLossUsd: real('total_profit_loss_usd').notNull().default(0), // gross P&L from TRANSACTION entries only
+  totalCommissionUsd: real('total_commission_usd').notNull().default(0), // sum of COMMISSION entries (always <= 0)
   asiaSessionTrades: integer('asia_session_trades').notNull().default(0),
   asiaSessionWins: integer('asia_session_wins').notNull().default(0),
   europeSessionTrades: integer('europe_session_trades').notNull().default(0),

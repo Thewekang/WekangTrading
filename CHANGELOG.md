@@ -11,6 +11,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.0] - 2026-04-18
+
+### Added
+- **⚖️ Break-Even (BE) Trade Result Type**
+  - New `BE` result option across all 3 entry methods: real-time (`/trades/new`), bulk (`/trades/bulk`), and CSV import
+  - BE trades are recorded with `profitLossUsd = 0` (enforced automatically)
+  - `/trades/new`: 3-column result grid (WIN / LOSS / BE); selecting BE locks amount field to read-only `$0.00`
+  - `/trades/bulk`: BE option in result dropdown; amount `0` accepted only when result is BE
+  - CSV import: accepts `BE` in result column; `Amount = 0` allowed when result is BE; template updated with BE example row
+  - BE badge displayed in gray (⚖️) across all trade views: list, card, detail page, admin trades, import preview
+  - P/L amount shown in gray (`text-gray-500`) for `$0.00` trades (was incorrectly red before)
+  - Result filter dropdowns (trades list, export modal) include "Break-Evens Only" option
+  - PDF export renders BE badge with `.badge.be { background: #f3f4f6; color: #374151; }` CSS class
+
+- **💸 Commission Entry Type** *(from migration 0010)*
+  - New `entry_type` column on `individual_trades`: `'TRANSACTION'` (default) or `'COMMISSION'`
+  - Commission entries: `result` and `sopFollowed` are `null`; `profitLossUsd` must be negative (fee deduction)
+  - `daily_summaries` gains `total_commission_usd` column for aggregate commission tracking
+  - Entry type filter added to `/trades` list page
+  - Bulk entry form and CSV import support `COMMISSION` entry type
+  - Commission entries excluded from win rate and SOP compliance calculations
+
+### Fixed
+- **`totalLosses` calculation bug**: was using `totalCount - totalWins` which incorrectly counted BE trades as losses; now explicitly filters `result === 'LOSS'`
+- P/L color for `$0.00` (BE trades) now shows gray instead of red in `TradesList` and `TradesTableVirtualized`
+
+### Changed
+- `lib/db/schema/trades.ts`: `result` enum expanded to `['WIN', 'LOSS', 'BE']`
+- `lib/validations.ts`: `transactionTradeSchema` result enum includes `'BE'`; `profitLossUsd` allows `0` for transactions
+- All services, API routes, and components updated to handle `'BE'` result type
+
+---
+
 ## [1.12.1] - 2026-04-02
 
 ### Fixed

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     if (body.startDate) filters.startDate = new Date(body.startDate);
     if (body.endDate) filters.endDate = new Date(body.endDate);
-    if (body.result) filters.result = body.result as 'WIN' | 'LOSS';
+    if (body.result) filters.result = body.result as 'WIN' | 'LOSS' | 'BE';
     if (body.marketSession) filters.marketSession = body.marketSession as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
     // Handle boolean sopFollowed - skip empty strings
     if (body.sopFollowed !== undefined && body.sopFollowed !== '') {
