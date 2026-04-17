@@ -217,6 +217,18 @@ export default function ImportTradesPage() {
               <Download className="mr-2 h-4 w-4" />
               Download CSV Template
             </Button>
+            <div className="ml-11 mt-4 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm">
+              <p className="font-medium text-gray-700 mb-2">CSV Column Format:</p>
+              <code className="text-xs text-gray-600 block mb-2">Date &amp; time, Type, Result, SOP, SOP Type, Amount, Symbol, Notes</code>
+              <ul className="text-xs text-gray-600 space-y-1">
+                <li>• <strong>Type</strong>: <code>Transaction</code> (default) or <code>Commission</code> — optional, defaults to Transaction if missing</li>
+                <li>• <strong>Result</strong>: <code>WIN</code> or <code>LOSS</code> — required for Transaction rows only</li>
+                <li>• <strong>SOP</strong>: <code>yes</code> / <code>no</code> — required for Transaction rows only</li>
+                <li>• <strong>Amount (Transaction)</strong>: positive for WIN (e.g. <code>50.00</code>), negative for LOSS (e.g. <code>-10.00</code>)</li>
+                <li>• <strong>Amount (Commission)</strong>: must be <strong>negative</strong> (e.g. <code>-3.50</code>) — broker fee / swap charge</li>
+                <li>• Commission rows: leave Result, SOP, SOP Type blank — only Date &amp; time, Type, Amount are required</li>
+              </ul>
+            </div>
           </div>
 
           {/* Step 1.5: Select Timezone */}
@@ -335,6 +347,7 @@ export default function ImportTradesPage() {
                     <table className="min-w-full divide-y divide-gray-200 border">
                       <thead className="bg-gray-50">
                         <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">SOP</th>
@@ -344,25 +357,44 @@ export default function ImportTradesPage() {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {parsedTrades.slice(0, 10).map((trade, index) => (
-                          <tr key={index}>
+                          <tr key={index} className={trade.entryType === 'COMMISSION' ? 'bg-amber-50/40' : ''}>
+                            <td className="px-3 py-2 text-sm">
+                              {trade.entryType === 'COMMISSION' ? (
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">💳 Commission</span>
+                              ) : (
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">📈 Transaction</span>
+                              )}
+                            </td>
                             <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">
                               {new Date(trade.tradeTimestamp).toLocaleString()}
                             </td>
                             <td className="px-3 py-2 text-sm">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                                trade.result === 'WIN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                              }`}>
-                                {trade.result}
-                              </span>
+                              {trade.entryType === 'COMMISSION' ? (
+                                <span className="text-gray-400">—</span>
+                              ) : trade.result === 'BE' ? (
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                  ⚖️ BE
+                                </span>
+                              ) : (
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  trade.result === 'WIN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {trade.result}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900">
-                              {trade.sopFollowed ? '✓ Yes' : '✗ No'}
+                              {trade.entryType === 'COMMISSION' ? (
+                                <span className="text-gray-400">—</span>
+                              ) : (
+                                trade.sopFollowed ? '✓ Yes' : '✗ No'
+                              )}
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900">
                               {trade.symbol || '—'}
                             </td>
                             <td className={`px-3 py-2 text-sm text-right font-semibold ${
-                              trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
+                              trade.profitLossUsd > 0 ? 'text-green-600' : trade.profitLossUsd < 0 ? 'text-red-600' : 'text-gray-500'
                             }`}>
                               {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
                             </td>
@@ -428,10 +460,11 @@ export default function ImportTradesPage() {
         <CardContent>
           <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
             <li><strong>Date & time</strong>: MM/DD/YYYY HH:MM format (e.g., 1/12/2026 08:30)</li>
-            <li><strong>Result</strong>: WIN or LOSS (case-insensitive)</li>
-            <li><strong>SOP</strong>: YES or NO (case-insensitive)</li>
+            <li><strong>Type</strong>: <code>Transaction</code> or <code>Commission</code> (optional, defaults to Transaction)</li>
+            <li><strong>Result</strong>: WIN, LOSS, or BE (break-even, case-insensitive) — Transaction rows only. Use BE with Amount = 0</li>
+            <li><strong>SOP</strong>: YES or NO (case-insensitive) — Transaction rows only</li>
             <li><strong>SOP Type</strong>: Optional (e.g., BB Mastery, W & M breakout)</li>
-            <li><strong>Amount</strong>: Profit/loss in USD (positive or negative number)</li>
+            <li><strong>Amount</strong>: Positive for WIN, negative for LOSS. <strong>Commission must be negative</strong> (e.g., -3.50)</li>
             <li><strong>Symbol</strong>: Optional trading symbol (2-10 uppercase characters)</li>
             <li><strong>Notes</strong>: Optional trade notes (max 500 characters)</li>
           </ul>

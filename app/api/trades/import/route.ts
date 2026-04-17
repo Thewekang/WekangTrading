@@ -14,11 +14,12 @@ import { updateDailySummary } from '@/lib/services/dailySummaryService';
 import { initializeUserStats, updateUserStatsFromTrades, checkAndAwardBadges } from '@/lib/services/badgeService';
 
 interface ImportTradeInput {
+  entryType: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp: string; // ISO string
-  result: 'WIN' | 'LOSS';
-  sopFollowed: boolean;
-  sopTypeName: string;
-  profitLossUsd: number;
+  result?: 'WIN' | 'LOSS' | 'BE';   // undefined/absent for COMMISSION
+  sopFollowed?: boolean;      // undefined/absent for COMMISSION
+  sopTypeName?: string;       // undefined/absent for COMMISSION
+  profitLossUsd: number;      // For COMMISSION: already stored as negative by csvParser
   symbol?: string;
   notes?: string;
 }
@@ -79,8 +80,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create SOP types
-    const uniqueSopTypeNames = [...new Set(trades.map(t => t.sopTypeName).filter(Boolean))];
+    // Get or create SOP types (only for TRANSACTION entries that have a sopTypeName)
+    const uniqueSopTypeNames = [
+      ...new Set(
+        trades
+          .filter(t => t.entryType === 'TRANSACTION' && t.sopTypeName)
+          .map(t => t.sopTypeName as string)
+      ),
+    ];
     const sopTypeMap = new Map<string, string>();
 
     // Get existing SOP types (SOP types are global, not user-specific)
@@ -116,19 +123,21 @@ export async function POST(request: NextRequest) {
     // Prepare trades for insertion
     const tradesToInsert = trades.map(trade => {
       const tradeTimestamp = new Date(trade.tradeTimestamp);
-      const sopTypeId = trade.sopTypeName
+      const isCommission = trade.entryType === 'COMMISSION';
+      const sopTypeId = !isCommission && trade.sopTypeName
         ? sopTypeMap.get(trade.sopTypeName.toLowerCase()) || null
         : null;
 
       return {
         userId: session.user.id,
+        entryType: trade.entryType,
         tradeTimestamp,
         marketSession: calculateMarketSession(tradeTimestamp),
-        result: trade.result,
-        sopFollowed: trade.sopFollowed,
+        result: isCommission ? null : (trade.result ?? null),
+        sopFollowed: isCommission ? null : (trade.sopFollowed ?? null),
         sopTypeId,
         symbol: trade.symbol || null,
-        profitLossUsd: trade.profitLossUsd,
+        profitLossUsd: trade.profitLossUsd, // already negated for COMMISSION by csvParser
         notes: trade.notes || null,
         createdAt: new Date(),
         updatedAt: new Date(),

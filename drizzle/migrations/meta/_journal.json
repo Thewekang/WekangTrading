@@ -71,6 +71,13 @@
       "when": 1770433871488,
       "tag": "0009_condemned_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1776449614242,
+      "tag": "0010_big_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

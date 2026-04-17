@@ -265,6 +265,7 @@ export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProp
                             <option value="">All Results</option>
                             <option value="WIN">Wins Only</option>
                             <option value="LOSS">Losses Only</option>
+                            <option value="BE">Break-Evens Only</option>
                           </select>
                         </div>
                         <div>

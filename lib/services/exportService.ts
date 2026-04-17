@@ -12,7 +12,7 @@ export interface ExportFilters {
   userId: string;
   startDate?: Date;
   endDate?: Date;
-  result?: 'WIN' | 'LOSS';
+  result?: 'WIN' | 'LOSS' | 'BE';
   marketSession?: 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
   sopFollowed?: boolean;
   minProfitLoss?: number;
@@ -247,6 +247,7 @@ export function generatePDFHTML(
     }
     .badge.win { background: #dcfce7; color: #16a34a; }
     .badge.loss { background: #fee2e2; color: #dc2626; }
+    .badge.be { background: #f3f4f6; color: #374151; }
     .badge.sop-yes { background: #dbeafe; color: #2563eb; }
     .badge.sop-no { background: #f3f4f6; color: #6b7280; }
     .footer {
@@ -359,7 +360,7 @@ export function generatePDFHTML(
               minute: '2-digit'
             })}</td>
             <td>${trade.marketSession}</td>
-            <td><span class="badge ${trade.result === 'WIN' ? 'win' : 'loss'}">${trade.result}</span></td>
+            <td><span class="badge ${trade.result === 'WIN' ? 'win' : trade.result === 'BE' ? 'be' : 'loss'}">${trade.result ?? 'Commission'}</span></td>
             <td><span class="badge ${trade.sopFollowed ? 'sop-yes' : 'sop-no'}">${trade.sopFollowed ? 'Yes' : 'No'}</span></td>
             <td style="color: ${trade.profitLossUsd >= 0 ? '#16a34a' : '#dc2626'}; font-weight: 600;">
               ${trade.profitLossUsd >= 0 ? '+' : ''}$${trade.profitLossUsd.toFixed(2)}

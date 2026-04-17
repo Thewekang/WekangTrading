@@ -13,19 +13,23 @@ import { VALIDATION, PAGINATION } from '../constants';
 
 interface CreateTradeInput {
   userId: string;
+  entryType: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp: Date;
-  result: 'WIN' | 'LOSS';
-  sopFollowed: boolean;
+  // TRANSACTION-only fields (required for TRANSACTION, must be omitted/null for COMMISSION)
+  result?: 'WIN' | 'LOSS' | 'BE' | null;
+  sopFollowed?: boolean | null;
   sopTypeId?: string | null;
+  // Shared fields
   symbol?: string;
-  profitLossUsd: number;
+  profitLossUsd: number; // For COMMISSION: always stored as negative; caller must pass negative value
   notes?: string;
 }
 
 interface UpdateTradeInput {
+  entryType?: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp?: Date;
-  result?: 'WIN' | 'LOSS';
-  sopFollowed?: boolean;
+  result?: 'WIN' | 'LOSS' | 'BE' | null;
+  sopFollowed?: boolean | null;
   sopTypeId?: string | null;
   symbol?: string;
   profitLossUsd?: number;
@@ -36,7 +40,8 @@ interface GetTradesFilters {
   userId: string;
   startDate?: Date;
   endDate?: Date;
-  result?: 'WIN' | 'LOSS';
+  result?: 'WIN' | 'LOSS' | 'BE';
+  entryType?: 'TRANSACTION' | 'COMMISSION';
   marketSession?: 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
   marketSessions?: Array<'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP'>;
   sopFollowed?: boolean;
@@ -62,7 +67,7 @@ export async function createTrade(input: CreateTradeInput) {
 
   // Validate profit/loss is non-zero
   if (input.profitLossUsd === 0) {
-    throw new Error('Profit/loss cannot be zero');
+    throw new Error('Amount cannot be zero');
   }
 
   // Validate timestamp is not in future
@@ -70,15 +75,24 @@ export async function createTrade(input: CreateTradeInput) {
     throw new Error('Trade timestamp cannot be in the future');
   }
 
+  // For TRANSACTION entries: result and sopFollowed are required
+  if (input.entryType === 'TRANSACTION') {
+    if (!input.result) throw new Error('Result is required for transaction entries');
+    if (input.sopFollowed === undefined || input.sopFollowed === null) {
+      throw new Error('SOP followed is required for transaction entries');
+    }
+  }
+
   // Create trade
   const [trade] = await db
     .insert(individualTrades)
     .values({
       userId: input.userId,
+      entryType: input.entryType,
       tradeTimestamp: input.tradeTimestamp,
-      result: input.result,
-      sopFollowed: input.sopFollowed,
-      sopTypeId: input.sopTypeId || null,
+      result: input.entryType === 'TRANSACTION' ? (input.result ?? null) : null,
+      sopFollowed: input.entryType === 'TRANSACTION' ? (input.sopFollowed ?? null) : null,
+      sopTypeId: input.entryType === 'TRANSACTION' ? (input.sopTypeId || null) : null,
       symbol: input.symbol || null,
       profitLossUsd: input.profitLossUsd,
       marketSession,
@@ -117,10 +131,11 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   // Calculate market sessions and prepare data
   const tradesWithSessions = trades.map(trade => ({
     userId: trade.userId,
+    entryType: trade.entryType,
     tradeTimestamp: trade.tradeTimestamp,
-    result: trade.result,
-    sopFollowed: trade.sopFollowed,
-    sopTypeId: trade.sopTypeId || null,
+    result: trade.entryType === 'TRANSACTION' ? (trade.result ?? null) : null,
+    sopFollowed: trade.entryType === 'TRANSACTION' ? (trade.sopFollowed ?? null) : null,
+    sopTypeId: trade.entryType === 'TRANSACTION' ? (trade.sopTypeId || null) : null,
     symbol: trade.symbol || null,
     profitLossUsd: trade.profitLossUsd,
     marketSession: calculateMarketSession(trade.tradeTimestamp),
@@ -156,6 +171,7 @@ export async function getTrades(filters: GetTradesFilters) {
     startDate,
     endDate,
     result,
+    entryType,
     marketSession,
     marketSessions,
     sopFollowed,
@@ -177,6 +193,9 @@ export async function getTrades(filters: GetTradesFilters) {
   }
   if (result) {
     conditions.push(eq(individualTrades.result, result));
+  }
+  if (entryType) {
+    conditions.push(eq(individualTrades.entryType, entryType));
   }
   
   // Handle multi-select sessions
@@ -212,6 +231,7 @@ export async function getTrades(filters: GetTradesFilters) {
         id: individualTrades.id,
         userId: individualTrades.userId,
         dailySummaryId: individualTrades.dailySummaryId,
+        entryType: individualTrades.entryType,
         sopTypeId: individualTrades.sopTypeId,
         tradeTimestamp: individualTrades.tradeTimestamp,
         result: individualTrades.result,
@@ -255,6 +275,8 @@ export async function getTrades(filters: GetTradesFilters) {
 
   // Calculate summary statistics from ALL filtered trades
   const totalWins = allFilteredTrades.filter(t => t.result === 'WIN').length;
+  const totalLosses = allFilteredTrades.filter(t => t.result === 'LOSS').length;
+  // BE trades count in totalTrades but not in wins or losses
   const totalSopFollowed = allFilteredTrades.filter(t => t.sopFollowed).length;
   const netProfitLoss = allFilteredTrades.reduce((sum, t) => sum + t.profitLossUsd, 0);
   const winRate = totalCount > 0 ? (totalWins / totalCount) * 100 : 0;
@@ -271,7 +293,7 @@ export async function getTrades(filters: GetTradesFilters) {
     summary: {
       totalTrades: totalCount,
       totalWins,
-      totalLosses: totalCount - totalWins,
+      totalLosses,
       totalSopFollowed,
       netProfitLoss,
       winRate,

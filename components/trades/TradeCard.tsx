@@ -7,9 +7,10 @@ import { Trash2, ExternalLink } from 'lucide-react';
 
 interface Trade {
   id: string;
+  entryType?: string | null;
   tradeTimestamp: Date | string;
-  result: string;
-  sopFollowed: boolean;
+  result: string | null;
+  sopFollowed: boolean | null;
   sopTypeId: string | null;
   sopType: { id: string; name: string } | null;
   symbol: string | null;
@@ -36,7 +37,7 @@ export function TradeCard({
   const [showNotes, setShowNotes] = useState(false);
 
   return (
-    <div className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${trade.entryType === 'COMMISSION' ? 'border-amber-200' : ''}`}>
       {/* Header: Time & Session */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
@@ -47,12 +48,18 @@ export function TradeCard({
             {formatDateTime(trade.tradeTimestamp)}
             <ExternalLink className="h-3 w-3" />
           </Link>
-          <div className="mt-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {getSessionBadge(trade.marketSession)}
-            </span>
+          <div className="mt-1 flex items-center gap-1 flex-wrap">
+            {trade.entryType === 'COMMISSION' ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                💳 Commission
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {getSessionBadge(trade.marketSession)}
+              </span>
+            )}
             {canDelete && (
-              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Can be deleted">
+              <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Can be deleted">
                 🕒 24h
               </span>
             )}
@@ -65,9 +72,15 @@ export function TradeCard({
         {/* Result */}
         <div>
           <div className="text-xs text-gray-500 mb-1">Result</div>
-          {trade.result === 'WIN' ? (
+          {trade.entryType === 'COMMISSION' ? (
+            <span className="text-gray-400 text-xs italic">Commission fee</span>
+          ) : trade.result === 'WIN' ? (
             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800">
               ✅ WIN
+            </span>
+          ) : trade.result === 'BE' ? (
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
+              ⚖️ BE
             </span>
           ) : (
             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-red-100 text-red-800">
@@ -80,7 +93,7 @@ export function TradeCard({
         <div className="text-right">
           <div className="text-xs text-gray-500 mb-1">Profit/Loss</div>
           <div className={`text-base font-bold ${
-            trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
+            trade.profitLossUsd > 0 ? 'text-green-600' : trade.profitLossUsd < 0 ? 'text-red-600' : 'text-gray-500'
           }`}>
             {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
           </div>
@@ -101,7 +114,9 @@ export function TradeCard({
         {/* SOP */}
         <div className="text-right">
           <div className="text-xs text-gray-500 mb-1">SOP</div>
-          {trade.sopFollowed ? (
+          {trade.entryType === 'COMMISSION' ? (
+            <span className="text-gray-400 text-xs">—</span>
+          ) : trade.sopFollowed ? (
             <span className="text-blue-600 font-medium text-sm">✓ Yes</span>
           ) : (
             <span className="text-orange-600 font-medium text-sm">✗ No</span>
@@ -110,7 +125,7 @@ export function TradeCard({
       </div>
 
       {/* SOP Type */}
-      {trade.sopType && (
+      {trade.entryType !== 'COMMISSION' && trade.sopType && (
         <div className="mb-3">
           <div className="text-xs text-gray-500 mb-1">SOP Type</div>
           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">

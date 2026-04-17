@@ -24,6 +24,7 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
     .select({
       id: individualTrades.id,
       userId: individualTrades.userId,
+      entryType: individualTrades.entryType,
       tradeTimestamp: individualTrades.tradeTimestamp,
       result: individualTrades.result,
       sopFollowed: individualTrades.sopFollowed,
@@ -82,25 +83,46 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
         {/* Trade Detail Card */}
         <div className="bg-white rounded-lg shadow-md border p-4 sm:p-6 space-y-6">
           {/* Trade Result Banner */}
-          <div className={`rounded-lg p-4 sm:p-6 text-center ${
-            trade.result === 'WIN' 
-              ? 'bg-green-50 border-2 border-green-200' 
-              : 'bg-red-50 border-2 border-red-200'
-          }`}>
-            <div className="text-4xl sm:text-5xl mb-3">
-              {trade.result === 'WIN' ? '✅' : '❌'}
+          {trade.entryType === 'COMMISSION' ? (
+            <div className="rounded-lg p-4 sm:p-6 text-center bg-amber-50 border-2 border-amber-200">
+              <div className="text-4xl sm:text-5xl mb-3">💳</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-2 text-amber-700">Commission</div>
+              <div className="text-3xl sm:text-4xl font-bold text-red-600">
+                -${Math.abs(trade.profitLossUsd).toFixed(2)}
+              </div>
+              <div className="text-sm text-amber-600 mt-1">Broker fee / swap charge</div>
             </div>
-            <div className={`text-2xl sm:text-3xl font-bold mb-2 ${
-              trade.result === 'WIN' ? 'text-green-700' : 'text-red-700'
+          ) : trade.result === 'BE' ? (
+            <div className="rounded-lg p-4 sm:p-6 text-center bg-gray-50 border-2 border-gray-300">
+              <div className="text-4xl sm:text-5xl mb-3">⚖️</div>
+              <div className="text-2xl sm:text-3xl font-bold mb-2 text-gray-600">
+                BREAK EVEN
+              </div>
+              <div className="text-3xl sm:text-4xl font-bold text-gray-500">
+                $0.00
+              </div>
+            </div>
+          ) : (
+            <div className={`rounded-lg p-4 sm:p-6 text-center ${
+              trade.result === 'WIN' 
+                ? 'bg-green-50 border-2 border-green-200' 
+                : 'bg-red-50 border-2 border-red-200'
             }`}>
-              {trade.result}
+              <div className="text-4xl sm:text-5xl mb-3">
+                {trade.result === 'WIN' ? '✅' : '❌'}
+              </div>
+              <div className={`text-2xl sm:text-3xl font-bold mb-2 ${
+                trade.result === 'WIN' ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {trade.result}
+              </div>
+              <div className={`text-3xl sm:text-4xl font-bold ${
+                trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
+              </div>
             </div>
-            <div className={`text-3xl sm:text-4xl font-bold ${
-              trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
-            </div>
-          </div>
+          )}
 
           {/* Trade Information Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -129,6 +151,7 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
             </div>
 
             {/* SOP Followed */}
+            {trade.entryType !== 'COMMISSION' && (
             <div>
               <div className="text-xs sm:text-sm font-medium text-gray-500 mb-1">SOP Followed</div>
               <div className="text-base sm:text-lg font-semibold">
@@ -139,9 +162,10 @@ export default async function TradeDetailPage({ params }: { params: Promise<{ id
                 )}
               </div>
             </div>
+            )}
 
             {/* SOP Type */}
-            {trade.sopType && (
+            {trade.entryType !== 'COMMISSION' && trade.sopType && (
               <div className="sm:col-span-2">
                 <div className="text-xs sm:text-sm font-medium text-gray-500 mb-1">SOP Type</div>
                 <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-purple-100 text-purple-800">

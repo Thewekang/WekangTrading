@@ -33,52 +33,103 @@ export const passwordChangeSchema = z.object({
 // INDIVIDUAL TRADE VALIDATION SCHEMAS
 // ============================================
 
-// Base schema for form validation (without transformations)
-export const individualTradeSchema = z.object({
-  tradeTimestamp: z.date().refine((date) => date <= new Date(), {
+// Shared timestamp validation for form schemas
+const formTimestamp = z.date().refine((date) => date <= new Date(), {
+  message: 'Trade timestamp cannot be in the future',
+});
+
+// Shared timestamp validation for API schemas (string → Date transform)
+const apiTimestamp = z
+  .string()
+  .min(1, 'Trade timestamp is required')
+  .transform((val) => new Date(val))
+  .refine((date) => !Number.isNaN(date.getTime()), {
+    message: 'Trade timestamp is invalid',
+  })
+  .refine((date) => date <= new Date(), {
     message: 'Trade timestamp cannot be in the future',
-  }),
-  result: z.enum(['WIN', 'LOSS']),
+  });
+
+// Shared symbol validation
+const symbolField = z.string()
+  .min(2, 'Symbol must be at least 2 characters')
+  .max(10, 'Symbol must be less than 10 characters')
+  .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
+  .optional();
+
+// Shared profit/loss validation — non-zero except for BE (break-even) trades
+const profitLossField = z.number().refine((val) => val !== 0, {
+  message: 'Amount cannot be zero (use BE result for break-even trades)',
+});
+
+// ─── FORM schemas (used by React Hook Form / client-side) ───────────────────
+
+// Transaction trade form schema (full fields)
+export const transactionTradeSchema = z.object({
+  entryType: z.literal('TRANSACTION'),
+  tradeTimestamp: formTimestamp,
+  result: z.enum(['WIN', 'LOSS', 'BE']),
   sopFollowed: z.boolean(),
   sopTypeId: z.string().nullable().optional(),
-  profitLossUsd: z.number().refine((val) => val !== 0, {
-    message: 'Profit/loss cannot be zero',
-  }),
-  symbol: z.string()
-    .min(2, 'Symbol must be at least 2 characters')
-    .max(10, 'Symbol must be less than 10 characters')
-    .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
-    .optional(),
+  profitLossUsd: z.number(), // 0 allowed for BE (break-even) trades
+  symbol: symbolField,
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
 
-// API schema with string to Date transformation for API endpoints
-export const individualTradeApiSchema = z.object({
-  tradeTimestamp: z
-    .string()
-    .min(1, 'Trade timestamp is required')
-    .transform((val) => new Date(val))
-    .refine((date) => !Number.isNaN(date.getTime()), {
-      message: 'Trade timestamp is invalid',
-    })
-    .refine((date) => date <= new Date(), {
-      message: 'Trade timestamp cannot be in the future',
-    }),
-  result: z.enum(['WIN', 'LOSS']),
+// Commission trade form schema (simplified — no result/SOP)
+export const commissionTradeSchema = z.object({
+  entryType: z.literal('COMMISSION'),
+  tradeTimestamp: formTimestamp,
+  profitLossUsd: z.number().positive('Commission amount must be positive').refine((val) => val !== 0, {
+    message: 'Commission amount cannot be zero',
+  }),
+  symbol: symbolField,
+  notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
+});
+
+// Discriminated union for form — use entryType to determine which schema to apply
+export const individualTradeSchema = z.discriminatedUnion('entryType', [
+  transactionTradeSchema,
+  commissionTradeSchema,
+]);
+
+// ─── API schemas (used by API routes — include string→Date transform) ────────
+
+// Transaction API schema
+export const transactionTradeApiSchema = z.object({
+  entryType: z.literal('TRANSACTION'),
+  tradeTimestamp: apiTimestamp,
+  result: z.enum(['WIN', 'LOSS', 'BE']),
   sopFollowed: z
     .union([z.boolean(), z.literal('true'), z.literal('false')])
     .transform((v) => (v === true || v === 'true')),
   sopTypeId: z.string().nullable().optional(),
-  profitLossUsd: z.number().refine((val) => val !== 0, {
-    message: 'Profit/loss cannot be zero',
-  }),
-  symbol: z.string()
-    .min(2, 'Symbol must be at least 2 characters')
-    .max(10, 'Symbol must be less than 10 characters')
-    .regex(/^[A-Z0-9]+$/, 'Symbol must be uppercase letters and numbers only')
-    .optional(),
+  profitLossUsd: z.number(), // 0 is allowed for BE (break-even) trades
+  symbol: symbolField,
   notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
 });
+
+// Commission API schema
+export const commissionTradeApiSchema = z.object({
+  entryType: z.literal('COMMISSION'),
+  tradeTimestamp: apiTimestamp,
+  profitLossUsd: z.number().positive('Commission amount must be positive').refine((val) => val !== 0, {
+    message: 'Commission amount cannot be zero',
+  }),
+  symbol: symbolField,
+  notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
+});
+
+// Discriminated union for API — validated at API route level
+export const individualTradeApiSchema = z.discriminatedUnion('entryType', [
+  transactionTradeApiSchema,
+  commissionTradeApiSchema,
+]);
+
+// Legacy alias for backward compat (remove when all call sites updated)
+export type TransactionTradeInput = z.infer<typeof transactionTradeSchema>;
+export type CommissionTradeInput = z.infer<typeof commissionTradeSchema>;
+// IndividualTradeInput is the union — also exported below for backward compat
 
 export const bulkTradeEntrySchema = z.object({
   tradeDate: z.coerce.date().refine((date) => {

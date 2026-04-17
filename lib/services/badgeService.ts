@@ -285,7 +285,7 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   
   // Recalculate SOP streak from ALL trades (not per-day, per-trade!)
   await recalculateSopStreakFromTrades(userId, trades.map(t => ({
-    sopFollowed: t.sopFollowed,
+    sopFollowed: t.sopFollowed ?? false,
     tradeTimestamp: new Date(t.tradeTimestamp)
   })));
 
