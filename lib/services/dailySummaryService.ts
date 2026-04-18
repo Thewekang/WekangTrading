@@ -42,6 +42,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
   // Fetch all trades for this user and date
   const trades = await db
     .select({
+      entryType: individualTrades.entryType,
       result: individualTrades.result,
       sopFollowed: individualTrades.sopFollowed,
       profitLossUsd: individualTrades.profitLossUsd,
@@ -54,32 +55,40 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
       lte(individualTrades.tradeTimestamp, endOfDay)
     ));
 
-  // Calculate aggregates
-  const totalTrades = trades.length;
-  const totalWins = trades.filter(t => t.result === 'WIN').length;
-  const totalLosses = trades.filter(t => t.result === 'LOSS').length;
+  // Split into transaction entries and commission entries
+  const transactions = trades.filter(t => t.entryType === 'TRANSACTION');
+  const commissions = trades.filter(t => t.entryType === 'COMMISSION');
 
-  const totalSopFollowed = trades.filter(t => t.sopFollowed).length;
-  const totalSopNotFollowed = trades.filter(t => !t.sopFollowed).length;
+  // Calculate transaction aggregates (win/loss/SOP stats exclude commission entries)
+  const totalTrades = transactions.length;
+  const totalWins = transactions.filter(t => t.result === 'WIN').length;
+  const totalLosses = transactions.filter(t => t.result === 'LOSS').length;
 
-  const totalProfitLossUsd = trades.reduce((sum, t) => sum + t.profitLossUsd, 0);
+  const totalSopFollowed = transactions.filter(t => t.sopFollowed === true).length;
+  const totalSopNotFollowed = transactions.filter(t => t.sopFollowed === false).length;
 
-  // Count trades per session
-  const asiaSessionTrades = trades.filter(t => t.marketSession === 'ASIA').length;
-  const asiaSessionWins = trades.filter(t => t.marketSession === 'ASIA' && t.result === 'WIN').length;
+  // Gross P&L = sum of TRANSACTION entries only
+  const totalProfitLossUsd = transactions.reduce((sum, t) => sum + t.profitLossUsd, 0);
+
+  // Total commission = sum of COMMISSION entries (stored as negative values in DB)
+  const totalCommissionUsd = commissions.reduce((sum, t) => sum + t.profitLossUsd, 0);
+
+  // Count trades per session (TRANSACTION entries only)
+  const asiaSessionTrades = transactions.filter(t => t.marketSession === 'ASIA').length;
+  const asiaSessionWins = transactions.filter(t => t.marketSession === 'ASIA' && t.result === 'WIN').length;
   
-  const europeSessionTrades = trades.filter(t => t.marketSession === 'EUROPE').length;
-  const europeSessionWins = trades.filter(t => t.marketSession === 'EUROPE' && t.result === 'WIN').length;
+  const europeSessionTrades = transactions.filter(t => t.marketSession === 'EUROPE').length;
+  const europeSessionWins = transactions.filter(t => t.marketSession === 'EUROPE' && t.result === 'WIN').length;
   
-  const usSessionTrades = trades.filter(t => t.marketSession === 'US').length;
-  const usSessionWins = trades.filter(t => t.marketSession === 'US' && t.result === 'WIN').length;
+  const usSessionTrades = transactions.filter(t => t.marketSession === 'US').length;
+  const usSessionWins = transactions.filter(t => t.marketSession === 'US' && t.result === 'WIN').length;
   
   // Overlap sessions: sum both types for backwards compatibility with DB schema
-  const asiaEuropeOverlapTrades = trades.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP').length;
-  const asiaEuropeOverlapWins = trades.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP' && t.result === 'WIN').length;
+  const asiaEuropeOverlapTrades = transactions.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP').length;
+  const asiaEuropeOverlapWins = transactions.filter(t => t.marketSession === 'ASIA_EUROPE_OVERLAP' && t.result === 'WIN').length;
   
-  const europeUsOverlapTrades = trades.filter(t => t.marketSession === 'EUROPE_US_OVERLAP').length;
-  const europeUsOverlapWins = trades.filter(t => t.marketSession === 'EUROPE_US_OVERLAP' && t.result === 'WIN').length;
+  const europeUsOverlapTrades = transactions.filter(t => t.marketSession === 'EUROPE_US_OVERLAP').length;
+  const europeUsOverlapWins = transactions.filter(t => t.marketSession === 'EUROPE_US_OVERLAP' && t.result === 'WIN').length;
   
   // Total overlap (for DB column)
   const overlapSessionTrades = asiaEuropeOverlapTrades + europeUsOverlapTrades;
@@ -119,6 +128,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
     totalSopFollowed,
     totalSopNotFollowed,
     totalProfitLossUsd,
+    totalCommissionUsd,
     asiaSessionTrades,
     asiaSessionWins,
     europeSessionTrades,
@@ -183,6 +193,7 @@ export async function getAggregatedStats(userId: string, startDate: Date, endDat
   const totalLosses = summaries.reduce((sum, s) => sum + s.totalLosses, 0);
   const totalSopFollowed = summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0);
   const totalProfitLossUsd = summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0);
+  const totalCommissionUsd = summaries.reduce((sum, s) => sum + (s.totalCommissionUsd ?? 0), 0);
 
   const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
@@ -194,6 +205,8 @@ export async function getAggregatedStats(userId: string, startDate: Date, endDat
     winRate,
     sopRate,
     totalProfitLossUsd,
+    totalCommissionUsd,
+    netProfitLossUsd: totalProfitLossUsd + totalCommissionUsd,
     dailySummaries: summaries,
   };
 }

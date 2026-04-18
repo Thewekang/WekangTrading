@@ -45,12 +45,16 @@ export async function POST(request: NextRequest) {
     // Prepare trades for bulk insert
     const trades = validatedData.trades.map(trade => ({
       userId: session.user.id,
+      entryType: trade.entryType,
       tradeTimestamp: new Date(trade.tradeTimestamp),
-      result: trade.result,
-      sopFollowed: trade.sopFollowed,
-      sopTypeId: trade.sopTypeId,
+      result: trade.entryType === 'TRANSACTION' ? trade.result : null,
+      sopFollowed: trade.entryType === 'TRANSACTION' ? trade.sopFollowed : null,
+      sopTypeId: trade.entryType === 'TRANSACTION' ? (trade.sopTypeId ?? null) : null,
       symbol: trade.symbol,
-      profitLossUsd: trade.profitLossUsd,
+      // For COMMISSION entries: negate the amount (user enters positive, stored as negative cost)
+      profitLossUsd: trade.entryType === 'COMMISSION'
+        ? -Math.abs(trade.profitLossUsd)
+        : trade.profitLossUsd,
       notes: trade.notes,
     }));
 

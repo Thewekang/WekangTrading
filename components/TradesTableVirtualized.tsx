@@ -11,9 +11,10 @@ import { useTimezone } from '@/contexts/TimezoneContext';
 
 interface Trade {
   id: string;
+  entryType?: string | null;
   tradeTimestamp: Date | string;
-  result: string;
-  sopFollowed: boolean;
+  result: string | null;
+  sopFollowed: boolean | null;
   sopTypeId: string | null;
   sopType: { id: string; name: string } | null;
   symbol: string | null;
@@ -73,9 +74,15 @@ const TradeRow = ({
 
       {/* Session */}
       <div className="flex-[2] py-3 text-sm pr-4">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {getSessionBadge(trade.marketSession)}
-        </span>
+        {trade.entryType === 'COMMISSION' ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            💳 Commission
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            {getSessionBadge(trade.marketSession)}
+          </span>
+        )}
       </div>
 
       {/* Symbol */}
@@ -91,9 +98,15 @@ const TradeRow = ({
 
       {/* Result */}
       <div className="flex-[1.5] py-3 text-sm pr-4">
-        {trade.result === 'WIN' ? (
+        {trade.entryType === 'COMMISSION' ? (
+          <span className="text-gray-400 text-xs italic">fee</span>
+        ) : trade.result === 'WIN' ? (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             ✅ WIN
+          </span>
+        ) : trade.result === 'BE' ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+            ⚖️ BE
           </span>
         ) : (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -104,7 +117,9 @@ const TradeRow = ({
 
       {/* SOP */}
       <div className="flex-[1] py-3 text-sm pr-4">
-        {trade.sopFollowed ? (
+        {trade.entryType === 'COMMISSION' ? (
+          <span className="text-gray-400">—</span>
+        ) : trade.sopFollowed ? (
           <span className="text-blue-600">✓ Yes</span>
         ) : (
           <span className="text-orange-600">✗ No</span>
@@ -113,7 +128,9 @@ const TradeRow = ({
 
       {/* SOP Type */}
       <div className="flex-[1.5] py-3 text-sm pr-4">
-        {trade.sopType ? (
+        {trade.entryType === 'COMMISSION' ? (
+          <span className="text-gray-400">—</span>
+        ) : trade.sopType ? (
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
             {trade.sopType.name}
           </span>
@@ -124,7 +141,7 @@ const TradeRow = ({
 
       {/* P/L */}
       <div className={`flex-[1.5] py-3 text-sm text-right font-semibold pr-4 ${
-        trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
+        trade.profitLossUsd > 0 ? 'text-green-600' : trade.profitLossUsd < 0 ? 'text-red-600' : 'text-gray-500'
       }`}>
         {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
       </div>
@@ -185,7 +202,7 @@ export function TradesTableVirtualized({
       {/* Table Header */}
       <div className="flex items-center bg-gray-50 border-b px-4 py-3">
         <div className="flex-[2] text-left text-xs font-medium text-gray-500 uppercase pr-4">Time</div>
-        <div className="flex-[2] text-left text-xs font-medium text-gray-500 uppercase pr-4">Session</div>
+        <div className="flex-[2] text-left text-xs font-medium text-gray-500 uppercase pr-4">Type / Session</div>
         <div className="flex-[1] text-left text-xs font-medium text-gray-500 uppercase pr-4">Symbol</div>
         <div className="flex-[1.5] text-left text-xs font-medium text-gray-500 uppercase pr-4">Result</div>
         <div className="flex-[1] text-left text-xs font-medium text-gray-500 uppercase pr-4">SOP</div>

@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.2
-- **Status**: ACTIVE - v1.9.0 Mobile Enhancement Complete ✅  
-- **Last Updated**: February 14, 2026
+- **Version**: 3.3
+- **Status**: ACTIVE - v1.13.0 Commission + Break-Even Result Type ✅  
+- **Last Updated**: April 18, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,11 +13,11 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.9.0 - Mobile Enhancement & Pagination ✅  
+**Project Status**: 🚀 v1.13.0 - Commission Entry Type + BE (Break-Even) Result ✅  
 **Start Date**: January 8, 2026  
-**Latest Development**: February 14, 2026 (v1.9.0 - Mobile Optimization + Pagination)  
+**Latest Development**: April 18, 2026 (v1.13.0 - Commission + Break-Even)  
 **Current Phase**: Ready for Production Deployment  
-**Active Branch**: feature/mobile-discipline-tracker-enhancement → develop
+**Active Branch**: develop
 
 ```
 Overall Progress: ████████████████████ 100% Complete (v1.9.0)
@@ -33,14 +33,33 @@ Phase Breakdown:
 ├─ v1.4.0: User Ranking + Analytics  [100%] ██████████ ✅
 ├─ v1.5.0: Discipline Tracker        [100%] ██████████ ✅
 ├─ v1.6.0: Quote Card System         [100%] ██████████ ✅
-└─ v1.9.0: Mobile Enhancement        [100%] ██████████ ✅
+├─ v1.9.0: Mobile Enhancement        [100%] ██████████ ✅
+├─ v1.12.x: Symbol Filter + Analytics [100%] ██████████ ✅
+└─ v1.13.0: Commission + BE Result   [100%] ██████████ ✅
 ```
 
 ---
 
 ## 1.2 Recent Release Summary
 
-### v1.9.0 - February 14, 2026 (Mobile Enhancement + Pagination)
+### v1.13.0 - April 18, 2026 (Commission Entry Type + Break-Even Result)
+
+**Major Features Added**:
+- 💸 **Commission Entry Type** (migration 0010):
+  - New `entry_type` column: `TRANSACTION` (default) or `COMMISSION`
+  - Commission entries have null `result` and `sopFollowed`; require negative `profitLossUsd`
+  - `daily_summaries` tracks `total_commission_usd` aggregate
+  - Entry type filter on `/trades` list page
+
+- ⚖️ **Break-Even (BE) Result Type**:
+  - BE option in all 3 entry methods: real-time, bulk, and CSV import
+  - BE trades auto-set `profitLossUsd = 0`; amount field locked on `/trades/new`
+  - Gray ⚖️ badge across all trade views; `$0.00` shown in gray (not red)
+  - Result filter includes "Break-Evens Only"
+  - PDF export has dedicated `.badge.be` CSS class
+
+**Bug Fixes**:
+- `totalLosses` calculation no longer counts BE trades as losses
 
 **Major Features Added**:
 - 📱 **Mobile Optimization for Discipline Tracker**:

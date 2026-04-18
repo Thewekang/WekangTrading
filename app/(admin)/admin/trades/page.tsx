@@ -10,7 +10,7 @@ import { showToast } from '@/components/ui/Toast';
 interface Trade {
   id: string;
   tradeTimestamp: string;
-  result: 'WIN' | 'LOSS';
+  result: 'WIN' | 'LOSS' | 'BE' | null;
   marketSession: 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
   sopFollowed: boolean;
   profitLossUsd: number;
@@ -336,9 +336,9 @@ export default function AdminTradesPage() {
                     </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        trade.result === 'WIN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        trade.result === 'WIN' ? 'bg-green-100 text-green-800' : trade.result === 'BE' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-800'
                       }`}>
-                        {trade.result}
+                        {trade.result ?? '—'}
                       </span>
                     </td>
                     <td className="text-center p-4">
