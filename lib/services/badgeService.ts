@@ -260,7 +260,7 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   const { individualTrades } = await import('../db/schema');
   const { updateWinStreak, updateLogStreak, recalculateSopStreakFromTrades } = await import('./streakService');
   
-  // Get all trades
+  // Get all trades (include entryType to separate TRANSACTION from COMMISSION)
   const trades = await db
     .select({
       result: individualTrades.result,
@@ -268,43 +268,49 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
       profitLossUsd: individualTrades.profitLossUsd,
       marketSession: individualTrades.marketSession,
       tradeTimestamp: individualTrades.tradeTimestamp,
+      entryType: individualTrades.entryType,
     })
     .from(individualTrades)
     .where(eq(individualTrades.userId, userId))
     .orderBy(individualTrades.tradeTimestamp);
 
   if (trades.length === 0) return;
+
+  // Separate TRANSACTION trades (exclude COMMISSION for stats/streaks)
+  const transactionTrades = trades.filter(t => t.entryType === 'TRANSACTION');
   
   // Update WIN and LOG streaks for all unique trading dates (MUST be sorted chronologically)
-  const uniqueDates = Array.from(new Set(trades.map(t => new Date(t.tradeTimestamp).toISOString().split('T')[0]))).sort();
+  // LOG streak counts any day with at least one TRANSACTION trade
+  const uniqueDates = Array.from(new Set(transactionTrades.map(t => new Date(t.tradeTimestamp).toISOString().split('T')[0]))).sort();
   for (const dateStr of uniqueDates) {
     const date = new Date(dateStr + 'T00:00:00.000Z'); // Parse as UTC
     await updateWinStreak(userId, date);
     await updateLogStreak(userId, date);
   }
   
-  // Recalculate SOP streak from ALL trades (not per-day, per-trade!)
-  await recalculateSopStreakFromTrades(userId, trades.map(t => ({
+  // Recalculate SOP streak from TRANSACTION trades only (COMMISSION has no sopFollowed)
+  await recalculateSopStreakFromTrades(userId, transactionTrades.map(t => ({
     sopFollowed: t.sopFollowed ?? false,
     tradeTimestamp: new Date(t.tradeTimestamp)
   })));
 
-  // Calculate stats
-  const totalTrades = trades.length;
-  const totalWins = trades.filter(t => t.result === 'WIN').length;
-  const totalLosses = trades.filter(t => t.result === 'LOSS').length;
+  // Calculate stats — TRANSACTION trades only (exclude COMMISSION from counts/rates)
+  const totalTrades = transactionTrades.length;
+  const totalWins = transactionTrades.filter(t => t.result === 'WIN').length;
+  const totalLosses = transactionTrades.filter(t => t.result === 'LOSS').length;
+  // P/L includes all entries (COMMISSION reduces real profit)
   const totalProfitUsd = trades.reduce((sum, t) => sum + t.profitLossUsd, 0);
-  const winRate = (totalWins / totalTrades) * 100;
-  const sopCompliantTrades = trades.filter(t => t.sopFollowed).length;
-  const sopComplianceRate = (sopCompliantTrades / totalTrades) * 100;
+  const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+  const sopCompliantTrades = transactionTrades.filter(t => t.sopFollowed).length;
+  const sopComplianceRate = totalTrades > 0 ? (sopCompliantTrades / totalTrades) * 100 : 0;
 
-  // Session trades
-  const asiaTrades = trades.filter(t => t.marketSession === 'ASIA').length;
-  const europeTrades = trades.filter(t => t.marketSession === 'EUROPE').length;
-  const usTrades = trades.filter(t => t.marketSession === 'US').length;
+  // Session trades (TRANSACTION only)
+  const asiaTrades = transactionTrades.filter(t => t.marketSession === 'ASIA').length;
+  const europeTrades = transactionTrades.filter(t => t.marketSession === 'EUROPE').length;
+  const usTrades = transactionTrades.filter(t => t.marketSession === 'US').length;
 
-  // Max trades in a day
-  const tradesByDay = trades.reduce((acc, t) => {
+  // Max trades in a day (TRANSACTION only)
+  const tradesByDay = transactionTrades.reduce((acc, t) => {
     const day = new Date(t.tradeTimestamp).toISOString().split('T')[0];
     acc[day] = (acc[day] || 0) + 1;
     return acc;

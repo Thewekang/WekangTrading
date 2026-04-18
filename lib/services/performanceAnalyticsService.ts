@@ -2,6 +2,8 @@ import { db } from '@/lib/db';
 import { dailySummaries, individualTrades } from '@/lib/db/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
+const TRANSACTION = 'TRANSACTION' as const;
+
 interface MonthlyPerformance {
   month: string;
   monthNumber: number;
@@ -44,7 +46,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)); // Jan 1, 00:00:00 UTC
     const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // Dec 31, 23:59:59 UTC
 
-    // Get all trades for the year and convert to user's timezone for month extraction
+    // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
     const yearTrades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
@@ -56,6 +58,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
       .where(
         and(
           eq(individualTrades.userId, userId),
+          eq(individualTrades.entryType, TRANSACTION),
           gte(individualTrades.tradeTimestamp, startDate),
           lte(individualTrades.tradeTimestamp, endDate)
         )
@@ -153,7 +156,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     const startDate = new Date(Date.UTC(year, month - 1, -1, 0, 0, 0, 0)); // 2 days before month start
     const endDate = new Date(Date.UTC(year, month, 2, 23, 59, 59, 999)); // 2 days after month end
 
-    // Get individual trades for the month and group by day in user's timezone
+    // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
     const trades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
@@ -165,6 +168,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       .where(
         and(
           eq(individualTrades.userId, userId),
+          eq(individualTrades.entryType, TRANSACTION),
           gte(individualTrades.tradeTimestamp, startDate),
           lte(individualTrades.tradeTimestamp, endDate)
         )
