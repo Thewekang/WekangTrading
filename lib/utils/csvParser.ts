@@ -50,6 +50,7 @@ export function parseCSVFile(file: File, timezone: string): Promise<ParseResult>
     Papa.parse<CSVTradeRow>(file, {
       header: true,
       skipEmptyLines: true,
+      delimiter: '', // auto-detect: handles both ',' and ';' delimiters
       complete: (results) => {
         const trades: ParsedTrade[] = [];
         const errors: ValidationError[] = [];
