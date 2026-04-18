@@ -182,7 +182,11 @@ export async function getSopPerformanceStats(
   period: 'week' | 'month' | 'year' | 'all' = 'month'
 ) {
   const dateFilter = getDateFilter(period);
-  const conditions = [eq(individualTrades.userId, userId), isNotNull(individualTrades.sopTypeId)];
+  const conditions = [
+    eq(individualTrades.userId, userId),
+    eq(individualTrades.entryType, 'TRANSACTION'),
+    isNotNull(individualTrades.sopTypeId),
+  ];
   if (dateFilter) {
     conditions.push(gte(individualTrades.tradeTimestamp, new Date(dateFilter)));
   }
@@ -224,7 +228,8 @@ export async function getSopPerformanceStats(
 
     existing.totalTrades++;
     if (trade.result === 'WIN') existing.wins++;
-    else existing.losses++;
+    else if (trade.result === 'LOSS') existing.losses++;
+    // BE trades: counted in totalTrades but not wins or losses
     existing.totalProfitLoss += trade.profitLossUsd;
 
     sopStats.set(trade.sopTypeId!, existing);

@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.5] - 2026-04-18
+
+### Fixed
+- **Best Performing SOP card: BE trades counted as losses** — `getSopPerformanceStats` used an `else` branch for non-WIN results, so `BE` trades incremented `losses` instead of being counted as neutral. Also added explicit `entryType = 'TRANSACTION'` filter to ensure COMMISSION rows can never affect SOP stats. Card now correctly shows 9W / 0L for 10 trades (9 WIN + 1 BE); win rate denominator is all TRANSACTION trades (correct).
+
+---
+
+## [1.14.4] - 2026-04-18
+
+### Fixed
+- **Ranking card: COMMISSION rows counted in totalTrades, winRate, sopRate** — `calculateAllRankings` aggregated all rows including COMMISSION in `count()` / `wins` / `sopFollowed`. Fixed all aggregates to filter `entryType = 'TRANSACTION'`. `totalPnl` still sums all rows. `HAVING` threshold also updated to use TRANSACTION count.
+- **Ranking card shows stale data after adding trades** — added `invalidateUserRanking()` called after every trade create/update/delete so the 1-hour cache is cleared and rankings recalculate immediately.
+
+---
+
 ## [1.14.3] - 2026-04-18
 
 ### Fixed
