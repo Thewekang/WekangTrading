@@ -1,8 +1,8 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.3
-- **Status**: ACTIVE - v1.13.0 Commission + Break-Even Result Type ✅  
+- **Version**: 3.5
+- **Status**: ACTIVE - v1.14.2 BE Trade DB Constraint Fix ✅  
 - **Last Updated**: April 18, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
@@ -13,10 +13,10 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.13.0 - Commission Entry Type + BE (Break-Even) Result ✅  
+**Project Status**: 🚀 v1.14.2 - BE Trade DB Constraint Fix ✅  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 18, 2026 (v1.13.0 - Commission + Break-Even)  
-**Current Phase**: Ready for Production Deployment  
+**Latest Development**: April 18, 2026 (v1.14.2 - BE CHECK constraint hotfix)  
+**Current Phase**: Production Ready  
 **Active Branch**: develop
 
 ```
@@ -35,12 +35,35 @@ Phase Breakdown:
 ├─ v1.6.0: Quote Card System         [100%] ██████████ ✅
 ├─ v1.9.0: Mobile Enhancement        [100%] ██████████ ✅
 ├─ v1.12.x: Symbol Filter + Analytics [100%] ██████████ ✅
-└─ v1.13.0: Commission + BE Result   [100%] ██████████ ✅
+├─ v1.13.0: Commission + BE Result   [100%] ██████████ ✅
+└─ v1.14.x: Hotfixes (Account Reset + BE Constraint) [100%] ██████████ ✅
 ```
 
 ---
 
 ## 1.2 Recent Release Summary
+
+### v1.14.2 - April 18, 2026 (BE Trade DB Constraint Hotfix)
+
+**Root Cause Discovered**:
+BE (Break-Even) trades returning "An unexpected error occurred" on both `/trades/new` and `/trades/bulk`. All service-layer code was correct; the actual failure was at the database level.
+
+**Root Cause**: The `individual_trades.result` column had a `CHECK(result IN ('WIN','LOSS'))` constraint applied by an early `drizzle-kit push` (before `BE` was introduced). Migration 0010 made `result` nullable but silently preserved the old CHECK constraint. Every insert with `result = 'BE'` raised `SQLITE_CONSTRAINT_CHECK` — falling through to the generic 500 handler.
+
+**Fix (Migration 0011)**:
+- Recreated `individual_trades` with updated constraint `CHECK(result IN ('WIN','LOSS','BE'))`
+- All existing data and indexes preserved
+- Applied to **staging** and **production** databases
+- Migration file: `drizzle/migrations/0011_fix_result_check_constraint.sql`
+
+**Additional Fixes in v1.14.1** (same day):
+- `createTrade`: zero-amount guard now allows `profitLossUsd = 0` when `result = 'BE'`
+- Bulk form: BE rows have read-only `$0` amount field
+- Reset account: `userPinnedSops` + `userRankings` now deleted; `totalNotifications` key fixed in reset modal
+
+**Commits**: `eb9e380` → `32df0fc` → `a26d5b8` → `3efb714`
+
+---
 
 ### v1.13.0 - April 18, 2026 (Commission Entry Type + Break-Even Result)
 
