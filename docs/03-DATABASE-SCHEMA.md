@@ -1,9 +1,9 @@
 # Database Schema Design
 
 ## Document Control
-- **Version**: 4.1
+- **Version**: 4.2
 - **Last Updated**: April 18, 2026
-- **Implementation Status**: ✅ CURRENT (v1.14.2)
+- **Implementation Status**: ✅ CURRENT (v1.14.6)
 - **Database**: Turso (LibSQL - SQLite for edge)
 - **ORM**: Drizzle ORM (migrated from Prisma, January 11, 2026)
 - **Migration**: 100% Complete (Migration 0011: result CHECK constraint fix)
@@ -258,6 +258,8 @@
 - DB-level CHECK on `result`: `CHECK(result IN ('WIN','LOSS','BE'))` — **migration 0011** updated this from the original `('WIN','LOSS')` constraint that predated BE support. If applying migrations to a new database, ensure 0011 is included.
 
 > ⚠️ **Migration History Note**: An early `drizzle-kit push` wrote `CHECK(result IN ('WIN','LOSS'))` directly to staging/production. Migration 0010 made `result` nullable but preserved the old constraint. Migration **0011** (`0011_fix_result_check_constraint.sql`) recreates the table with the correct `('WIN','LOSS','BE')` constraint and is required for BE trades to work.
+
+> ⚠️ **Stats Consistency Rule (v1.14.x)**: Any query that computes `totalTrades`, `winRate`, `sopRate`, `wins`, or `losses` **must** filter `entry_type = 'TRANSACTION'` and count `losses` explicitly (`result = 'LOSS'`) — **never** as `trades - wins`. BE trades belong in the denominator (total trades) but not in the win or loss numerator. Affected services fixed: `individualTradeService`, `rankingService`, `sopTypeService`, `performanceAnalyticsService`.
 
 **Indexes**:
 - Primary Key: `id`
