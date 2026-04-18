@@ -1,8 +1,8 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.3
-- **Status**: ACTIVE - v1.13.0 Commission + Break-Even Result Type ✅  
+- **Version**: 3.6
+- **Status**: ACTIVE - v1.14.6 COMMISSION/BE Stats Consistency Fixes ✅  
 - **Last Updated**: April 18, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
@@ -13,10 +13,10 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.13.0 - Commission Entry Type + BE (Break-Even) Result ✅  
+**Project Status**: 🚀 v1.14.6 - COMMISSION/BE Stats Consistency Fixes ✅  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 18, 2026 (v1.13.0 - Commission + Break-Even)  
-**Current Phase**: Ready for Production Deployment  
+**Latest Development**: April 18, 2026 (v1.14.6 - stats consistency hotfixes)  
+**Current Phase**: Production Ready  
 **Active Branch**: develop
 
 ```
@@ -35,12 +35,87 @@ Phase Breakdown:
 ├─ v1.6.0: Quote Card System         [100%] ██████████ ✅
 ├─ v1.9.0: Mobile Enhancement        [100%] ██████████ ✅
 ├─ v1.12.x: Symbol Filter + Analytics [100%] ██████████ ✅
-└─ v1.13.0: Commission + BE Result   [100%] ██████████ ✅
+├─ v1.13.0: Commission + BE Result   [100%] ██████████ ✅
+└─ v1.14.x: Hotfixes (Account Reset + BE Constraint + Stats Consistency) [100%] ██████████ ✅
 ```
 
 ---
 
 ## 1.2 Recent Release Summary
+
+### v1.14.6 - April 18, 2026 (Trends Page W/L Consistency Fix)
+
+**Root Cause**: `getYearlyPerformance` and `getMonthlyPerformance` in `performanceAnalyticsService.ts` calculated `losses = trades - wins`. Any BE trade that was not a WIN fell into the loss bucket, causing inflated L counts in the Monthly Performance Calendar and all tooltip/hover text on `/analytics/trends`.
+
+**Fix**: Track `losses` with a dedicated counter incremented only on `result === 'LOSS'`. BE trades count in `totalTrades` (denominator for win rate) but not in wins or losses. Applies to:
+- Monthly calendar Total Trades card record (`W:10 L:0` not `W:10 L:2`)
+- Calendar cell hover tooltip
+- Yearly month card hover tooltip
+- `winLossRecord` string in all overviews
+- `MonthlyAnalyticsChart` tooltip Wins/Losses values
+
+**Commits**: `8a5597d` → `77effda`
+
+---
+
+### v1.14.5 - April 18, 2026 (Best Performing SOP Card W/L Fix)
+
+**Root Cause**: `getSopPerformanceStats` in `sopTypeService.ts` used `else existing.losses++` — any non-WIN result (BE, COMMISSION null) incremented losses. BE trades were showing as losses in the SOP card record (`9W / 1L` instead of correct `9W / 0L`).
+
+**Fix**:
+- Explicit `else if (result === 'LOSS')` so BE is neutral
+- Added `entryType = 'TRANSACTION'` WHERE filter (belt-and-suspenders against COMMISSION leakage)
+
+**Commits**: `48373eb`
+
+---
+
+### v1.14.4 - April 18, 2026 (Ranking Card Stats Consistency)
+
+**Root Cause**: `calculateAllRankings` in `rankingService.ts` counted ALL rows (including COMMISSION) in `totalTrades`, `wins`, and `sopFollowed` aggregates.
+
+**Fix**:
+- All SQL aggregates now filter `entryType = 'TRANSACTION'`
+- `HAVING` threshold uses TRANSACTION count
+- `totalPnl` still sums all rows (includes commissions)
+- Added `invalidateUserRanking()` called after every trade create/update/delete to clear 1-hour cache immediately
+- Added `DELETE /api/stats/ranking` endpoint + refresh button (↻) in `RankingCard` header to manually force recalculation without needing a new trade
+
+**Commits**: `217d099` → `7da970c`
+
+---
+
+### v1.14.3 - April 18, 2026 (Trades List Footer Stats Fix)
+
+**Root Cause**: `getTrades` summary in `individualTradeService.ts` used `totalCount` (all rows including COMMISSION) as denominator for `totalTrades`, `winRate`, and `sopRate`. Example: 10 WIN + 2 BE + 1 COMMISSION = 13 rows → footer showed 76.9% WR / 92.3% SOP instead of correct 83.3% / 100%.
+
+**Fix**: Filter `allFilteredTrades` to TRANSACTION-only for `totalTrades`, `winRate`, `sopRate`. Net P/L still sums all rows.
+
+**Commits**: `c92d6e7`
+
+---
+
+### v1.14.2 - April 18, 2026 (BE Trade DB Constraint Hotfix)
+
+**Root Cause Discovered**:
+BE (Break-Even) trades returning "An unexpected error occurred" on both `/trades/new` and `/trades/bulk`. All service-layer code was correct; the actual failure was at the database level.
+
+**Root Cause**: The `individual_trades.result` column had a `CHECK(result IN ('WIN','LOSS'))` constraint applied by an early `drizzle-kit push` (before `BE` was introduced). Migration 0010 made `result` nullable but silently preserved the old CHECK constraint. Every insert with `result = 'BE'` raised `SQLITE_CONSTRAINT_CHECK` — falling through to the generic 500 handler.
+
+**Fix (Migration 0011)**:
+- Recreated `individual_trades` with updated constraint `CHECK(result IN ('WIN','LOSS','BE'))`
+- All existing data and indexes preserved
+- Applied to **staging** and **production** databases
+- Migration file: `drizzle/migrations/0011_fix_result_check_constraint.sql`
+
+**Additional Fixes in v1.14.1** (same day):
+- `createTrade`: zero-amount guard now allows `profitLossUsd = 0` when `result = 'BE'`
+- Bulk form: BE rows have read-only `$0` amount field
+- Reset account: `userPinnedSops` + `userRankings` now deleted; `totalNotifications` key fixed in reset modal
+
+**Commits**: `eb9e380` → `32df0fc` → `a26d5b8` → `3efb714`
+
+---
 
 ### v1.13.0 - April 18, 2026 (Commission Entry Type + Break-Even Result)
 

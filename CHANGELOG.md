@@ -11,6 +11,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.6] - 2026-04-18
+
+### Fixed
+- **Trends page (`/analytics/trends`): BE trades counted as losses in all W/L displays** — `getYearlyPerformance` and `getMonthlyPerformance` both calculated `losses = trades - wins`, so any BE trade fell into the loss bucket. Fixed by tracking losses with a dedicated counter incremented only on `result === 'LOSS'`. BE trades count in `totalTrades` (denominator) but not in wins or losses. Fixes monthly calendar "W:10 L:2" → "W:10 L:0", tooltip hover text, yearly month cards, and `MonthlyAnalyticsChart` tooltip.
+
+---
+
+## [1.14.5] - 2026-04-18
+
+### Fixed
+- **Best Performing SOP card: BE trades counted as losses** — `getSopPerformanceStats` used an `else` branch for non-WIN results, so `BE` trades incremented `losses` instead of being counted as neutral. Also added explicit `entryType = 'TRANSACTION'` filter to ensure COMMISSION rows can never affect SOP stats. Card now correctly shows 9W / 0L for 10 trades (9 WIN + 1 BE); win rate denominator is all TRANSACTION trades (correct).
+
+---
+
+## [1.14.4] - 2026-04-18
+
+### Fixed
+- **Ranking card: COMMISSION rows counted in totalTrades, winRate, sopRate** — `calculateAllRankings` aggregated all rows including COMMISSION in `count()` / `wins` / `sopFollowed`. Fixed all aggregates to filter `entryType = 'TRANSACTION'`. `totalPnl` still sums all rows. `HAVING` threshold also updated to use TRANSACTION count.
+- **Ranking card shows stale data after adding trades** — added `invalidateUserRanking()` called after every trade create/update/delete so the 1-hour cache is cleared and rankings recalculate immediately.
+
+---
+
+## [1.14.3] - 2026-04-18
+
+### Fixed
+- **Trades list footer: incorrect Total Trades, Win Rate, SOP Rate when commission rows exist** — `getTrades` summary calculation used `totalCount` (all rows including COMMISSION) as the denominator. With 10 WIN + 2 BE + 1 COMMISSION the footer showed 13 trades / 76.9% WR / 92.3% SOP instead of the correct 12 trades / 83.3% WR / 100% SOP. Fixed by filtering to TRANSACTION-only rows for `totalTrades`, `totalWins`, `totalLosses`, `totalSopFollowed`, `winRate`, and `sopRate`. Net P/L still sums all rows (commissions reduce real profit).
+
+---
+
+## [1.14.2] - 2026-04-18
+
+### Fixed
+- **BE (Break-Even) trades: "An unexpected error occurred" on submit** — root cause was a `CHECK(result IN ('WIN','LOSS'))` constraint on the `individual_trades.result` column in the database. This constraint was applied by an earlier `drizzle-kit push` before `BE` was added as a valid result type. Migration 0010 changed `result` to nullable but preserved the old CHECK constraint, so inserting `result = 'BE'` always failed at the DB level with `SQLITE_CONSTRAINT`. Migration **0011** recreates `individual_trades` with the updated constraint `CHECK(result IN ('WIN','LOSS','BE'))`. Applied to both staging and production.
+- **BE trades: `createTrade` zero-check blocked BE** (from v1.14.1) — `isBeTransaction` guard allows `profitLossUsd = 0` when `entryType = 'TRANSACTION' && result = 'BE'`
+- **Bulk form: BE amount field auto-fills 0** (from v1.14.1) — amount field is read-only and forced to `'0'` when result is `BE`
+
+### Migration
+- `drizzle/migrations/0011_fix_result_check_constraint.sql` — recreates `individual_trades` with `CHECK(result IN ('WIN','LOSS','BE'))` and all indexes; applied to staging and production
+
+---
+
+## [1.14.1] - 2026-04-18
+
+### Fixed
+- **Reset Account: `userPinnedSops` not deleted** — pinned SOP favorites were not removed on account reset (CASCADE only fires on user-delete, not account reset); added explicit delete step in `resetUserAccount`
+- **Reset Account: `userRankings` not deleted** — stale ranking rows persisted after reset; added explicit delete step so rankings are cleared and recalculated by cron on next run
+- **Reset modal: `totalNotifications` showed blank** — service returned key `totalMessages` but modal read `totalNotifications`; renamed return key to `totalNotifications` for consistency
+- **Reset modal: missing items in delete list** — modal now correctly lists "All user statistics & rankings" and "Pinned SOP favorites" in the deletion summary
+
+---
+
+## [1.14.0] - 2026-04-18
+
+### Fixed
+- **Analytics consistency — COMMISSION rows excluded from all analytics**
+  - `getSessionStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows no longer counted in session trade counts or win rates
+  - `getHourlyStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows no longer counted in hourly trade counts
+  - `getPersonalStats` (session breakdown sub-query): added `entryType = 'TRANSACTION'` filter
+  - `getSymbolStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows with a symbol no longer distort symbol P/L or win rate
+  - `getYearlyPerformance`: added `entryType = 'TRANSACTION'` filter — yearly totalTrades, winRate, sopRate now TRANSACTION-only
+  - `getMonthlyPerformance`: added `entryType = 'TRANSACTION'` filter — monthly breakdown now TRANSACTION-only
+  - `updateUserStatsFromTrades` (badgeService): separates TRANSACTION trades for totalTrades, winRate, sopRate, session counts, SOP streak; P/L sum still includes COMMISSION for net profit accuracy
+- **CSV import semicolon support**: PapaParse `delimiter: ''` explicitly enables auto-detect, fixing import failures for semicolon-delimited CSV files (e.g. Apex Trader exports)
+
+### Changed
+- Metric definitions enforced consistently across all services:
+  - `totalTrades` = TRANSACTION rows only (WIN + LOSS + BE)
+  - `winRate` = totalWins / totalTrades (BE counts in denominator)
+  - `sopRate` = totalSopFollowed / totalTrades
+  - `totalProfitLossUsd` = TRANSACTION P/L sum (BE = $0.00 included)
+  - `totalCommissionUsd` = COMMISSION sum (separate, tracked independently)
+  - `netProfitLossUsd` = totalProfitLossUsd + totalCommissionUsd
+
+### Documentation
+- `docs/03-DATABASE-SCHEMA.md` → v4.0: updated `individual_trades` and `daily_summaries` tables, added Analytics Metric Definitions section
+- `docs/04-API-SPECIFICATION.md` → v4.0: split trade POST into TRANSACTION/COMMISSION schemas, updated bulk and filter endpoints
+- `docs/00-DESIGN-SUMMARY.md` → v4.0
+- `.github/copilot-instructions.md` → v3.0: updated enums, daily summary rules, validation schemas, common mistakes
+
+---
+
 ## [1.13.0] - 2026-04-18
 
 ### Added

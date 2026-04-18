@@ -463,8 +463,9 @@ export default function SettingsPage() {
               <li><strong>{accountSummary.totalNotifications}</strong> notifications</li>
               <li><strong>{accountSummary.totalDisciplineRows}</strong> discipline tracker entries</li>
               <li>All streaks (win, log, SOP)</li>
-              <li>All user statistics</li>
+              <li>All user statistics &amp; rankings</li>
               <li>Discipline tracker settings</li>
+              <li>Pinned SOP favorites</li>
             </ul>
             <p className="text-sm text-gray-600 mb-4">
               Your account and login will remain active. You can start fresh with new trades and earn badges again.

@@ -145,7 +145,9 @@ export function BulkTradeEntryForm() {
           missingFields.push('SOP');
         }
       }
-      if (!row.amount || (parseFloat(row.amount) === 0 && row.result !== 'BE')) {
+      // BE rows: amount is always 0 (auto-set by form); others must be non-zero
+      const effectiveAmount = row.result === 'BE' ? '0' : row.amount;
+      if (!effectiveAmount || (parseFloat(effectiveAmount) === 0 && row.result !== 'BE')) {
         missingFields.push('Amount');
       }
 
@@ -162,7 +164,7 @@ export function BulkTradeEntryForm() {
       const datetimeString = `${tradeDate}T${row.time}`;
       const tradeTimestamp = convertToUTC(datetimeString, importTimezone);
 
-      let profitLoss = parseFloat(row.amount);
+      let profitLoss = row.result === 'BE' ? 0 : parseFloat(row.amount);
 
       if (row.entryType === 'COMMISSION') {
         // Commission: always send as positive (API negates it)
@@ -403,13 +405,17 @@ export function BulkTradeEntryForm() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={row.amount}
+                      value={row.result === 'BE' ? '0' : row.amount}
+                      readOnly={row.result === 'BE'}
                       onChange={(e) => {
+                        if (row.result === 'BE') return;
                         handleUpdateRow(row.id, 'amount', e.target.value);
                         debouncedAmountValidation(row.id, e.target.value);
                       }}
                       placeholder={isCommissionRow ? '3.50' : '50.00'}
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className={`w-full rounded border px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                        row.result === 'BE' ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed' : 'border-gray-300'
+                      }`}
                     />
                   </td>
                   <td className="px-3 py-3">

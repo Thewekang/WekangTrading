@@ -89,8 +89,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof Error) {
-      // Business logic errors
-      if (error.message.includes('Cannot insert more than') || error.message.includes('must belong to same user')) {
+      // Business logic errors (from service layer) — same handling as individual trade API
+      if (
+        error.message.includes('Cannot insert more than') ||
+        error.message.includes('must belong to same user') ||
+        error.message.includes('cannot be') ||
+        error.message.includes('cannot exceed') ||
+        error.message.includes('Amount cannot be zero') ||
+        error.message.includes('Profit/loss cannot be zero')
+      ) {
         return NextResponse.json(
           { success: false, error: { code: 'VALIDATION_ERROR', message: error.message } },
           { status: 400 }
