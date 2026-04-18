@@ -1,12 +1,12 @@
 # Database Schema Design
 
 ## Document Control
-- **Version**: 3.0
-- **Last Updated**: January 18, 2026
-- **Implementation Status**: ✅ CURRENT (v1.2.0)
+- **Version**: 4.0
+- **Last Updated**: April 18, 2026
+- **Implementation Status**: ✅ CURRENT (v1.13.0)
 - **Database**: Turso (LibSQL - SQLite for edge)
 - **ORM**: Drizzle ORM (migrated from Prisma, January 11, 2026)
-- **Migration**: 100% Complete (All gamification, SOP types, economic calendar, and invite code features)
+- **Migration**: 100% Complete (Migration 0010: entry_type + BE result type)
 
 ---
 
@@ -228,20 +228,33 @@
 | `user_id` | STRING | FOREIGN KEY (users.id), NOT NULL | Reference to user who made trade |
 | `daily_summary_id` | STRING | FOREIGN KEY (daily_summaries.id), NULLABLE | Reference to daily summary (auto-linked) |
 | `sop_type_id` | STRING | FOREIGN KEY (sop_types.id), NULLABLE | Reference to SOP type category |
-| `trade_timestamp` | DATETIME | NOT NULL | Exact date and time of trade |
-| `result` | ENUM | NOT NULL | WIN or LOSS |
-| `sop_followed` | BOOLEAN | NOT NULL | Whether SOP was followed |
-| `profit_loss_usd` | DECIMAL | NOT NULL | Profit or loss in USD (negative for loss) |
+| `entry_type` | ENUM | NOT NULL, DEFAULT 'TRANSACTION' | Row type: `TRANSACTION` (actual trade) or `COMMISSION` (broker fee) |
+| `trade_timestamp` | DATETIME | NOT NULL | Exact date and time of trade or commission |
+| `result` | ENUM | NULLABLE | `WIN`, `LOSS`, or `BE` (Break-Even). NULL for COMMISSION rows |
+| `sop_followed` | BOOLEAN | NULLABLE | Whether SOP was followed. NULL for COMMISSION rows |
+| `profit_loss_usd` | DECIMAL | NOT NULL | P/L in USD. Must be non-zero for TRANSACTION (except BE = 0). Always negative for COMMISSION |
 | `market_session` | ENUM | NOT NULL, AUTO-CALCULATED | ASIA, EUROPE, US, ASIA_EUROPE_OVERLAP, EUROPE_US_OVERLAP |
 | `symbol` | STRING | NULLABLE | Trading symbol/pair (e.g., EURUSD, GBPJPY, XAUUSD) |
-| `notes` | TEXT | NULLABLE | Optional notes for this specific trade |
+| `notes` | TEXT | NULLABLE | Optional notes for this specific trade or commission |
 | `created_at` | DATETIME | NOT NULL, DEFAULT NOW | Record creation timestamp |
 | `updated_at` | DATETIME | NOT NULL, AUTO UPDATE | Last update timestamp |
 
+**Entry Type Behaviour**:
+
+| `entry_type` | `result` | `sop_followed` | `profit_loss_usd` | Counted in stats? |
+|---|---|---|---|---|
+| `TRANSACTION` | `WIN` / `LOSS` / `BE` | required | non-zero (BE = 0 allowed) | ✅ Yes — all analytics |
+| `COMMISSION` | NULL | NULL | negative only | ❌ No — excluded from trade counts, win/SOP rates; tracked separately as `totalCommissionUsd` |
+
+**Result Definitions**:
+- `WIN` — Trade closed with profit (positive `profit_loss_usd`)
+- `LOSS` — Trade closed with loss (negative `profit_loss_usd`)
+- `BE` — Break-even; trade closed at or near entry. `profit_loss_usd = 0`. Counts in `totalTrades` denominator but not in `totalWins`
+
 **Constraints**:
-- `CHECK (profit_loss_usd != 0)` - Profit/loss cannot be zero
-- Trade can be WIN with negative profit_loss (rare but possible)
-- Trade can be LOSS with positive profit_loss (rare but possible)
+- TRANSACTION rows: `profit_loss_usd` must be non-zero **except** when `result = 'BE'`
+- COMMISSION rows: `profit_loss_usd` must be negative (broker fees always reduce balance)
+- `result` and `sop_followed` are NULL for COMMISSION rows (not validated)
 
 **Indexes**:
 - Primary Key: `id`
@@ -253,20 +266,43 @@
 
 **Sample Data**:
 ```sql
+-- TRANSACTION row (normal trade)
 {
   id: "itrd_abc123",
+  entry_type: "TRANSACTION",
   user_id: "usr_xyz789",
   daily_summary_id: "dsm_def456",
   sop_type_id: "sop_scalping",
-  trade_timestamp: "2026-01-05T14:30:00Z",  // 2:30 PM UTC
+  trade_timestamp: "2026-01-05T14:30:00Z",
   result: "WIN",
   sop_followed: true,
   profit_loss_usd: 125.50,
-  market_session: "US",  // Auto-calculated from timestamp
+  market_session: "US",
   symbol: "EURUSD",
-  notes: "Clean breakout trade",
-  created_at: "2026-01-05T14:35:00Z",
-  updated_at: "2026-01-05T14:35:00Z"
+  notes: "Clean breakout trade"
+}
+
+-- TRANSACTION row (break-even)
+{
+  id: "itrd_abc124",
+  entry_type: "TRANSACTION",
+  trade_timestamp: "2026-01-05T09:15:00Z",
+  result: "BE",
+  sop_followed: true,
+  profit_loss_usd: 0.00,
+  market_session: "ASIA_EUROPE_OVERLAP"
+}
+
+-- COMMISSION row (broker fee)
+{
+  id: "itrd_abc125",
+  entry_type: "COMMISSION",
+  trade_timestamp: "2026-01-05T23:59:00Z",
+  result: null,
+  sop_followed: null,
+  profit_loss_usd: -7.50,
+  market_session: "US",
+  notes: "Daily commission charge"
 }
 ```
 
@@ -299,29 +335,30 @@ US:                     16:00 - 23:59 UTC (00:00 - 07:59 MYT next day)
 | `id` | STRING | PRIMARY KEY, UUID | Unique summary identifier |
 | `user_id` | STRING | FOREIGN KEY (users.id), NOT NULL | Reference to user |
 | `trade_date` | DATE | NOT NULL | Trading date (extracted from timestamps) |
-| `total_trades` | INTEGER | NOT NULL, DEFAULT 0 | Total trades for the day (auto-calculated) |
-| `total_wins` | INTEGER | NOT NULL, DEFAULT 0 | Total winning trades (auto-calculated) |
-| `total_losses` | INTEGER | NOT NULL, DEFAULT 0 | Total losing trades (auto-calculated) |
-| `total_sop_followed` | INTEGER | NOT NULL, DEFAULT 0 | Trades following SOP (auto-calculated) |
-| `total_sop_not_followed` | INTEGER | NOT NULL, DEFAULT 0 | Trades not following SOP (auto-calculated) |
-| `total_profit_loss_usd` | DECIMAL | NOT NULL, DEFAULT 0 | Net profit/loss for day (auto-calculated) |
-| `asia_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | Trades during Asia session |
-| `asia_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | Wins during Asia session |
-| `europe_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | Trades during Europe session |
-| `europe_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | Wins during Europe session |
-| `us_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | Trades during US session |
-| `us_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | Wins during US session |
-| `overlap_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | Trades during overlap sessions |
-| `overlap_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | Wins during overlap sessions |
-| `best_session` | ENUM | NULLABLE | Session with highest win rate (ASIA/EUROPE/US/ASIA_EUROPE_OVERLAP/EUROPE_US_OVERLAP) |
+| `total_trades` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION rows only — WIN + LOSS + BE count |
+| `total_wins` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION rows with result = WIN |
+| `total_losses` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION rows with result = LOSS |
+| `total_be_trades` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION rows with result = BE (break-even) |
+| `total_sop_followed` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION rows where sop_followed = true |
+| `total_sop_not_followed` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION rows where sop_followed = false |
+| `total_profit_loss_usd` | DECIMAL | NOT NULL, DEFAULT 0 | Sum of profit_loss_usd for TRANSACTION rows (BE = $0.00 included) |
+| `total_commission_usd` | DECIMAL | NOT NULL, DEFAULT 0 | Sum of profit_loss_usd for COMMISSION rows (always ≤ 0) |
+| `asia_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION trades during Asia session |
+| `asia_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION wins during Asia session |
+| `europe_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION trades during Europe session |
+| `europe_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION wins during Europe session |
+| `us_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION trades during US session |
+| `us_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION wins during US session |
+| `overlap_session_trades` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION trades during overlap sessions |
+| `overlap_session_wins` | INTEGER | NOT NULL, DEFAULT 0 | TRANSACTION wins during overlap sessions |
+| `best_session` | ENUM | NULLABLE | Session with highest TRANSACTION win rate |
 | `notes` | TEXT | NULLABLE | Optional daily notes (user-entered) |
 | `created_at` | DATETIME | NOT NULL, DEFAULT NOW | Record creation timestamp |
 | `updated_at` | DATETIME | NOT NULL, AUTO UPDATE | Last update timestamp |
 
 **Constraints**:
 - `UNIQUE (user_id, trade_date)` - One summary per user per day
-- `CHECK (total_wins + total_losses = total_trades)`
-- `CHECK (total_sop_followed + total_sop_not_followed = total_trades)`
+- `total_wins + total_losses + total_be_trades = total_trades` (TRANSACTION rows only)
 
 **Indexes**:
 - Primary Key: `id`
@@ -335,12 +372,15 @@ US:                     16:00 - 23:59 UTC (00:00 - 07:59 MYT next day)
   id: "dsm_def456",
   user_id: "usr_xyz789",
   trade_date: "2026-01-05",
-  total_trades: 12,
+  total_trades: 12,         -- TRANSACTION rows only
   total_wins: 8,
-  total_losses: 4,
+  total_losses: 3,
+  total_be_trades: 1,       -- 1 break-even trade
   total_sop_followed: 10,
   total_sop_not_followed: 2,
-  total_profit_loss_usd: 450.75,
+  total_profit_loss_usd: 450.75,   -- TRANSACTION P/L (incl. BE $0.00)
+  total_commission_usd: -15.00,    -- COMMISSION rows sum
+  -- net = 450.75 + (-15.00) = 435.75
   asia_session_trades: 3,
   asia_session_wins: 2,
   europe_session_trades: 4,
@@ -349,20 +389,42 @@ US:                     16:00 - 23:59 UTC (00:00 - 07:59 MYT next day)
   us_session_wins: 3,
   overlap_session_trades: 0,
   overlap_session_wins: 0,
-  best_session: "US",  // 80% win rate in US session
-  notes: "Strong trend day, good discipline",
-  created_at: "2026-01-05T14:30:00Z",
-  updated_at: "2026-01-05T23:59:00Z"
+  best_session: "US",
+  notes: "Strong trend day, good discipline"
 }
 ```
 
 **Business Rules**:
 - Auto-created when first individual trade is entered for a date
-- Auto-updated whenever individual trades are added/edited/deleted
-- Users can add daily notes (separate from individual trade notes)
-- Provides fast dashboard queries without aggregating individual trades
-- Recalculated on any change to related individual_trades
-- Session wins tracked separately for accurate win rate calculation
+- Auto-updated whenever individual trades are added/edited/deleted (CRUD triggers)
+- Only TRANSACTION rows contribute to `total_trades`, `total_wins`, `total_losses`, `total_be_trades`, `total_sop_followed`, and all session counts
+- COMMISSION rows contribute only to `total_commission_usd`
+- `net_profit_loss_usd` (derived) = `total_profit_loss_usd + total_commission_usd`
+- Win rate = `total_wins / total_trades` (BE is in denominator, not numerator)
+- SOP rate = `total_sop_followed / total_trades` (BE sopFollowed is counted)
+- `best_session` requires ≥ 3 TRANSACTION trades in session for statistical relevance
+
+---
+
+## 3. Analytics Metric Definitions
+
+These rules are enforced consistently across `dailySummaryService`, `statsService`, `performanceAnalyticsService`, and `badgeService`.
+
+| Metric | Definition | Includes | Excludes |
+|--------|-----------|----------|----------|
+| `totalTrades` | Count of TRANSACTION rows | WIN, LOSS, BE | COMMISSION |
+| `totalWins` | TRANSACTION rows with result = WIN | — | COMMISSION, LOSS, BE |
+| `totalLosses` | TRANSACTION rows with result = LOSS | — | COMMISSION, WIN, BE |
+| `totalBeTrades` | TRANSACTION rows with result = BE | — | COMMISSION, WIN, LOSS |
+| `winRate` | `totalWins / totalTrades × 100` | BE in denominator | COMMISSION excluded entirely |
+| `sopRate` | `totalSopFollowed / totalTrades × 100` | BE sopFollowed counted | COMMISSION excluded entirely |
+| `totalProfitLossUsd` | Sum of profit_loss_usd for TRANSACTION rows | BE ($0.00) included | COMMISSION |
+| `totalCommissionUsd` | Sum of profit_loss_usd for COMMISSION rows | — | TRANSACTION |
+| `netProfitLossUsd` | `totalProfitLossUsd + totalCommissionUsd` | All rows | — |
+
+**Why BE is included in denominator**: A break-even trade is still a trade — it uses time, capital, and requires judgment. It should reduce win rate just as a loss does, motivating traders to minimize BE outcomes.
+
+**Why COMMISSION is fully separated**: Commission is a broker cost, not a trade decision. Counting it in trade/win stats would distort performance metrics and hide the true quality of a trader's decisions.
 
 ---
 

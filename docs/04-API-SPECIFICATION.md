@@ -1,9 +1,9 @@
 # API Specification
 
 ## Document Control
-- **Version**: 3.0
-- **Last Updated**: January 18, 2026
-- **Implementation Status**: ✅ Production (v1.2.0)
+- **Version**: 4.0
+- **Last Updated**: April 18, 2026
+- **Implementation Status**: ✅ Production (v1.13.0)
 - **Base URL**: `/api`
 
 ---
@@ -331,24 +331,46 @@ Cookie: next-auth.session-token=<session_token>
 
 **Access**: Authenticated (USER, ADMIN)
 
-**Request Body**:
+**Request Body — TRANSACTION (normal trade)**:
 ```typescript
 {
+  "entryType": "TRANSACTION",    // default if omitted
   "tradeTimestamp": string,      // ISO datetime "2026-01-05T14:30:00Z"
-  "result": "WIN" | "LOSS",      // Trade outcome
-  "sopFollowed": boolean,        // Did this trade follow SOP?
-  "profitLossUsd": number,       // Profit/loss in USD (positive or negative)
+  "result": "WIN" | "LOSS" | "BE",  // BE = break-even
+  "sopFollowed": boolean,        // Required for TRANSACTION
+  "profitLossUsd": number,       // Non-zero (0 allowed for BE only)
   "notes"?: string               // Optional, max 500 chars
+}
+```
+
+**Request Body — COMMISSION (broker fee)**:
+```typescript
+{
+  "entryType": "COMMISSION",
+  "tradeTimestamp": string,      // ISO datetime
+  "profitLossUsd": number,       // Must be negative
+  "notes"?: string
+  // result and sopFollowed are NOT submitted — always null in DB
 }
 ```
 
 **Validation Rules**:
 ```typescript
+// TRANSACTION
 {
+  entryType: z.literal('TRANSACTION').optional().default('TRANSACTION'),
   tradeTimestamp: z.string().datetime(),
-  result: z.enum(['WIN', 'LOSS']),
+  result: z.enum(['WIN', 'LOSS', 'BE']),
   sopFollowed: z.boolean(),
-  profitLossUsd: z.number().refine(val => val !== 0, "Must be non-zero"),
+  profitLossUsd: z.number().refine(val => result === 'BE' ? true : val !== 0, "Non-BE trades must have non-zero P/L"),
+  notes: z.string().max(500).optional()
+}
+
+// COMMISSION
+{
+  entryType: z.literal('COMMISSION'),
+  tradeTimestamp: z.string().datetime(),
+  profitLossUsd: z.number().negative("Commission must be negative"),
   notes: z.string().max(500).optional()
 }
 ```
@@ -360,11 +382,12 @@ Cookie: next-auth.session-token=<session_token>
   "data": {
     "id": "itrd_xyz789",
     "userId": "usr_abc123",
+    "entryType": "TRANSACTION",
     "tradeTimestamp": "2026-01-05T14:30:00Z",
     "result": "WIN",
     "sopFollowed": true,
     "profitLossUsd": 150.50,
-    "marketSession": "US",          // Auto-calculated
+    "marketSession": "US",
     "notes": "Good entry on EUR/USD",
     "createdAt": "2026-01-05T14:30:00Z"
   },
@@ -375,11 +398,12 @@ Cookie: next-auth.session-token=<session_token>
 **Error Responses**:
 - `400` - Validation error
 - `400` - Timestamp cannot be in the future
+- `400` - Commission profit_loss_usd must be negative
 
 ---
 
 ### 4.2 POST `/api/trades/bulk`
-**Description**: Create multiple trade records at once (end-of-day bulk entry).
+**Description**: Create multiple trade records at once (end-of-day bulk entry). Supports TRANSACTION and COMMISSION rows in the same batch.
 
 **Access**: Authenticated (USER, ADMIN)
 
@@ -389,26 +413,24 @@ Cookie: next-auth.session-token=<session_token>
   "tradeDate": string,           // ISO date "2026-01-05"
   "trades": [
     {
-      "tradeTimestamp": string,  // Full datetime
-      "result": "WIN" | "LOSS",
+      // TRANSACTION row
+      "entryType": "TRANSACTION",
+      "tradeTimestamp": string,
+      "result": "WIN" | "LOSS" | "BE",
       "sopFollowed": boolean,
-      "profitLossUsd": number,
+      "profitLossUsd": number,   // 0 allowed for BE
+      "notes"?: string
+    },
+    {
+      // COMMISSION row
+      "entryType": "COMMISSION",
+      "tradeTimestamp": string,
+      "profitLossUsd": number,   // must be negative
       "notes"?: string
     }
-    // ... more trades
+    // ... more rows (max 100)
   ]
 }
-```
-
-**Validation Rules**:
-```typescript
-{
-  tradeDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  trades: z.array(individualTradeSchema).min(1).max(100)
-}
-// Custom validation:
-// - All tradeTimestamps must be on the same tradeDate
-// - No duplicate timestamps
 ```
 
 **Success Response (201)**:
@@ -416,32 +438,26 @@ Cookie: next-auth.session-token=<session_token>
 {
   "success": true,
   "data": {
-    "created": 10,
-    "trades": [
-      {
-        "id": "itrd_abc001",
-        "tradeTimestamp": "2026-01-05T08:15:00Z",
-        "result": "WIN",
-        "profitLossUsd": 120.00,
-        "marketSession": "ASIA"
-      }
-      // ... 9 more
-    ],
+    "created": 11,
+    "trades": [...],
     "summary": {
       "totalTrades": 10,
       "totalWins": 7,
-      "totalLosses": 3,
+      "totalLosses": 2,
+      "totalBeTrades": 1,
       "totalProfit": 850.50,
+      "totalCommission": -15.00,
+      "netProfit": 835.50,
       "bestSession": "US"
     }
   },
-  "message": "10 trades recorded successfully"
+  "message": "11 rows recorded successfully"
 }
 ```
 
 **Error Responses**:
-- `400` - Validation error (mixed dates, duplicates, etc.)
-- `400` - Maximum 100 trades per bulk entry
+- `400` - Validation error (mixed dates, non-negative commission, etc.)
+- `400` - Maximum 100 rows per bulk entry
 
 ---
 
@@ -453,7 +469,8 @@ Cookie: next-auth.session-token=<session_token>
 **Query Parameters**:
 - `startDate`: string (ISO date, required) - "2026-01-01"
 - `endDate`: string (ISO date, required) - "2026-01-31"
-- `result`: "WIN" | "LOSS" (optional filter)
+- `entryType`: "TRANSACTION" | "COMMISSION" (optional filter)
+- `result`: "WIN" | "LOSS" | "BE" (optional filter, only applies to TRANSACTION)
 - `marketSession`: "ASIA" | "EUROPE" | "US" | "OVERLAP" (optional filter)
 - `sopFollowed`: boolean (optional filter)
 - `page`: number (default: 1)
@@ -526,10 +543,11 @@ Cookie: next-auth.session-token=<session_token>
 ```typescript
 {
   "tradeTimestamp"?: string,
-  "result"?: "WIN" | "LOSS",
+  "result"?: "WIN" | "LOSS" | "BE",
   "sopFollowed"?: boolean,
-  "profitLossUsd"?: number,
+  "profitLossUsd"?: number,        // 0 allowed for BE result
   "notes"?: string
+  // entryType cannot be changed after creation
 }
 ```
 
