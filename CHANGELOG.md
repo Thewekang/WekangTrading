@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.1] - 2026-04-18
+
+### Fixed
+- **Reset Account: `userPinnedSops` not deleted** — pinned SOP favorites were not removed on account reset (CASCADE only fires on user-delete, not account reset); added explicit delete step in `resetUserAccount`
+- **Reset Account: `userRankings` not deleted** — stale ranking rows persisted after reset; added explicit delete step so rankings are cleared and recalculated by cron on next run
+- **Reset modal: `totalNotifications` showed blank** — service returned key `totalMessages` but modal read `totalNotifications`; renamed return key to `totalNotifications` for consistency
+- **Reset modal: missing items in delete list** — modal now correctly lists "All user statistics & rankings" and "Pinned SOP favorites" in the deletion summary
+
+---
+
 ## [1.14.0] - 2026-04-18
 
 ### Fixed

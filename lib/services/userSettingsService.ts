@@ -14,7 +14,9 @@ import {
   streaks,
   motivationalMessages,
   disciplineTrackerSettings,
-  disciplineTrackerRows
+  disciplineTrackerRows,
+  userPinnedSops,
+  userRankings
 } from '@/lib/db/schema';
 import { eq, count } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
@@ -145,7 +147,17 @@ export async function resetUserAccount(userId: string): Promise<{
     .delete(disciplineTrackerSettings)
     .where(eq(disciplineTrackerSettings.userId, userId));
   
-  // 10. Increment reset count
+  // 10. Delete pinned SOP favorites (user preferences — not cleared by user-delete CASCADE)
+  await db
+    .delete(userPinnedSops)
+    .where(eq(userPinnedSops.userId, userId));
+  
+  // 11. Delete user rankings (stale after reset; recalculated by cron)
+  await db
+    .delete(userRankings)
+    .where(eq(userRankings.userId, userId));
+  
+  // 12. Increment reset count
   const [user] = await db
     .select({ resetCount: users.resetCount })
     .from(users)
@@ -174,7 +186,7 @@ export async function getUserAccountSummary(userId: string): Promise<{
   totalSummaries: number;
   totalTargets: number;
   totalBadges: number;
-  totalMessages: number;
+  totalNotifications: number;
   totalDisciplineRows: number;
 }> {
   const [tradesResult, summariesResult, targetsResult, badgesResult, messagesResult, disciplineResult] = await Promise.all([
@@ -191,7 +203,7 @@ export async function getUserAccountSummary(userId: string): Promise<{
     totalSummaries: summariesResult[0]?.count || 0,
     totalTargets: targetsResult[0]?.count || 0,
     totalBadges: badgesResult[0]?.count || 0,
-    totalMessages: messagesResult[0]?.count || 0,
+    totalNotifications: messagesResult[0]?.count || 0,
     totalDisciplineRows: disciplineResult[0]?.count || 0,
   };
 }
