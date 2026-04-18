@@ -65,8 +65,9 @@ export async function createTrade(input: CreateTradeInput) {
     throw new Error(`Notes cannot exceed ${VALIDATION.MAX_NOTE_LENGTH} characters`);
   }
 
-  // Validate profit/loss is non-zero
-  if (input.profitLossUsd === 0) {
+  // Validate profit/loss is non-zero (0 is only valid for BE transactions)
+  const isBeTransaction = input.entryType === 'TRANSACTION' && input.result === 'BE';
+  if (input.profitLossUsd === 0 && !isBeTransaction) {
     throw new Error('Amount cannot be zero');
   }
 
@@ -357,7 +358,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   if (input.result) updateData.result = input.result;
   if (input.sopFollowed !== undefined) updateData.sopFollowed = input.sopFollowed;
   if (input.profitLossUsd !== undefined) {
-    if (input.profitLossUsd === 0) {
+    // 0 is valid only for BE transactions (use updated result if provided, else existing)
+    const effectiveResult = input.result ?? existingTrade.result;
+    const isBeUpdate = existingTrade.entryType === 'TRANSACTION' && effectiveResult === 'BE';
+    if (input.profitLossUsd === 0 && !isBeUpdate) {
       throw new Error('Profit/loss cannot be zero');
     }
     updateData.profitLossUsd = input.profitLossUsd;
