@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.3] - 2026-04-18
+
+### Fixed
+- **Trades list footer: incorrect Total Trades, Win Rate, SOP Rate when commission rows exist** — `getTrades` summary calculation used `totalCount` (all rows including COMMISSION) as the denominator. With 10 WIN + 2 BE + 1 COMMISSION the footer showed 13 trades / 76.9% WR / 92.3% SOP instead of the correct 12 trades / 83.3% WR / 100% SOP. Fixed by filtering to TRANSACTION-only rows for `totalTrades`, `totalWins`, `totalLosses`, `totalSopFollowed`, `winRate`, and `sopRate`. Net P/L still sums all rows (commissions reduce real profit).
+
+---
+
 ## [1.14.2] - 2026-04-18
 
 ### Fixed

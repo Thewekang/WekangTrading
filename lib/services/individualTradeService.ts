@@ -267,6 +267,7 @@ export async function getTrades(filters: GetTradesFilters) {
         result: individualTrades.result,
         sopFollowed: individualTrades.sopFollowed,
         profitLossUsd: individualTrades.profitLossUsd,
+        entryType: individualTrades.entryType,
       })
       .from(individualTrades)
       .where(whereCondition),
@@ -275,13 +276,17 @@ export async function getTrades(filters: GetTradesFilters) {
   const totalCount = countResults[0].count;
 
   // Calculate summary statistics from ALL filtered trades
-  const totalWins = allFilteredTrades.filter(t => t.result === 'WIN').length;
-  const totalLosses = allFilteredTrades.filter(t => t.result === 'LOSS').length;
+  // TRANSACTION-only metrics: totalTrades, wins, losses, win rate, SOP rate
+  // ALL trades metric: net P/L (commissions reduce real profit)
+  const transactionTrades = allFilteredTrades.filter(t => t.entryType === 'TRANSACTION');
+  const totalTrades = transactionTrades.length;
+  const totalWins = transactionTrades.filter(t => t.result === 'WIN').length;
+  const totalLosses = transactionTrades.filter(t => t.result === 'LOSS').length;
   // BE trades count in totalTrades but not in wins or losses
-  const totalSopFollowed = allFilteredTrades.filter(t => t.sopFollowed).length;
+  const totalSopFollowed = transactionTrades.filter(t => t.sopFollowed).length;
   const netProfitLoss = allFilteredTrades.reduce((sum, t) => sum + t.profitLossUsd, 0);
-  const winRate = totalCount > 0 ? (totalWins / totalCount) * 100 : 0;
-  const sopRate = totalCount > 0 ? (totalSopFollowed / totalCount) * 100 : 0;
+  const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+  const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
 
   return {
     trades: tradeResults,
@@ -292,7 +297,7 @@ export async function getTrades(filters: GetTradesFilters) {
       totalPages: Math.ceil(totalCount / pageSize),
     },
     summary: {
-      totalTrades: totalCount,
+      totalTrades,
       totalWins,
       totalLosses,
       totalSopFollowed,
