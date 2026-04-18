@@ -72,6 +72,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       body.tradeTimestamp = new Date(body.tradeTimestamp);
     }
 
+    // If switching to COMMISSION type, clear transaction-only fields
+    if (body.entryType === 'COMMISSION') {
+      body.result = null;
+      body.sopFollowed = null;
+      body.sopTypeId = null;
+      // Negate commission amount if positive was provided
+      if (body.profitLossUsd !== undefined) {
+        body.profitLossUsd = -Math.abs(body.profitLossUsd);
+      }
+    }
+
     // Update trade
     const { id } = await params;
     const trade = await updateTrade(id, session.user.id, body);

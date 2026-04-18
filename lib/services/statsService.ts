@@ -7,7 +7,9 @@
 
 import { db } from '@/lib/db';
 import { dailySummaries, individualTrades } from '@/lib/db/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, isNotNull, sql, count } from 'drizzle-orm';
+
+const TRANSACTION = 'TRANSACTION' as const;
 import type { DailySummary } from '@/lib/db/schema/summaries';
 
 type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
@@ -20,6 +22,8 @@ export interface PersonalStats {
   totalSopFollowed: number;
   sopRate: number;
   totalProfitLossUsd: number;
+  totalCommissionUsd: number;
+  netProfitLossUsd: number;
   bestSession: MarketSession | null;
   bestSessionWinRate: number;
   sessionBreakdown: Record<MarketSession, { trades: number; wins: number; winRate: number }>;
@@ -88,6 +92,7 @@ export async function getPersonalStats(
       totalLosses: dailySummaries.totalLosses,
       totalSopFollowed: dailySummaries.totalSopFollowed,
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+      totalCommissionUsd: dailySummaries.totalCommissionUsd,
     })
     .from(dailySummaries)
     .where(and(...conditions))
@@ -99,6 +104,8 @@ export async function getPersonalStats(
   const totalLosses = summaries.reduce((sum, s) => sum + s.totalLosses, 0);
   const totalSopFollowed = summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0);
   const totalProfitLossUsd = summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0);
+  const totalCommissionUsd = summaries.reduce((sum, s) => sum + (s.totalCommissionUsd ?? 0), 0);
+  const netProfitLossUsd = totalProfitLossUsd + totalCommissionUsd;
 
   const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
@@ -114,7 +121,7 @@ export async function getPersonalStats(
     EUROPE_US_OVERLAP: { trades: 0, wins: 0 },
   };
 
-  // Query individual_trades for accurate session breakdown
+  // Query individual_trades for accurate session breakdown (TRANSACTION only — exclude COMMISSION)
   const tradesForPeriod = await db
     .select({
       marketSession: individualTrades.marketSession,
@@ -123,8 +130,8 @@ export async function getPersonalStats(
     .from(individualTrades)
     .where(
       startDate
-        ? and(eq(individualTrades.userId, userId), gte(individualTrades.tradeTimestamp, startDate))
-        : eq(individualTrades.userId, userId)
+        ? and(eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION), gte(individualTrades.tradeTimestamp, startDate))
+        : and(eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION))
     );
 
   tradesForPeriod.forEach((trade) => {
@@ -170,6 +177,8 @@ export async function getPersonalStats(
     totalSopFollowed,
     sopRate: Math.round(sopRate * 10) / 10,
     totalProfitLossUsd: Math.round(totalProfitLossUsd * 100) / 100, // Round to cents
+    totalCommissionUsd: Math.round(totalCommissionUsd * 100) / 100,
+    netProfitLossUsd: Math.round(netProfitLossUsd * 100) / 100,
     bestSession,
     bestSessionWinRate: Math.round(bestWinRate * 10) / 10,
     sessionBreakdown,
@@ -206,8 +215,8 @@ export async function getSessionStats(
         break;
     }
 
-    // Query individual trades directly for accurate session stats
-    const conditions = [eq(individualTrades.userId, userId)];
+    // Query TRANSACTION trades only — exclude COMMISSION entries from session stats
+    const conditions = [eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION)];
     if (startDate) {
       conditions.push(gte(individualTrades.tradeTimestamp, startDate));
     }
@@ -348,8 +357,8 @@ export async function getHourlyStats(
         break;
     }
 
-    // Query individual trades (need timestamp precision)
-    const conditions = [eq(individualTrades.userId, userId)];
+    // Query TRANSACTION trades only — exclude COMMISSION entries from hourly stats
+    const conditions = [eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION)];
     if (startDate) {
       conditions.push(gte(individualTrades.tradeTimestamp, startDate));
     }
@@ -408,4 +417,80 @@ export async function getHourlyStats(
       winRate: 0,
     }));
   }
+}
+
+// ============================================
+// SYMBOL STATS
+// ============================================
+
+export interface SymbolStat {
+  symbol: string;
+  totalTrades: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  netProfitLoss: number;
+}
+
+export interface SymbolStats {
+  topProfitable: SymbolStat[];
+  topLoss: SymbolStat[];
+  all: SymbolStat[];
+}
+
+/**
+ * Get per-symbol aggregated statistics
+ * Queries individual_trades directly since daily_summaries don't have symbol breakdown
+ */
+export async function getSymbolStats(
+  userId: string,
+  timeframe: 'week' | 'month' | 'year' | 'all' = 'all',
+  limit = 5
+): Promise<SymbolStats> {
+  const now = new Date();
+  let startDate: Date | undefined;
+
+  switch (timeframe) {
+    case 'week':  startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+    case 'month': startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+    case 'year':  startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+    default: startDate = undefined;
+  }
+
+  // TRANSACTION entries only — COMMISSION entries skew symbol P/L and have no result
+  const conditions = [
+    eq(individualTrades.userId, userId),
+    eq(individualTrades.entryType, TRANSACTION),
+    isNotNull(individualTrades.symbol),
+  ];
+  if (startDate) conditions.push(gte(individualTrades.tradeTimestamp, startDate));
+
+  const rows = await db
+    .select({
+      symbol: individualTrades.symbol,
+      totalTrades: count(),
+      wins: sql<number>`cast(sum(case when ${individualTrades.result} = 'WIN' then 1 else 0 end) as integer)`,
+      netProfitLoss: sql<number>`sum(${individualTrades.profitLossUsd})`,
+    })
+    .from(individualTrades)
+    .where(and(...conditions))
+    .groupBy(individualTrades.symbol);
+
+  const all: SymbolStat[] = rows.map(r => {
+    const wins = Number(r.wins ?? 0);
+    const total = Number(r.totalTrades ?? 0);
+    return {
+      symbol: r.symbol!,
+      totalTrades: total,
+      wins,
+      losses: total - wins,
+      winRate: total > 0 ? Math.round((wins / total) * 1000) / 10 : 0,
+      netProfitLoss: Math.round(Number(r.netProfitLoss ?? 0) * 100) / 100,
+    };
+  });
+
+  const topProfitable = [...all].sort((a, b) => b.netProfitLoss - a.netProfitLoss).slice(0, limit);
+  const topLoss = [...all].sort((a, b) => a.netProfitLoss - b.netProfitLoss).slice(0, limit);
+
+  return { topProfitable, topLoss, all };
 }

@@ -4,9 +4,10 @@ import { TradeCard } from './TradeCard';
 
 interface Trade {
   id: string;
+  entryType?: string | null;
   tradeTimestamp: Date | string;
-  result: string;
-  sopFollowed: boolean;
+  result: string | null;
+  sopFollowed: boolean | null;
   sopTypeId: string | null;
   sopType: { id: string; name: string } | null;
   symbol: string | null;

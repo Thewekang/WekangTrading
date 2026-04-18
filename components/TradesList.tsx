@@ -26,9 +26,10 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Trade {
   id: string;
+  entryType?: string | null;
   tradeTimestamp: Date | string;
-  result: string;
-  sopFollowed: boolean;
+  result: string | null;
+  sopFollowed: boolean | null;
   sopTypeId: string | null;
   sopType: { id: string; name: string } | null;
   symbol: string | null;
@@ -45,7 +46,7 @@ interface TradesListProps {
 export function TradesList({ initialTrades, userId }: TradesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { formatDate, timezone } = useTimezone();
+  const { formatDate, timezone, datetimeLocalToUTC } = useTimezone();
   const isMobile = useIsMobile();
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
@@ -66,6 +67,17 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const [sopFilter, setSopFilter] = useState('');
   const [minProfitLoss, setMinProfitLoss] = useState('');
   const [maxProfitLoss, setMaxProfitLoss] = useState('');
+  const [symbolFilter, setSymbolFilter] = useState('');
+  const [entryTypeFilter, setEntryTypeFilter] = useState('');
+
+  // Available symbols for autocomplete
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  useEffect(() => {
+    fetch('/api/stats/symbols')
+      .then(r => r.json())
+      .then(d => { if (d.success) setAvailableSymbols(d.data); })
+      .catch(() => {});
+  }, []);
   
   // Filter presets state
   const [savedPresets, setSavedPresets] = useState<Array<{ name: string; filters: any }>>([]);
@@ -129,6 +141,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     const urlSop = searchParams.get('sop');
     const urlMinPL = searchParams.get('minPL');
     const urlMaxPL = searchParams.get('maxPL');
+    const urlSymbol = searchParams.get('symbol');
+    const urlEntryType = searchParams.get('entryType');
     
     if (urlStartDate) setStartDate(urlStartDate);
     if (urlEndDate) setEndDate(urlEndDate);
@@ -137,6 +151,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     if (urlSop) setSopFilter(urlSop);
     if (urlMinPL) setMinProfitLoss(urlMinPL);
     if (urlMaxPL) setMaxProfitLoss(urlMaxPL);
+    if (urlSymbol) setSymbolFilter(urlSymbol);
+    if (urlEntryType) setEntryTypeFilter(urlEntryType);
   }, [searchParams]);
   
   // Fetch initial pagination data on mount
@@ -186,18 +202,31 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     if (sopFilter) urlParams.append('sop', sopFilter);
     if (minProfitLoss) urlParams.append('minPL', minProfitLoss);
     if (maxProfitLoss) urlParams.append('maxPL', maxProfitLoss);
+    if (symbolFilter) urlParams.append('symbol', symbolFilter);
+    if (entryTypeFilter) urlParams.append('entryType', entryTypeFilter);
     
     router.push(`?${urlParams.toString()}`, { scroll: false });
     
     try {
       const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
+      if (startDate) {
+        // Convert start of day in user's timezone to UTC ISO string
+        const startUTC = datetimeLocalToUTC(startDate + 'T00:00');
+        params.append('startDate', startUTC.toISOString());
+      }
+      if (endDate) {
+        // Convert end of day in user's timezone to UTC ISO string
+        const endUTC = datetimeLocalToUTC(endDate + 'T23:59');
+        endUTC.setSeconds(59, 999);
+        params.append('endDate', endUTC.toISOString());
+      }
       if (resultFilter) params.append('result', resultFilter);
       if (sessionFilter.length > 0) params.append('marketSessions', sessionFilter.join(','));
       if (sopFilter) params.append('sopFollowed', sopFilter);
       if (minProfitLoss) params.append('minProfitLoss', minProfitLoss);
       if (maxProfitLoss) params.append('maxProfitLoss', maxProfitLoss);
+      if (symbolFilter) params.append('symbol', symbolFilter.trim());
+      if (entryTypeFilter) params.append('entryType', entryTypeFilter);
       params.append('page', page.toString());
       params.append('pageSize', pageSize.toString());
 
@@ -225,7 +254,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   // Update pull-to-refresh ref to latest handleApplyFilters
   useEffect(() => {
     refreshFnRef.current = () => handleApplyFilters(currentPage);
-  }, [currentPage, pageSize, startDate, endDate, resultFilter, sessionFilter, sopFilter, minProfitLoss, maxProfitLoss]);
+  }, [currentPage, pageSize, startDate, endDate, resultFilter, sessionFilter, sopFilter, minProfitLoss, maxProfitLoss, symbolFilter, entryTypeFilter]);
 
   // Clear filters
   const handleClearFilters = async () => {
@@ -236,6 +265,8 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     setSopFilter('');
     setMinProfitLoss('');
     setMaxProfitLoss('');
+    setSymbolFilter('');
+    setEntryTypeFilter('');
     setCurrentPage(1);
     
     // Clear URL parameters
@@ -332,6 +363,28 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     setEndDate('');
     setResultFilter('');
     setSessionFilter([]);
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+
+  const handleQuickFilterTransactionsOnly = () => {
+    setEntryTypeFilter('TRANSACTION');
+    setStartDate('');
+    setEndDate('');
+    setResultFilter('');
+    setSessionFilter([]);
+    setSopFilter('');
+    setMinProfitLoss('');
+    setMaxProfitLoss('');
+  };
+
+  const handleQuickFilterCommissionsOnly = () => {
+    setEntryTypeFilter('COMMISSION');
+    setStartDate('');
+    setEndDate('');
+    setResultFilter('');
+    setSessionFilter([]);
+    setSopFilter('');
     setMinProfitLoss('');
     setMaxProfitLoss('');
   };
@@ -560,6 +613,22 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           >
             📋 SOP Followed
           </Button>
+          <Button
+            onClick={handleQuickFilterTransactionsOnly}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            📈 Transactions Only
+          </Button>
+          <Button
+            onClick={handleQuickFilterCommissionsOnly}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            💳 Commissions Only
+          </Button>
         </div>
       </div>
 
@@ -641,7 +710,21 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       {/* Advanced Filters Section */}
       <div className="bg-white p-6 border-b">
         <h3 className="text-sm font-semibold mb-4">Advanced Filters</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Entry Type
+            </label>
+            <select
+              value={entryTypeFilter}
+              onChange={(e) => setEntryTypeFilter(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All Types</option>
+              <option value="TRANSACTION">📈 Transaction</option>
+              <option value="COMMISSION">💳 Commission</option>
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Start Date
@@ -676,6 +759,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               <option value="">All Results</option>
               <option value="WIN">Wins Only</option>
               <option value="LOSS">Losses Only</option>
+              <option value="BE">Break-Evens Only</option>
             </select>
           </div>
           <div>
@@ -746,6 +830,24 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Symbol
+            </label>
+            <input
+              type="text"
+              list="symbolsList"
+              value={symbolFilter}
+              onChange={(e) => setSymbolFilter(e.target.value.toUpperCase())}
+              placeholder="e.g., EURUSD"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+            />
+            {availableSymbols.length > 0 && (
+              <datalist id="symbolsList">
+                {availableSymbols.map(s => <option key={s} value={s} />)}
+              </datalist>
+            )}
+          </div>
         </div>
         <div className="mt-4 flex gap-3">
           <Button size="sm" onClick={() => handleApplyFilters(1)} disabled={isLoading}>
@@ -781,7 +883,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
           // Mobile: Card view
           trades.length === 0 ? (
             <div className="p-8 text-center">
-              {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
+              {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss || symbolFilter ? (
                 <>
                   <div className="text-5xl mb-4">🔍</div>
                   <p className="text-lg font-semibold text-gray-900 mb-2">No results found</p>
@@ -840,7 +942,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type / Session</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP</th>
@@ -853,7 +955,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                 {trades.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12">
-                      {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss ? (
+                      {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss || symbolFilter ? (
                         <div className="text-center">
                           <div className="text-5xl mb-4">🔍</div>
                           <p className="text-lg font-semibold text-gray-900 mb-2">No results found</p>
@@ -902,9 +1004,15 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {getSessionBadge(trade.marketSession)}
-                        </span>
+                        {trade.entryType === 'COMMISSION' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            💳 Commission
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {getSessionBadge(trade.marketSession)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {trade.symbol ? (
@@ -916,9 +1024,15 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {trade.result === 'WIN' ? (
+                        {trade.entryType === 'COMMISSION' ? (
+                          <span className="text-gray-400 text-xs italic">fee</span>
+                        ) : trade.result === 'WIN' ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             ✅ WIN
+                        </span>
+                      ) : trade.result === 'BE' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          ⚖️ BE
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -927,14 +1041,18 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {trade.sopFollowed ? (
+                      {trade.entryType === 'COMMISSION' ? (
+                        <span className="text-gray-400">—</span>
+                      ) : trade.sopFollowed ? (
                         <span className="text-blue-600">✓ Yes</span>
                       ) : (
                         <span className="text-orange-600">✗ No</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {trade.sopType ? (
+                      {trade.entryType === 'COMMISSION' ? (
+                        <span className="text-gray-400">—</span>
+                      ) : trade.sopType ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                           {trade.sopType.name}
                         </span>
@@ -943,7 +1061,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                       )}
                     </td>
                     <td className={`px-4 py-3 text-sm text-right font-semibold ${
-                      trade.profitLossUsd > 0 ? 'text-green-600' : 'text-red-600'
+                      trade.profitLossUsd > 0 ? 'text-green-600' : trade.profitLossUsd < 0 ? 'text-red-600' : 'text-gray-500'
                     }`}>
                       {trade.profitLossUsd > 0 ? '+' : ''}${trade.profitLossUsd.toFixed(2)}
                     </td>
@@ -1052,13 +1170,13 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <h3 className="font-semibold text-green-900 mb-2">✅ Showing {trades.length} Trades</h3>
           <p className="text-sm text-green-800">
-            {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss
+            {startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss || symbolFilter
               ? 'Filtered results based on your criteria'
               : 'Displaying all your trades'
             }
           </p>
           {/* Active Filters */}
-          {(startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss) && (
+          {(startDate || endDate || resultFilter || sessionFilter.length > 0 || sopFilter || minProfitLoss || maxProfitLoss || symbolFilter) && (
             <div className="mt-3 flex flex-wrap gap-2">
               {startDate && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -1093,6 +1211,11 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
               {maxProfitLoss && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                   Max P/L: ${maxProfitLoss}
+                </span>
+              )}
+              {symbolFilter && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800 font-mono">
+                  Symbol: {symbolFilter}
                 </span>
               )}
             </div>
@@ -1130,7 +1253,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
                 </p>
                 <p className="text-sm">
                   <span className="font-semibold">Result:</span>{' '}
-                  <span className={tradeToDelete.result === 'WIN' ? 'text-green-600' : 'text-red-600'}>
+                  <span className={tradeToDelete.result === 'WIN' ? 'text-green-600' : tradeToDelete.result === 'BE' ? 'text-gray-600' : 'text-red-600'}>
                     {tradeToDelete.result}
                   </span>
                 </p>

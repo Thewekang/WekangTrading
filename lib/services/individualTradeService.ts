@@ -5,27 +5,32 @@
 
 import { db } from '../db';
 import { individualTrades, sopTypes } from '../db/schema';
-import { eq, and, desc, gte, lte, inArray, count } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, inArray, count, like, isNotNull } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { updateDailySummary } from './dailySummaryService';
 import { updateUserStatsFromTrades } from './badgeService';
+import { invalidateUserRanking } from './rankingService';
 import { VALIDATION, PAGINATION } from '../constants';
 
 interface CreateTradeInput {
   userId: string;
+  entryType: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp: Date;
-  result: 'WIN' | 'LOSS';
-  sopFollowed: boolean;
+  // TRANSACTION-only fields (required for TRANSACTION, must be omitted/null for COMMISSION)
+  result?: 'WIN' | 'LOSS' | 'BE' | null;
+  sopFollowed?: boolean | null;
   sopTypeId?: string | null;
+  // Shared fields
   symbol?: string;
-  profitLossUsd: number;
+  profitLossUsd: number; // For COMMISSION: always stored as negative; caller must pass negative value
   notes?: string;
 }
 
 interface UpdateTradeInput {
+  entryType?: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp?: Date;
-  result?: 'WIN' | 'LOSS';
-  sopFollowed?: boolean;
+  result?: 'WIN' | 'LOSS' | 'BE' | null;
+  sopFollowed?: boolean | null;
   sopTypeId?: string | null;
   symbol?: string;
   profitLossUsd?: number;
@@ -36,12 +41,14 @@ interface GetTradesFilters {
   userId: string;
   startDate?: Date;
   endDate?: Date;
-  result?: 'WIN' | 'LOSS';
+  result?: 'WIN' | 'LOSS' | 'BE';
+  entryType?: 'TRANSACTION' | 'COMMISSION';
   marketSession?: 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
   marketSessions?: Array<'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP'>;
   sopFollowed?: boolean;
   minProfitLoss?: number;
   maxProfitLoss?: number;
+  symbol?: string;
   page?: number;
   pageSize?: number;
 }
@@ -59,9 +66,10 @@ export async function createTrade(input: CreateTradeInput) {
     throw new Error(`Notes cannot exceed ${VALIDATION.MAX_NOTE_LENGTH} characters`);
   }
 
-  // Validate profit/loss is non-zero
-  if (input.profitLossUsd === 0) {
-    throw new Error('Profit/loss cannot be zero');
+  // Validate profit/loss is non-zero (0 is only valid for BE transactions)
+  const isBeTransaction = input.entryType === 'TRANSACTION' && input.result === 'BE';
+  if (input.profitLossUsd === 0 && !isBeTransaction) {
+    throw new Error('Amount cannot be zero');
   }
 
   // Validate timestamp is not in future
@@ -69,15 +77,24 @@ export async function createTrade(input: CreateTradeInput) {
     throw new Error('Trade timestamp cannot be in the future');
   }
 
+  // For TRANSACTION entries: result and sopFollowed are required
+  if (input.entryType === 'TRANSACTION') {
+    if (!input.result) throw new Error('Result is required for transaction entries');
+    if (input.sopFollowed === undefined || input.sopFollowed === null) {
+      throw new Error('SOP followed is required for transaction entries');
+    }
+  }
+
   // Create trade
   const [trade] = await db
     .insert(individualTrades)
     .values({
       userId: input.userId,
+      entryType: input.entryType,
       tradeTimestamp: input.tradeTimestamp,
-      result: input.result,
-      sopFollowed: input.sopFollowed,
-      sopTypeId: input.sopTypeId || null,
+      result: input.entryType === 'TRANSACTION' ? (input.result ?? null) : null,
+      sopFollowed: input.entryType === 'TRANSACTION' ? (input.sopFollowed ?? null) : null,
+      sopTypeId: input.entryType === 'TRANSACTION' ? (input.sopTypeId || null) : null,
       symbol: input.symbol || null,
       profitLossUsd: input.profitLossUsd,
       marketSession,
@@ -91,6 +108,9 @@ export async function createTrade(input: CreateTradeInput) {
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(input.userId);
+
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(input.userId);
 
   return trade;
 }
@@ -116,10 +136,11 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   // Calculate market sessions and prepare data
   const tradesWithSessions = trades.map(trade => ({
     userId: trade.userId,
+    entryType: trade.entryType,
     tradeTimestamp: trade.tradeTimestamp,
-    result: trade.result,
-    sopFollowed: trade.sopFollowed,
-    sopTypeId: trade.sopTypeId || null,
+    result: trade.entryType === 'TRANSACTION' ? (trade.result ?? null) : null,
+    sopFollowed: trade.entryType === 'TRANSACTION' ? (trade.sopFollowed ?? null) : null,
+    sopTypeId: trade.entryType === 'TRANSACTION' ? (trade.sopTypeId || null) : null,
     symbol: trade.symbol || null,
     profitLossUsd: trade.profitLossUsd,
     marketSession: calculateMarketSession(trade.tradeTimestamp),
@@ -143,6 +164,9 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(userId);
 
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(userId);
+
   return { count: trades.length };
 }
 
@@ -155,11 +179,13 @@ export async function getTrades(filters: GetTradesFilters) {
     startDate,
     endDate,
     result,
+    entryType,
     marketSession,
     marketSessions,
     sopFollowed,
     minProfitLoss,
     maxProfitLoss,
+    symbol,
     page = 1,
     pageSize = PAGINATION.PAGINATION_PAGE_SIZE,
   } = filters;
@@ -175,6 +201,9 @@ export async function getTrades(filters: GetTradesFilters) {
   }
   if (result) {
     conditions.push(eq(individualTrades.result, result));
+  }
+  if (entryType) {
+    conditions.push(eq(individualTrades.entryType, entryType));
   }
   
   // Handle multi-select sessions
@@ -196,6 +225,9 @@ export async function getTrades(filters: GetTradesFilters) {
   if (maxProfitLoss !== undefined) {
     conditions.push(lte(individualTrades.profitLossUsd, maxProfitLoss));
   }
+  if (symbol) {
+    conditions.push(like(individualTrades.symbol, `%${symbol.toUpperCase()}%`));
+  }
 
   const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0];
 
@@ -207,6 +239,7 @@ export async function getTrades(filters: GetTradesFilters) {
         id: individualTrades.id,
         userId: individualTrades.userId,
         dailySummaryId: individualTrades.dailySummaryId,
+        entryType: individualTrades.entryType,
         sopTypeId: individualTrades.sopTypeId,
         tradeTimestamp: individualTrades.tradeTimestamp,
         result: individualTrades.result,
@@ -241,6 +274,7 @@ export async function getTrades(filters: GetTradesFilters) {
         result: individualTrades.result,
         sopFollowed: individualTrades.sopFollowed,
         profitLossUsd: individualTrades.profitLossUsd,
+        entryType: individualTrades.entryType,
       })
       .from(individualTrades)
       .where(whereCondition),
@@ -249,11 +283,17 @@ export async function getTrades(filters: GetTradesFilters) {
   const totalCount = countResults[0].count;
 
   // Calculate summary statistics from ALL filtered trades
-  const totalWins = allFilteredTrades.filter(t => t.result === 'WIN').length;
-  const totalSopFollowed = allFilteredTrades.filter(t => t.sopFollowed).length;
+  // TRANSACTION-only metrics: totalTrades, wins, losses, win rate, SOP rate
+  // ALL trades metric: net P/L (commissions reduce real profit)
+  const transactionTrades = allFilteredTrades.filter(t => t.entryType === 'TRANSACTION');
+  const totalTrades = transactionTrades.length;
+  const totalWins = transactionTrades.filter(t => t.result === 'WIN').length;
+  const totalLosses = transactionTrades.filter(t => t.result === 'LOSS').length;
+  // BE trades count in totalTrades but not in wins or losses
+  const totalSopFollowed = transactionTrades.filter(t => t.sopFollowed).length;
   const netProfitLoss = allFilteredTrades.reduce((sum, t) => sum + t.profitLossUsd, 0);
-  const winRate = totalCount > 0 ? (totalWins / totalCount) * 100 : 0;
-  const sopRate = totalCount > 0 ? (totalSopFollowed / totalCount) * 100 : 0;
+  const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+  const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
 
   return {
     trades: tradeResults,
@@ -264,15 +304,26 @@ export async function getTrades(filters: GetTradesFilters) {
       totalPages: Math.ceil(totalCount / pageSize),
     },
     summary: {
-      totalTrades: totalCount,
+      totalTrades,
       totalWins,
-      totalLosses: totalCount - totalWins,
+      totalLosses,
       totalSopFollowed,
       netProfitLoss,
       winRate,
       sopRate,
     },
   };
+}
+
+/**
+ * Get unique symbols traded by a user (for filter autocomplete)
+ */
+export async function getUniqueSymbols(userId: string): Promise<string[]> {
+  const results = await db
+    .selectDistinct({ symbol: individualTrades.symbol })
+    .from(individualTrades)
+    .where(and(eq(individualTrades.userId, userId), isNotNull(individualTrades.symbol)));
+  return results.map(r => r.symbol!).sort();
 }
 
 /**
@@ -319,7 +370,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   if (input.result) updateData.result = input.result;
   if (input.sopFollowed !== undefined) updateData.sopFollowed = input.sopFollowed;
   if (input.profitLossUsd !== undefined) {
-    if (input.profitLossUsd === 0) {
+    // 0 is valid only for BE transactions (use updated result if provided, else existing)
+    const effectiveResult = input.result ?? existingTrade.result;
+    const isBeUpdate = existingTrade.entryType === 'TRANSACTION' && effectiveResult === 'BE';
+    if (input.profitLossUsd === 0 && !isBeUpdate) {
       throw new Error('Profit/loss cannot be zero');
     }
     updateData.profitLossUsd = input.profitLossUsd;
@@ -356,6 +410,9 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(userId);
 
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(userId);
+
   return updatedTrade;
 }
 
@@ -387,6 +444,9 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(userId);
+
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(userId);
 
   return { success: true };
 }

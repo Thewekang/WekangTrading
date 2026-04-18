@@ -2,6 +2,8 @@ import { db } from '@/lib/db';
 import { dailySummaries, individualTrades } from '@/lib/db/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
+const TRANSACTION = 'TRANSACTION' as const;
+
 interface MonthlyPerformance {
   month: string;
   monthNumber: number;
@@ -44,7 +46,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)); // Jan 1, 00:00:00 UTC
     const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // Dec 31, 23:59:59 UTC
 
-    // Get all trades for the year and convert to user's timezone for month extraction
+    // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
     const yearTrades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
@@ -56,20 +58,22 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
       .where(
         and(
           eq(individualTrades.userId, userId),
+          eq(individualTrades.entryType, TRANSACTION),
           gte(individualTrades.tradeTimestamp, startDate),
           lte(individualTrades.tradeTimestamp, endDate)
         )
       );
 
     // Initialize monthly data
-    const monthlyData: { [key: number]: { trades: number; wins: number; sopFollowed: number; pnl: number } } = {};
+    const monthlyData: { [key: number]: { trades: number; wins: number; losses: number; sopFollowed: number; pnl: number } } = {};
     for (let i = 1; i <= 12; i++) {
-      monthlyData[i] = { trades: 0, wins: 0, sopFollowed: 0, pnl: 0 };
+      monthlyData[i] = { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 };
     }
 
     // Aggregate trades by month
     let totalTrades = 0;
     let totalWins = 0;
+    let totalLosses = 0;
     let totalSopFollowed = 0;
     let totalPnl = 0;
 
@@ -90,7 +94,11 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
       if (trade.result === 'WIN') {
         monthlyData[month].wins++;
         totalWins++;
+      } else if (trade.result === 'LOSS') {
+        monthlyData[month].losses++;
+        totalLosses++;
       }
+      // BE trades: counted in totalTrades but not wins or losses
 
       if (trade.sopFollowed) {
         monthlyData[month].sopFollowed++;
@@ -112,13 +120,12 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
         pnl: data.pnl,
         trades: data.trades,
         wins: data.wins,
-        losses: data.trades - data.wins,
+        losses: data.losses,
         hasData,
       });
     }
 
     // Build overview
-    const totalLosses = totalTrades - totalWins;
     const overview: PerformanceOverview = {
       totalPnl,
       winRate: totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0,
@@ -153,7 +160,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     const startDate = new Date(Date.UTC(year, month - 1, -1, 0, 0, 0, 0)); // 2 days before month start
     const endDate = new Date(Date.UTC(year, month, 2, 23, 59, 59, 999)); // 2 days after month end
 
-    // Get individual trades for the month and group by day in user's timezone
+    // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
     const trades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
@@ -165,6 +172,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       .where(
         and(
           eq(individualTrades.userId, userId),
+          eq(individualTrades.entryType, TRANSACTION),
           gte(individualTrades.tradeTimestamp, startDate),
           lte(individualTrades.tradeTimestamp, endDate)
         )
@@ -175,12 +183,14 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     const dailyMap = new Map<number, {
       trades: number;
       wins: number;
+      losses: number;
       sopFollowed: number;
       pnl: number;
     }>();
 
     let totalTrades = 0;
     let totalWins = 0;
+    let totalLosses = 0;
     let totalSopFollowed = 0;
     let totalPnl = 0;
 
@@ -200,7 +210,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       // Only include trades that fall in the requested month/year in user's timezone
       if (yearInTimezone === year && monthInTimezone === month) {
         if (!dailyMap.has(dayInTimezone)) {
-          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, sopFollowed: 0, pnl: 0 });
+          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 });
         }
 
         const dayData = dailyMap.get(dayInTimezone)!;
@@ -212,7 +222,11 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
         if (trade.result === 'WIN') {
           dayData.wins++;
           totalWins++;
+        } else if (trade.result === 'LOSS') {
+          dayData.losses++;
+          totalLosses++;
         }
+        // BE trades: counted in totalTrades but not wins or losses
 
         if (trade.sopFollowed) {
           dayData.sopFollowed++;
@@ -221,14 +235,12 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       }
     });
 
-    const totalLosses = totalTrades - totalWins;
-
     // Convert map to array of daily breakdowns
     const dailyBreakdown = Array.from(dailyMap.entries()).map(([day, data]) => ({
       date: new Date(year, month - 1, day), // Local date for display
       trades: data.trades,
       wins: data.wins,
-      losses: data.trades - data.wins,
+      losses: data.losses,
       winRate: data.trades > 0 ? (data.wins / data.trades) * 100 : 0,
       sopRate: data.trades > 0 ? (data.sopFollowed / data.trades) * 100 : 0,
       pnl: data.pnl,

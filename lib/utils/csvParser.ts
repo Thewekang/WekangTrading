@@ -8,20 +8,22 @@ import { datetimeLocalToUTC } from './timezones';
 
 export interface CSVTradeRow {
   'Date & time': string;
-  Result: string;
-  SOP: string;
-  'SOP Type': string;
+  Type?: string; // 'Transaction' or 'Commission' — optional, defaults to 'Transaction' for backward compat
+  Result?: string;
+  SOP?: string;
+  'SOP Type'?: string;
   Amount: string;
   Symbol?: string;
   Notes?: string;
 }
 
 export interface ParsedTrade {
+  entryType: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp: string; // ISO string
-  result: 'WIN' | 'LOSS';
-  sopFollowed: boolean;
-  sopTypeName: string;
-  profitLossUsd: number;
+  result?: 'WIN' | 'LOSS' | 'BE'; // undefined for COMMISSION entries
+  sopFollowed?: boolean;   // undefined for COMMISSION entries
+  sopTypeName?: string;    // undefined for COMMISSION entries
+  profitLossUsd: number;   // For COMMISSION: always negative (stored cost); 0 allowed for BE
   symbol?: string;
   notes?: string;
 }
@@ -48,6 +50,7 @@ export function parseCSVFile(file: File, timezone: string): Promise<ParseResult>
     Papa.parse<CSVTradeRow>(file, {
       header: true,
       skipEmptyLines: true,
+      delimiter: '', // auto-detect: handles both ',' and ';' delimiters
       complete: (results) => {
         const trades: ParsedTrade[] = [];
         const errors: ValidationError[] = [];
@@ -86,6 +89,22 @@ function validateAndTransformRow(
   timezone: string
 ): { trade: ParsedTrade | null; errors: ValidationError[] } {
   const errors: ValidationError[] = [];
+
+  // Determine entry type (default to Transaction for backward compatibility)
+  const rawType = row.Type?.trim();
+  let entryType: 'TRANSACTION' | 'COMMISSION' = 'TRANSACTION';
+  if (rawType) {
+    const upperType = rawType.toUpperCase();
+    if (upperType === 'COMMISSION') {
+      entryType = 'COMMISSION';
+    } else if (upperType !== 'TRANSACTION') {
+      errors.push({
+        row: rowNumber,
+        field: 'Type',
+        message: `Invalid type: "${rawType}". Must be Transaction or Commission`,
+      });
+    }
+  }
 
   // Validate Date & time
   const dateTimeStr = row['Date & time']?.trim();
@@ -133,49 +152,59 @@ function validateAndTransformRow(
   }
 
   // Check if date is in future (using UTC)
-  if (tradeDate && tradeDate > new Date()) {
-    errors.push({
-      row: rowNumber,
-      field: 'Date & time',
-      message: 'Trade date cannot be in the future',
-    });
+  // Allow up to +1 day to accommodate timezone differences (e.g. UTC+8 users importing UTC timestamps
+  // while their local date is already tomorrow relative to UTC)
+  if (tradeDate) {
+    const maxAllowedDate = new Date();
+    maxAllowedDate.setDate(maxAllowedDate.getDate() + 1);
+    maxAllowedDate.setHours(23, 59, 59, 999);
+    if (tradeDate > maxAllowedDate) {
+      errors.push({
+        row: rowNumber,
+        field: 'Date & time',
+        message: 'Trade date cannot be in the future',
+      });
+    }
   }
 
-  // Validate Result
+  // Validate Result — only required for TRANSACTION entries
   const result = row.Result?.trim().toUpperCase();
-  if (!result) {
-    errors.push({
-      row: rowNumber,
-      field: 'Result',
-      message: 'Result is required',
-    });
-  } else if (result !== 'WIN' && result !== 'LOSS') {
-    errors.push({
-      row: rowNumber,
-      field: 'Result',
-      message: `Invalid result: "${result}". Must be WIN or LOSS`,
-    });
+  if (entryType === 'TRANSACTION') {
+    if (!result) {
+      errors.push({
+        row: rowNumber,
+        field: 'Result',
+        message: 'Result is required for Transaction entries',
+      });
+    } else if (result !== 'WIN' && result !== 'LOSS' && result !== 'BE') {
+      errors.push({
+        row: rowNumber,
+        field: 'Result',
+        message: `Invalid result: "${result}". Must be WIN, LOSS, or BE`,
+      });
+    }
   }
 
-  // Validate SOP
+  // Validate SOP — only required for TRANSACTION entries
   const sop = row.SOP?.trim().toUpperCase();
-  if (!sop) {
-    errors.push({
-      row: rowNumber,
-      field: 'SOP',
-      message: 'SOP is required',
-    });
-  } else if (sop !== 'YES' && sop !== 'NO') {
-    errors.push({
-      row: rowNumber,
-      field: 'SOP',
-      message: `Invalid SOP: "${sop}". Must be YES or NO`,
-    });
+  if (entryType === 'TRANSACTION') {
+    if (!sop) {
+      errors.push({
+        row: rowNumber,
+        field: 'SOP',
+        message: 'SOP is required for Transaction entries',
+      });
+    } else if (sop !== 'YES' && sop !== 'NO') {
+      errors.push({
+        row: rowNumber,
+        field: 'SOP',
+        message: `Invalid SOP: "${sop}". Must be YES or NO`,
+      });
+    }
   }
 
-  // Validate SOP Type (optional)
-  const sopTypeName = row['SOP Type']?.trim();
-  // SOP Type is optional, no validation needed if empty
+  // Validate SOP Type (optional, TRANSACTION only)
+  const sopTypeName = entryType === 'TRANSACTION' ? (row['SOP Type']?.trim() || '') : '';
 
   // Validate Amount
   const amountStr = row.Amount?.trim();
@@ -194,11 +223,18 @@ function validateAndTransformRow(
       field: 'Amount',
       message: `Invalid amount: "${amountStr}". Must be a number`,
     });
-  } else if (amount === 0) {
+  } else if (amount === 0 && result !== 'BE' && entryType !== 'COMMISSION') {
     errors.push({
       row: rowNumber,
       field: 'Amount',
-      message: 'Amount cannot be zero',
+      message: 'Amount cannot be zero (use BE result for break-even trades)',
+    });
+  } else if (entryType === 'COMMISSION' && amount > 0) {
+    // Commission amounts in CSV must be negative values (e.g. -3.50)
+    errors.push({
+      row: rowNumber,
+      field: 'Amount',
+      message: 'Commission amount must be a negative number (e.g., -3.50)',
     });
   }
 
@@ -246,12 +282,27 @@ function validateAndTransformRow(
   }
 
   // Transform to ParsedTrade (tradeDate is guaranteed to be non-null here)
+  // For COMMISSION entries: user enters negative value directly (e.g. -3.50), use as-is
+  const finalAmount = entryType === 'COMMISSION' ? -Math.abs(amount) : amount;
+
+  if (entryType === 'COMMISSION') {
+    const trade: ParsedTrade = {
+      entryType: 'COMMISSION',
+      tradeTimestamp: tradeDate!.toISOString(),
+      profitLossUsd: finalAmount,
+      symbol: symbol || undefined,
+      notes: notes || undefined,
+    };
+    return { trade, errors: [] };
+  }
+
   const trade: ParsedTrade = {
+    entryType: 'TRANSACTION',
     tradeTimestamp: tradeDate!.toISOString(),
-    result: result as 'WIN' | 'LOSS',
+    result: result as 'WIN' | 'LOSS' | 'BE',
     sopFollowed: sop === 'YES',
     sopTypeName: sopTypeName || '',
-    profitLossUsd: amount,
+    profitLossUsd: finalAmount,
     symbol: symbol || undefined,
     notes: notes || undefined,
   };
@@ -263,12 +314,14 @@ function validateAndTransformRow(
  * Generate CSV template file
  */
 export function generateCSVTemplate(): string {
-  const headers = ['Date & time', 'Result', 'SOP', 'SOP Type', 'Amount', 'Symbol', 'Notes'];
-  const exampleRow1 = ['1/12/2026 08:30', 'WIN', 'YES', 'BB Mastery', '150.50', 'EURUSD', 'Good setup'];
-  const exampleRow2 = ['1/12/2026 10:45', 'LOSS', 'NO', 'W & M breakout', '-75.00', 'GBPJPY', 'Rushed entry'];
-  const exampleRow3 = ['1/12/2026 14:20', 'WIN', 'YES', 'Engulfing Fail', '200.00', 'MNQ', ''];
+  const headers = ['Date & time', 'Type', 'Result', 'SOP', 'SOP Type', 'Amount', 'Symbol', 'Notes'];
+  const exampleRow1 = ['1/12/2026 08:30', 'Transaction', 'WIN', 'YES', 'BB Mastery', '150.50', 'EURUSD', 'Good setup'];
+  const exampleRow2 = ['1/12/2026 10:45', 'Transaction', 'LOSS', 'NO', 'W & M breakout', '-75.00', 'GBPJPY', 'Rushed entry'];
+  const exampleRow3 = ['1/12/2026 14:20', 'Transaction', 'WIN', 'YES', 'Engulfing Fail', '200.00', 'MNQ', ''];
+  const exampleRowBE = ['1/12/2026 12:00', 'Transaction', 'BE', 'YES', '', '0', 'XAUUSD', 'Break-even trade'];
+  const exampleRow4 = ['1/12/2026 08:30', 'Commission', '', '', '', '-3.50', 'EURUSD', 'Broker commission'];
 
-  const rows = [headers, exampleRow1, exampleRow2, exampleRow3];
+  const rows = [headers, exampleRow1, exampleRow2, exampleRow3, exampleRowBE, exampleRow4];
   return rows.map(row => row.join(',')).join('\n');
 }
 

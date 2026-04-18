@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 interface RankingData {
   rank: number | null;
@@ -21,6 +22,7 @@ interface RankingData {
 export function RankingCard() {
   const [ranking, setRanking] = useState<RankingData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +45,21 @@ export function RankingCard() {
       setError('Failed to load ranking');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshRanking() {
+    try {
+      setRefreshing(true);
+      const response = await fetch('/api/stats/ranking', { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        setRanking(data.data);
+      }
+    } catch (err) {
+      console.error('Error refreshing ranking:', err);
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -134,6 +151,16 @@ export function RankingCard() {
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-yellow-500" />
           Your Ranking
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-7 w-7"
+            onClick={refreshRanking}
+            disabled={refreshing}
+            title="Refresh ranking"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
         </CardTitle>
         <CardDescription>
           Anonymous position among all traders

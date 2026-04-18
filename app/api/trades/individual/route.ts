@@ -32,13 +32,15 @@ export async function GET(request: NextRequest) {
 
     // Optional filters
     if (searchParams.get('startDate')) {
+      // Client sends UTC ISO string already converted from user's timezone
       filters.startDate = new Date(searchParams.get('startDate')!);
     }
     if (searchParams.get('endDate')) {
+      // Client sends UTC ISO string already converted from user's timezone
       filters.endDate = new Date(searchParams.get('endDate')!);
     }
     if (searchParams.get('result')) {
-      filters.result = searchParams.get('result') as 'WIN' | 'LOSS';
+      filters.result = searchParams.get('result') as 'WIN' | 'LOSS' | 'BE';
     }
     if (searchParams.get('marketSessions')) {
       filters.marketSessions = searchParams.get('marketSessions')!.split(',') as Array<'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP'>;
@@ -54,6 +56,12 @@ export async function GET(request: NextRequest) {
     }
     if (searchParams.get('maxProfitLoss')) {
       filters.maxProfitLoss = parseFloat(searchParams.get('maxProfitLoss')!);
+    }
+    if (searchParams.get('symbol')) {
+      filters.symbol = searchParams.get('symbol')!;
+    }
+    if (searchParams.get('entryType')) {
+      filters.entryType = searchParams.get('entryType') as 'TRANSACTION' | 'COMMISSION';
     }
 
     // Get trades
@@ -91,15 +99,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = individualTradeApiSchema.parse(body);
 
+    // For COMMISSION entries: negate the amount (user enters positive, stored as negative cost)
+    const profitLossUsd = validatedData.entryType === 'COMMISSION'
+      ? -Math.abs(validatedData.profitLossUsd)
+      : validatedData.profitLossUsd;
+
     // Create trade
     const trade = await createTrade({
       userId: session.user.id,
+      entryType: validatedData.entryType,
       tradeTimestamp: new Date(validatedData.tradeTimestamp),
-      result: validatedData.result,
-      sopFollowed: validatedData.sopFollowed,
-      sopTypeId: validatedData.sopTypeId,
+      result: validatedData.entryType === 'TRANSACTION' ? validatedData.result : null,
+      sopFollowed: validatedData.entryType === 'TRANSACTION' ? validatedData.sopFollowed : null,
+      sopTypeId: validatedData.entryType === 'TRANSACTION' ? (validatedData.sopTypeId ?? null) : null,
       symbol: validatedData.symbol,
-      profitLossUsd: validatedData.profitLossUsd,
+      profitLossUsd,
       notes: validatedData.notes,
     });
     

@@ -11,6 +11,182 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.6] - 2026-04-18
+
+### Fixed
+- **Trends page (`/analytics/trends`): BE trades counted as losses in all W/L displays** — `getYearlyPerformance` and `getMonthlyPerformance` both calculated `losses = trades - wins`, so any BE trade fell into the loss bucket. Fixed by tracking losses with a dedicated counter incremented only on `result === 'LOSS'`. BE trades count in `totalTrades` (denominator) but not in wins or losses. Fixes monthly calendar "W:10 L:2" → "W:10 L:0", tooltip hover text, yearly month cards, and `MonthlyAnalyticsChart` tooltip.
+
+---
+
+## [1.14.5] - 2026-04-18
+
+### Fixed
+- **Best Performing SOP card: BE trades counted as losses** — `getSopPerformanceStats` used an `else` branch for non-WIN results, so `BE` trades incremented `losses` instead of being counted as neutral. Also added explicit `entryType = 'TRANSACTION'` filter to ensure COMMISSION rows can never affect SOP stats. Card now correctly shows 9W / 0L for 10 trades (9 WIN + 1 BE); win rate denominator is all TRANSACTION trades (correct).
+
+---
+
+## [1.14.4] - 2026-04-18
+
+### Fixed
+- **Ranking card: COMMISSION rows counted in totalTrades, winRate, sopRate** — `calculateAllRankings` aggregated all rows including COMMISSION in `count()` / `wins` / `sopFollowed`. Fixed all aggregates to filter `entryType = 'TRANSACTION'`. `totalPnl` still sums all rows. `HAVING` threshold also updated to use TRANSACTION count.
+- **Ranking card shows stale data after adding trades** — added `invalidateUserRanking()` called after every trade create/update/delete so the 1-hour cache is cleared and rankings recalculate immediately.
+
+---
+
+## [1.14.3] - 2026-04-18
+
+### Fixed
+- **Trades list footer: incorrect Total Trades, Win Rate, SOP Rate when commission rows exist** — `getTrades` summary calculation used `totalCount` (all rows including COMMISSION) as the denominator. With 10 WIN + 2 BE + 1 COMMISSION the footer showed 13 trades / 76.9% WR / 92.3% SOP instead of the correct 12 trades / 83.3% WR / 100% SOP. Fixed by filtering to TRANSACTION-only rows for `totalTrades`, `totalWins`, `totalLosses`, `totalSopFollowed`, `winRate`, and `sopRate`. Net P/L still sums all rows (commissions reduce real profit).
+
+---
+
+## [1.14.2] - 2026-04-18
+
+### Fixed
+- **BE (Break-Even) trades: "An unexpected error occurred" on submit** — root cause was a `CHECK(result IN ('WIN','LOSS'))` constraint on the `individual_trades.result` column in the database. This constraint was applied by an earlier `drizzle-kit push` before `BE` was added as a valid result type. Migration 0010 changed `result` to nullable but preserved the old CHECK constraint, so inserting `result = 'BE'` always failed at the DB level with `SQLITE_CONSTRAINT`. Migration **0011** recreates `individual_trades` with the updated constraint `CHECK(result IN ('WIN','LOSS','BE'))`. Applied to both staging and production.
+- **BE trades: `createTrade` zero-check blocked BE** (from v1.14.1) — `isBeTransaction` guard allows `profitLossUsd = 0` when `entryType = 'TRANSACTION' && result = 'BE'`
+- **Bulk form: BE amount field auto-fills 0** (from v1.14.1) — amount field is read-only and forced to `'0'` when result is `BE`
+
+### Migration
+- `drizzle/migrations/0011_fix_result_check_constraint.sql` — recreates `individual_trades` with `CHECK(result IN ('WIN','LOSS','BE'))` and all indexes; applied to staging and production
+
+---
+
+## [1.14.1] - 2026-04-18
+
+### Fixed
+- **Reset Account: `userPinnedSops` not deleted** — pinned SOP favorites were not removed on account reset (CASCADE only fires on user-delete, not account reset); added explicit delete step in `resetUserAccount`
+- **Reset Account: `userRankings` not deleted** — stale ranking rows persisted after reset; added explicit delete step so rankings are cleared and recalculated by cron on next run
+- **Reset modal: `totalNotifications` showed blank** — service returned key `totalMessages` but modal read `totalNotifications`; renamed return key to `totalNotifications` for consistency
+- **Reset modal: missing items in delete list** — modal now correctly lists "All user statistics & rankings" and "Pinned SOP favorites" in the deletion summary
+
+---
+
+## [1.14.0] - 2026-04-18
+
+### Fixed
+- **Analytics consistency — COMMISSION rows excluded from all analytics**
+  - `getSessionStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows no longer counted in session trade counts or win rates
+  - `getHourlyStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows no longer counted in hourly trade counts
+  - `getPersonalStats` (session breakdown sub-query): added `entryType = 'TRANSACTION'` filter
+  - `getSymbolStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows with a symbol no longer distort symbol P/L or win rate
+  - `getYearlyPerformance`: added `entryType = 'TRANSACTION'` filter — yearly totalTrades, winRate, sopRate now TRANSACTION-only
+  - `getMonthlyPerformance`: added `entryType = 'TRANSACTION'` filter — monthly breakdown now TRANSACTION-only
+  - `updateUserStatsFromTrades` (badgeService): separates TRANSACTION trades for totalTrades, winRate, sopRate, session counts, SOP streak; P/L sum still includes COMMISSION for net profit accuracy
+- **CSV import semicolon support**: PapaParse `delimiter: ''` explicitly enables auto-detect, fixing import failures for semicolon-delimited CSV files (e.g. Apex Trader exports)
+
+### Changed
+- Metric definitions enforced consistently across all services:
+  - `totalTrades` = TRANSACTION rows only (WIN + LOSS + BE)
+  - `winRate` = totalWins / totalTrades (BE counts in denominator)
+  - `sopRate` = totalSopFollowed / totalTrades
+  - `totalProfitLossUsd` = TRANSACTION P/L sum (BE = $0.00 included)
+  - `totalCommissionUsd` = COMMISSION sum (separate, tracked independently)
+  - `netProfitLossUsd` = totalProfitLossUsd + totalCommissionUsd
+
+### Documentation
+- `docs/03-DATABASE-SCHEMA.md` → v4.0: updated `individual_trades` and `daily_summaries` tables, added Analytics Metric Definitions section
+- `docs/04-API-SPECIFICATION.md` → v4.0: split trade POST into TRANSACTION/COMMISSION schemas, updated bulk and filter endpoints
+- `docs/00-DESIGN-SUMMARY.md` → v4.0
+- `.github/copilot-instructions.md` → v3.0: updated enums, daily summary rules, validation schemas, common mistakes
+
+---
+
+## [1.13.0] - 2026-04-18
+
+### Added
+- **⚖️ Break-Even (BE) Trade Result Type**
+  - New `BE` result option across all 3 entry methods: real-time (`/trades/new`), bulk (`/trades/bulk`), and CSV import
+  - BE trades are recorded with `profitLossUsd = 0` (enforced automatically)
+  - `/trades/new`: 3-column result grid (WIN / LOSS / BE); selecting BE locks amount field to read-only `$0.00`
+  - `/trades/bulk`: BE option in result dropdown; amount `0` accepted only when result is BE
+  - CSV import: accepts `BE` in result column; `Amount = 0` allowed when result is BE; template updated with BE example row
+  - BE badge displayed in gray (⚖️) across all trade views: list, card, detail page, admin trades, import preview
+  - P/L amount shown in gray (`text-gray-500`) for `$0.00` trades (was incorrectly red before)
+  - Result filter dropdowns (trades list, export modal) include "Break-Evens Only" option
+  - PDF export renders BE badge with `.badge.be { background: #f3f4f6; color: #374151; }` CSS class
+
+- **💸 Commission Entry Type** *(from migration 0010)*
+  - New `entry_type` column on `individual_trades`: `'TRANSACTION'` (default) or `'COMMISSION'`
+  - Commission entries: `result` and `sopFollowed` are `null`; `profitLossUsd` must be negative (fee deduction)
+  - `daily_summaries` gains `total_commission_usd` column for aggregate commission tracking
+  - Entry type filter added to `/trades` list page
+  - Bulk entry form and CSV import support `COMMISSION` entry type
+  - Commission entries excluded from win rate and SOP compliance calculations
+
+### Fixed
+- **`totalLosses` calculation bug**: was using `totalCount - totalWins` which incorrectly counted BE trades as losses; now explicitly filters `result === 'LOSS'`
+- P/L color for `$0.00` (BE trades) now shows gray instead of red in `TradesList` and `TradesTableVirtualized`
+
+### Changed
+- `lib/db/schema/trades.ts`: `result` enum expanded to `['WIN', 'LOSS', 'BE']`
+- `lib/validations.ts`: `transactionTradeSchema` result enum includes `'BE'`; `profitLossUsd` allows `0` for transactions
+- All services, API routes, and components updated to handle `'BE'` result type
+
+---
+
+## [1.12.1] - 2026-04-02
+
+### Fixed
+- **📥 CSV Import: False "Trade date cannot be in the future" Validation Error**
+  - Root cause: the future-date check in `csvParser.ts` used a strict real-time UTC comparison (`tradeDate > new Date()`). Users in UTC+ timezones (e.g. UTC+8/Malaysia) whose CSV timestamps were in UTC would have end-of-day trades (e.g. 18:xx–19:xx UTC) rejected when imported — because locally it was already the next day, yet those UTC hours had not elapsed yet from the server's UTC clock perspective.
+  - Fix: aligned the CSV parser's future-date threshold with the same +1 day grace window already used in `bulkTradeEntrySchema` (max allowed = end of tomorrow UTC). This prevents over-rejection of valid UTC-timestamped data imported by UTC+ users.
+  - **File changed:** `lib/utils/csvParser.ts`
+
+---
+
+## [1.12.0] - 2026-03-28
+
+### Added
+- **💱 Symbol Filter on /trades Page**
+  - New Symbol input in Advanced Filters section (text input with datalist autocomplete)
+  - Autocomplete populated from `/api/stats/symbols` — user's own distinct traded symbols fetched silently on mount
+  - Case-insensitive partial match (`LIKE %value%`) so typing `EUR` matches `EURUSD`, `EURGBP`, etc.
+  - Symbol included in URL params, active filter badges, empty-state checks, and resets with Clear Filters
+
+- **📊 Symbol Performance Analytics on Dashboard**
+  - New `SymbolStatsCard` component on dashboard between stats cards and Active Targets
+  - Shows **🏆 Most Profitable** and **⚠️ Biggest Losses** symbol lists (up to 5 each)
+  - Each entry displays: ticker, total trades, win rate %, net P/L ($)
+  - Only shown when user has at least one trade with symbol logged
+  - Fetched server-side (`getSymbolStats`) in `Promise.all` with other dashboard data
+
+### Changed (Backend)
+- `GetTradesFilters` interface: added `symbol?: string` field
+- `getTrades` service: LIKE filter on `individualTrades.symbol`
+- `getUniqueSymbols(userId)`: select distinct non-null symbols (for autocomplete endpoint)
+- `getSymbolStats(userId, timeframe, limit)`: single `GROUP BY symbol` SQL aggregation returning top profitable/loss arrays
+- New API endpoint: `GET /api/stats/symbols` — returns user's distinct traded symbols
+- `GET /api/trades/individual`: parses `symbol` query param and passes to service
+
+---
+
+## [1.11.1] - 2026-03-28
+
+### Fixed
+- **🔍 Trades Page: Filter Not Returning Results**
+  - Root cause: `endDate` was parsed as `new Date('YYYY-MM-DD')` which JavaScript interprets as midnight UTC (`T00:00:00.000Z`), so the `WHERE trade_timestamp <= midnight` clause excluded every trade that occurred during that day
+  - All date-based filters were broken: Today, Last 7 Days, Last 30 Days, and manual date ranges all returned zero trades
+  - Fix applied in `app/api/trades/individual/route.ts` and `app/api/export/csv/route.ts`
+
+- **🌍 Trades Page: Date Filters Now Respect User Timezone**
+  - Date inputs (`startDate`, `endDate`) were treated as UTC midnight/end-of-day boundaries, ignoring the user's configured timezone setting
+  - A user in `Asia/Kuala_Lumpur` (UTC+8) picking March 28 would get `T00:00Z–T23:59Z` (UTC day) instead of `T16:00Z–T15:59Z` (the actual KL day in UTC)
+  - Fix: Client now converts date inputs to proper UTC ISO strings using `datetimeLocalToUTC` from `TimezoneContext` (which has the user's timezone already bound) before sending to API
+  - API routes now accept full ISO strings directly instead of appending UTC time strings
+
+  **Files changed:**
+  - `components/TradesList.tsx` — converts `startDate + 'T00:00'` and `endDate + 'T23:59'` using user timezone before API call
+  - `app/api/trades/individual/route.ts` — accepts pre-converted UTC ISO strings
+  - `app/api/export/csv/route.ts` — same fix for CSV export date range
+
+### Verified
+- **✅ Date Display in Trades Listing**
+  - Confirmed display already correctly uses `formatDate` from `useTimezone()` context in all views (desktop table, virtualized table, mobile card view)
+  - No changes were needed for display
+
+---
+
 ## [1.11.0] - 2026-03-16
 
 ### Fixed

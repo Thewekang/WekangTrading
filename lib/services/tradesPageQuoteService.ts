@@ -39,8 +39,8 @@ async function analyzeTradesPageContext(userId: string): Promise<TradesPageConte
     .orderBy(desc(individualTrades.tradeTimestamp))
     .all();
 
-  // Extract last 3 from weekly data (no additional query needed)
-  const lastThreeResults = weeklyTrades.slice(0, 3).map(t => t.result);
+  // Extract last 3 from weekly data (no additional query needed), filter out nulls (COMMISSION entries)
+  const lastThreeResults = weeklyTrades.slice(0, 3).map(t => t.result).filter((r): r is 'WIN' | 'LOSS' => r === 'WIN' || r === 'LOSS');
   const weeklyWins = weeklyTrades.filter(t => t.result === 'WIN').length;
   const weeklyWinRate = weeklyTrades.length > 0 ? (weeklyWins / weeklyTrades.length) * 100 : 0;
 

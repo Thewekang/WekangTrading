@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { getPersonalStats } from '@/lib/services/statsService';
+import { getPersonalStats, getSymbolStats } from '@/lib/services/statsService';
 import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
@@ -19,6 +19,7 @@ const WeeklyEconomicNews = dynamic(() => import('@/components/calendar/WeeklyEco
 });
 
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
+import { SymbolStatsCard } from '@/components/dashboard/SymbolStatsCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
 import DailyLossAlert from '@/components/alerts/DailyLossAlert';
 import { CollapsibleAchievementsSection } from '@/components/dashboard/CollapsibleAchievementsSection';
@@ -37,17 +38,20 @@ export default async function DashboardPage() {
 
   // Fetch only critical stats for initial page load
   // sessionStats and hourlyStats will be fetched client-side on demand (in collapsible sections)
-  const [stats, activeTargets, bestSop] = await Promise.all([
+  const [stats, activeTargets, bestSop, symbolStats] = await Promise.all([
     getPersonalStats(session.user.id, 'all'),
     getActiveTargetsWithProgress(session.user.id),
     getBestSopType(session.user.id, 'all'),
+    getSymbolStats(session.user.id, 'all'),
   ]);
 
   // Fallback to zeros if no data yet
   const totalTrades = stats.totalTrades;
   const winRate = stats.winRate;
   const sopRate = stats.sopRate;
-  const netProfitLoss = stats.totalProfitLossUsd;
+  const netProfitLoss = stats.netProfitLossUsd ?? stats.totalProfitLossUsd;
+  const grossProfitLoss = stats.totalProfitLossUsd;
+  const totalCommission = stats.totalCommissionUsd ?? 0;
   const bestSession = stats.bestSession;
 
   // Show empty state if no trades
@@ -154,9 +158,17 @@ export default async function DashboardPage() {
             <div className="p-3 sm:p-4 md:p-6 bg-white rounded-lg shadow border">
               <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">Net P/L</h3>
               <p className={`text-2xl sm:text-3xl font-bold ${netProfitLoss > 0 ? 'text-green-600' : netProfitLoss < 0 ? 'text-red-600' : ''}`}>
-                ${Math.abs(netProfitLoss).toFixed(2)}
+                {netProfitLoss >= 0 ? '+' : '-'}${Math.abs(netProfitLoss).toFixed(2)}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">All time</p>
+              {totalCommission !== 0 && (
+                <div className="mt-1 sm:mt-2 space-y-0.5 text-xs text-muted-foreground">
+                  <div>Gross: <span className={grossProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}>{grossProfitLoss >= 0 ? '+' : ''}${grossProfitLoss.toFixed(2)}</span></div>
+                  <div>Commission: <span className="text-red-500">${totalCommission.toFixed(2)}</span></div>
+                </div>
+              )}
+              {totalCommission === 0 && (
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">All time</p>
+              )}
             </div>
           </div>
 
@@ -165,6 +177,13 @@ export default async function DashboardPage() {
             <BestSopCard data={bestSop} period="all" />
           </div>
         </div>
+
+        {/* Symbol Performance Analytics */}
+        {symbolStats.all.length > 0 && (
+          <div className="mb-6">
+            <SymbolStatsCard data={symbolStats} />
+          </div>
+        )}
 
         {/* Active Targets Progress */}
         {activeTargets.length > 0 && (

@@ -13,20 +13,28 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { individualTradeSchema } from '@/lib/validations';
+import { individualTradeSchema, transactionTradeSchema, commissionTradeSchema } from '@/lib/validations';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
 import { z } from 'zod';
 
-// Form schema that accepts datetime-local string input
-const realTimeTradeFormSchema = individualTradeSchema.extend({
-  tradeTimestamp: z.union([
-    z.date(),
-    z.string().min(1, 'Trade time is required'),
-  ]),
-});
+// Form schema that accepts datetime-local string input — supports both TRANSACTION and COMMISSION
+const realTimeTradeFormSchema = z.discriminatedUnion('entryType', [
+  transactionTradeSchema.extend({
+    tradeTimestamp: z.union([
+      z.date(),
+      z.string().min(1, 'Trade time is required'),
+    ]),
+  }),
+  commissionTradeSchema.extend({
+    tradeTimestamp: z.union([
+      z.date(),
+      z.string().min(1, 'Trade time is required'),
+    ]),
+  }),
+]);
 
 interface SopType {
   id: string;
@@ -69,6 +77,7 @@ export function RealTimeTradeEntryForm() {
   } = useForm<any>({
     resolver: zodResolver(realTimeTradeFormSchema),
     defaultValues: {
+      entryType: 'TRANSACTION' as 'TRANSACTION' | 'COMMISSION',
       result: 'WIN',
       sopFollowed: undefined,
       sopTypeId: null,
@@ -85,6 +94,11 @@ export function RealTimeTradeEntryForm() {
     },
     300
   );
+
+  const watchedEntryType = watch('entryType') as 'TRANSACTION' | 'COMMISSION';
+  const watchedResult = watch('result') as 'WIN' | 'LOSS' | 'BE' | undefined;
+  const isCommission = watchedEntryType === 'COMMISSION';
+  const isBreakEven = !isCommission && watchedResult === 'BE';
 
   // Set timestamp after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -123,32 +137,42 @@ export function RealTimeTradeEntryForm() {
       // Convert string values to proper types
       let profitLoss = typeof data.profitLossUsd === 'string' ? parseFloat(data.profitLossUsd) : data.profitLossUsd;
       
-      // Auto-negate for LOSS trades if user entered positive number
-      if (data.result === 'LOSS' && profitLoss > 0) {
-        profitLoss = -profitLoss;
-      }
-      // Auto-negate for WIN trades if user entered negative number
-      if (data.result === 'WIN' && profitLoss < 0) {
+      if (data.entryType === 'TRANSACTION') {
+        if (data.result === 'BE') {
+          // Break-even: force profitLoss to exactly 0
+          profitLoss = 0;
+        } else if (data.result === 'LOSS' && profitLoss > 0) {
+          // Auto-negate for LOSS trades if user entered positive number
+          profitLoss = -profitLoss;
+        } else if (data.result === 'WIN' && profitLoss < 0) {
+          // Auto-negate for WIN trades if user entered negative number
+          profitLoss = Math.abs(profitLoss);
+        }
+      } else {
+        // Commission: ensure positive (API will negate it)
         profitLoss = Math.abs(profitLoss);
       }
       
       // Convert datetime-local string to UTC using selected entry timezone
-      // The datetime-local input gives us a string like "2026-03-16T15:12"
-      // We interpret this as being in the selected Entry Timezone, then convert to UTC
       const datetimeString = typeof data.tradeTimestamp === 'string' 
         ? data.tradeTimestamp 
         : formatDateForInput(data.tradeTimestamp);
       const utcTimestamp = convertToUTC(datetimeString, entryTimezone);
       
-      const submitData = {
+      const submitData: Record<string, unknown> = {
+        entryType: data.entryType,
         tradeTimestamp: utcTimestamp.toISOString(),
-        result: data.result,
-        sopFollowed: data.sopFollowed,
-        sopTypeId: data.sopTypeId || null,
         profitLossUsd: profitLoss,
         symbol: data.symbol || undefined,
         notes: data.notes || undefined,
       };
+
+      // Include transaction-only fields for TRANSACTION entries
+      if (data.entryType === 'TRANSACTION') {
+        submitData.result = data.result;
+        submitData.sopFollowed = data.sopFollowed;
+        submitData.sopTypeId = data.sopTypeId || null;
+      }
 
       const response = await fetch('/api/trades/individual', {
         method: 'POST',
@@ -184,6 +208,7 @@ export function RealTimeTradeEntryForm() {
       
       // Reset form for next entry
       reset({
+        entryType: data.entryType, // keep same entry type for quick consecutive entries
         result: 'WIN',
         sopFollowed: undefined,
         sopTypeId: null,
@@ -232,15 +257,58 @@ export function RealTimeTradeEntryForm() {
             <p className="font-semibold text-red-800 mb-2">Please fix the following errors:</p>
             <ul className="text-sm text-red-700 list-disc list-inside">
               {errors.tradeTimestamp && <li>Trade timestamp: {String(errors.tradeTimestamp.message)}</li>}
-              {errors.result && <li>Result: {String(errors.result.message)}</li>}
-              {errors.sopFollowed && <li>SOP Compliance: {String(errors.sopFollowed.message)}</li>}
-              {errors.profitLossUsd && <li>Profit/Loss: {String(errors.profitLossUsd.message)}</li>}
+              {errors.entryType && <li>Entry type: {String(errors.entryType.message)}</li>}
+              {(errors as any).result && <li>Result: {String((errors as any).result.message)}</li>}
+              {(errors as any).sopFollowed && <li>SOP Compliance: {String((errors as any).sopFollowed.message)}</li>}
+              {errors.profitLossUsd && <li>Amount: {String(errors.profitLossUsd.message)}</li>}
               {errors.notes && <li>Notes: {String(errors.notes.message)}</li>}
             </ul>
           </div>
         )}
-        
-        {/* Trade Timestamp */}
+
+        {/* ─── Entry Type Selector ─────────────────────────────────────────── */}
+        <div>
+          <Label className="text-sm sm:text-base font-medium">Entry Type *</Label>
+          <Controller
+            control={control}
+            name="entryType"
+            render={({ field }) => (
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <label className="relative">
+                  <input
+                    type="radio"
+                    value="TRANSACTION"
+                    checked={field.value === 'TRANSACTION'}
+                    onChange={() => field.onChange('TRANSACTION')}
+                    className="peer sr-only"
+                  />
+                  <div className="min-h-[60px] flex flex-col items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
+                    <span className="text-lg">📈</span>
+                    <span className="font-semibold text-sm">Transaction</span>
+                  </div>
+                </label>
+                <label className="relative">
+                  <input
+                    type="radio"
+                    value="COMMISSION"
+                    checked={field.value === 'COMMISSION'}
+                    onChange={() => field.onChange('COMMISSION')}
+                    className="peer sr-only"
+                  />
+                  <div className="min-h-[60px] flex flex-col items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center transition-all peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
+                    <span className="text-lg">💳</span>
+                    <span className="font-semibold text-sm">Commission</span>
+                  </div>
+                </label>
+              </div>
+            )}
+          />
+          {isCommission && (
+            <p className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              Commission entry — records broker fees/swaps for Futures trading. No WIN/LOSS or SOP fields needed.
+            </p>
+          )}
+        </div>
         <div>
           <Label htmlFor="tradeTimestamp" className="text-sm sm:text-base font-medium">Trade Time *</Label>
           <Controller
@@ -282,10 +350,11 @@ export function RealTimeTradeEntryForm() {
           </p>
         </div>
 
-        {/* Result - Large Touch-Friendly Buttons */}
+        {/* Result - Large Touch-Friendly Buttons — TRANSACTION only */}
+        {!isCommission && (
         <div>
           <Label>Result *</Label>
-          <div className="mt-2 grid grid-cols-2 gap-3">
+          <div className="mt-2 grid grid-cols-3 gap-3">
             <label className="relative">
               <input
                 type="radio"
@@ -308,19 +377,32 @@ export function RealTimeTradeEntryForm() {
                 ❌ LOSS
               </div>
             </label>
+            <label className="relative">
+              <input
+                type="radio"
+                value="BE"
+                {...register('result')}
+                className="peer sr-only"
+              />
+              <div className="min-h-[60px] flex items-center justify-center cursor-pointer rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-center font-semibold transition-all peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:text-gray-700 hover:border-gray-400 active:scale-[0.97] touch-manipulation">
+                ⚖️ BE
+              </div>
+            </label>
           </div>
-          {errors.result && (
-            <p className="mt-1 text-sm text-red-600">{String(errors.result.message)}</p>
+          {(errors as any).result && (
+            <p className="mt-1 text-sm text-red-600">{String((errors as any).result.message)}</p>
           )}
         </div>
+        )}
 
-        {/* SOP Followed */}
+        {/* SOP Followed — TRANSACTION only */}
+        {!isCommission && (
         <div>
           <Label>SOP Compliance *</Label>
           <Controller
             control={control}
             name="sopFollowed"
-            rules={{ required: 'Please select whether you followed SOP or not' }}
+            rules={{ required: !isCommission ? 'Please select whether you followed SOP or not' : false }}
             render={({ field }) => (
               <div className="mt-2 grid grid-cols-2 gap-3">
                 <label className="relative">
@@ -350,12 +432,14 @@ export function RealTimeTradeEntryForm() {
               </div>
             )}
           />
-          {errors.sopFollowed && (
-            <p className="mt-1 text-sm text-red-600">{String(errors.sopFollowed.message)}</p>
+          {(errors as any).sopFollowed && (
+            <p className="mt-1 text-sm text-red-600">{String((errors as any).sopFollowed.message)}</p>
           )}
         </div>
+        )}
 
-        {/* SOP Type */}
+        {/* SOP Type — TRANSACTION only */}
+        {!isCommission && (
         <div>
           <Label htmlFor="sopTypeId" className="text-sm sm:text-base font-medium">SOP Type</Label>
           <select
@@ -376,10 +460,11 @@ export function RealTimeTradeEntryForm() {
               No SOP types configured. Contact admin to add SOP types.
             </p>
           )}
-          {errors.sopTypeId && (
-            <p className="mt-1 text-sm text-red-600">{String(errors.sopTypeId.message)}</p>
+          {(errors as any).sopTypeId && (
+            <p className="mt-1 text-sm text-red-600">{String((errors as any).sopTypeId.message)}</p>
           )}
         </div>
+        )}
 
         {/* Symbol (Optional) */}
         <div>
@@ -401,23 +486,43 @@ export function RealTimeTradeEntryForm() {
           )}
         </div>
 
-        {/* Profit/Loss USD */}
+        {/* Profit/Loss / Commission Amount */}
         <div>
-          <Label htmlFor="profitLossUsd" className="text-sm sm:text-base font-medium">Amount (USD) *</Label>
-          <Input
-            id="profitLossUsd"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="e.g. 50.00"
-            {...register('profitLossUsd', { 
-              valueAsNumber: true,
-              onChange: () => debouncedValidation('profitLossUsd')
-            })}
-            className="mt-2 text-base text-lg min-h-[48px]"
-          />
-          <p className="mt-1 text-xs text-gray-500">Enter amount as positive number (auto-calculated based on WIN/LOSS)</p>
-          {errors.profitLossUsd && (
+          <Label htmlFor="profitLossUsd" className="text-sm sm:text-base font-medium">
+            {isCommission ? 'Commission Amount (USD) *' : 'Amount (USD) *'}
+          </Label>
+          {isBreakEven ? (
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                id="profitLossUsd"
+                type="number"
+                value={0}
+                readOnly
+                className="mt-0 text-base text-lg min-h-[48px] bg-gray-100 text-gray-500 cursor-not-allowed"
+              />
+            </div>
+          ) : (
+            <Input
+              id="profitLossUsd"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={isCommission ? 'e.g. 3.50' : 'e.g. 50.00'}
+              {...register('profitLossUsd', { 
+                valueAsNumber: true,
+                onChange: () => debouncedValidation('profitLossUsd')
+              })}
+              className="mt-2 text-base text-lg min-h-[48px]"
+            />
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            {isCommission
+              ? 'Enter the commission/swap fee as a positive number (e.g. 3.50)'
+              : isBreakEven
+              ? 'Break-even trade — amount is automatically $0.00'
+              : 'Enter amount as positive number (auto-calculated based on WIN/LOSS)'}
+          </p>
+          {!isBreakEven && errors.profitLossUsd && (
             <p className="mt-1 text-sm text-red-600">{String(errors.profitLossUsd.message)}</p>
           )}
         </div>
@@ -445,7 +550,7 @@ export function RealTimeTradeEntryForm() {
             disabled={isSubmitting}
             className="flex-1 min-h-[52px] text-base sm:text-lg font-semibold touch-manipulation"
           >
-            {isSubmitting ? 'Recording...' : '🚀 Record Trade'}
+          {isSubmitting ? 'Recording...' : isCommission ? '💳 Record Commission' : '🚀 Record Trade'}
           </Button>
           <Button
             type="button"

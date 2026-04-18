@@ -23,8 +23,9 @@ interface SopType {
 
 interface BulkTradeRow {
   id: string;
+  entryType: 'TRANSACTION' | 'COMMISSION';
   time: string;
-  result: 'WIN' | 'LOSS' | '';
+  result: 'WIN' | 'LOSS' | 'BE' | '';
   sopFollowed: boolean | null;
   sopTypeId: string;
   symbol: string;
@@ -40,9 +41,9 @@ export function BulkTradeEntryForm() {
   const [sopTypes, setSopTypes] = useState<SopType[]>([]);
   const [loadingSopTypes, setLoadingSopTypes] = useState(true);
   const [rows, setRows] = useState<BulkTradeRow[]>([
-    { id: '1', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
-    { id: '2', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
-    { id: '3', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '1', entryType: 'TRANSACTION', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '2', entryType: 'TRANSACTION', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
+    { id: '3', entryType: 'TRANSACTION', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -53,8 +54,8 @@ export function BulkTradeEntryForm() {
   // Debounced validation for amount inputs (300ms delay)
   const debouncedAmountValidation = useDebouncedCallback(
     (rowId: string, value: string) => {
-      // Clear error if value is being entered
-      if (value && parseFloat(value) > 0) {
+      // Clear error if value is being entered (0 is valid for BE rows)
+      if (value && (parseFloat(value) > 0 || value === '0')) {
         setErrorMessage('');
       }
     },
@@ -88,7 +89,7 @@ export function BulkTradeEntryForm() {
       return;
     }
     const newId = (Math.max(...rows.map(r => parseInt(r.id))) + 1).toString();
-    setRows([...rows, { id: newId, time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' }]);
+    setRows([...rows, { id: newId, entryType: 'TRANSACTION', time: '', result: '', sopFollowed: null, sopTypeId: '', symbol: '', amount: '', notes: '' }]);
   };
 
   // Remove row
@@ -135,13 +136,18 @@ export function BulkTradeEntryForm() {
       const actualRowNum = rows.findIndex(r => r.id === row.id) + 1;
       const missingFields: string[] = [];
 
-      if (!row.result) {
-        missingFields.push('Result');
+      // TRANSACTION rows require Result and SOP; COMMISSION rows only require Amount
+      if (row.entryType === 'TRANSACTION') {
+        if (!row.result) {
+          missingFields.push('Result');
+        }
+        if (row.sopFollowed === null) {
+          missingFields.push('SOP');
+        }
       }
-      if (row.sopFollowed === null) {
-        missingFields.push('SOP');
-      }
-      if (!row.amount || parseFloat(row.amount) === 0) {
+      // BE rows: amount is always 0 (auto-set by form); others must be non-zero
+      const effectiveAmount = row.result === 'BE' ? '0' : row.amount;
+      if (!effectiveAmount || (parseFloat(effectiveAmount) === 0 && row.result !== 'BE')) {
         missingFields.push('Amount');
       }
 
@@ -158,18 +164,33 @@ export function BulkTradeEntryForm() {
       const datetimeString = `${tradeDate}T${row.time}`;
       const tradeTimestamp = convertToUTC(datetimeString, importTimezone);
 
-      // Calculate profit/loss based on result
-      let profitLoss = parseFloat(row.amount);
-      if (row.result === 'LOSS' && profitLoss > 0) {
-        profitLoss = -profitLoss;
+      let profitLoss = row.result === 'BE' ? 0 : parseFloat(row.amount);
+
+      if (row.entryType === 'COMMISSION') {
+        // Commission: always send as positive (API negates it)
+        profitLoss = Math.abs(profitLoss);
+        return {
+          entryType: 'COMMISSION' as const,
+          tradeTimestamp: tradeTimestamp.toISOString(),
+          symbol: row.symbol || undefined,
+          profitLossUsd: profitLoss,
+          notes: row.notes || undefined,
+        };
       }
-      if (row.result === 'WIN' && profitLoss < 0) {
+
+      // TRANSACTION: auto-negate based on result
+      if (row.result === 'BE') {
+        profitLoss = 0;
+      } else if (row.result === 'LOSS' && profitLoss > 0) {
+        profitLoss = -profitLoss;
+      } else if (row.result === 'WIN' && profitLoss < 0) {
         profitLoss = Math.abs(profitLoss);
       }
 
       return {
+        entryType: 'TRANSACTION' as const,
         tradeTimestamp: tradeTimestamp.toISOString(),
-        result: row.result,
+        result: row.result as 'WIN' | 'LOSS' | 'BE',
         sopFollowed: row.sopFollowed,
         sopTypeId: row.sopTypeId || null,
         symbol: row.symbol || undefined,
@@ -283,26 +304,40 @@ export function BulkTradeEntryForm() {
       )}
 
       {/* Trades Table */}
-      <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md border">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="border-collapse" style={{ minWidth: '1200px', width: '100%' }}>
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12">#</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time *</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Result *</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP *</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">SOP Type</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount (USD) *</th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-16">Actions</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10">#</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '150px' }}>Type *</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '130px' }}>Time *</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '110px' }}>Result *</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '100px' }}>SOP *</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '140px' }}>SOP Type</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '120px' }}>Symbol</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '130px' }}>Amount (USD) *</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '180px' }}>Notes</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase" style={{ minWidth: '60px' }}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {rows.map((row, index) => (
-                <tr key={row.id} className="hover:bg-gray-50">
+              {rows.map((row, index) => {
+                const isCommissionRow = row.entryType === 'COMMISSION';
+                return (
+                <tr key={row.id} className={`hover:bg-gray-50 ${isCommissionRow ? 'bg-amber-50/30' : ''}`}>
                   <td className="px-3 py-3 text-sm text-gray-500">{index + 1}</td>
+                  {/* Type column */}
+                  <td className="px-3 py-3">
+                    <select
+                      value={row.entryType}
+                      onChange={(e) => handleUpdateRow(row.id, 'entryType', e.target.value as 'TRANSACTION' | 'COMMISSION')}
+                      className={`w-full rounded border px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:outline-none focus:ring-1 focus:ring-blue-500 ${isCommissionRow ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-gray-300 focus:border-blue-500'}`}
+                    >
+                      <option value="TRANSACTION">📈 Transaction</option>
+                      <option value="COMMISSION">💳 Commission</option>
+                    </select>
+                  </td>
                   <td className="px-3 py-3">
                     <input
                       type="time"
@@ -315,33 +350,40 @@ export function BulkTradeEntryForm() {
                     <select
                       value={row.result}
                       onChange={(e) => handleUpdateRow(row.id, 'result', e.target.value)}
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isCommissionRow}
+                      className={`w-full rounded border px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:outline-none focus:ring-1 focus:ring-blue-500 ${isCommissionRow ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed' : 'border-gray-300 focus:border-blue-500'}`}
                     >
                       <option value="">Select</option>
-                      <option value="WIN">✅ WIN</option>
-                      <option value="LOSS">❌ LOSS</option>
+                      {!isCommissionRow && <>
+                        <option value="WIN">✅ WIN</option>
+                        <option value="LOSS">❌ LOSS</option>
+                        <option value="BE">⚖️ BE</option>
+                      </>}
                     </select>
                   </td>
                   <td className="px-3 py-3">
                     <select
                       value={row.sopFollowed === null ? '' : row.sopFollowed.toString()}
                       onChange={(e) => handleUpdateRow(row.id, 'sopFollowed', e.target.value === 'true')}
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isCommissionRow}
+                      className={`w-full rounded border px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:outline-none focus:ring-1 focus:ring-blue-500 ${isCommissionRow ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed' : 'border-gray-300 focus:border-blue-500'}`}
                     >
-                      <option value="">Select</option>
-                      <option value="true">✓ Yes</option>
-                      <option value="false">✗ No</option>
+                      <option value="">{isCommissionRow ? 'N/A' : 'Select'}</option>
+                      {!isCommissionRow && <>
+                        <option value="true">✓ Yes</option>
+                        <option value="false">✗ No</option>
+                      </>}
                     </select>
                   </td>
                   <td className="px-3 py-3">
                     <select
                       value={row.sopTypeId}
                       onChange={(e) => handleUpdateRow(row.id, 'sopTypeId', e.target.value)}
-                      disabled={loadingSopTypes}
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={loadingSopTypes || isCommissionRow}
+                      className={`w-full rounded border px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:outline-none focus:ring-1 focus:ring-blue-500 ${isCommissionRow ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed' : 'border-gray-300 focus:border-blue-500'}`}
                     >
-                      <option value="">Others</option>
-                      {sopTypes.map((sopType) => (
+                      <option value="">{isCommissionRow ? 'N/A' : 'Others'}</option>
+                      {!isCommissionRow && sopTypes.map((sopType) => (
                         <option key={sopType.id} value={sopType.id}>
                           {sopType.name}
                         </option>
@@ -363,13 +405,17 @@ export function BulkTradeEntryForm() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={row.amount}
+                      value={row.result === 'BE' ? '0' : row.amount}
+                      readOnly={row.result === 'BE'}
                       onChange={(e) => {
+                        if (row.result === 'BE') return;
                         handleUpdateRow(row.id, 'amount', e.target.value);
                         debouncedAmountValidation(row.id, e.target.value);
                       }}
-                      placeholder="50.00"
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder={isCommissionRow ? '3.50' : '50.00'}
+                      className={`w-full rounded border px-2 py-1.5 text-sm min-h-[44px] touch-manipulation focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                        row.result === 'BE' ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed' : 'border-gray-300'
+                      }`}
                     />
                   </td>
                   <td className="px-3 py-3">
@@ -392,7 +438,8 @@ export function BulkTradeEntryForm() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -440,7 +487,9 @@ export function BulkTradeEntryForm() {
         <h3 className="font-semibold text-blue-900 mb-2">💡 Tips for Bulk Entry</h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Leave time field empty for rows you don't want to submit</li>
-          <li>• Amount is always entered as positive (auto-calculated based on WIN/LOSS)</li>
+          <li>• Select <strong>Transaction</strong> for regular trades, <strong>Commission</strong> for broker fees/swaps</li>
+          <li>• Commission rows do not require Result or SOP — those fields are greyed out automatically</li>
+          <li>• Amount is always entered as positive (auto-calculated based on WIN/LOSS for transactions; commission fees auto-negated)</li>
           <li>• All trades will have market session auto-calculated from timestamp</li>
           <li>• Maximum 100 trades per bulk entry</li>
           <li>• Use Tab key to navigate between fields quickly</li>

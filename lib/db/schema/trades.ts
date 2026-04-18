@@ -8,9 +8,10 @@ export const individualTrades = sqliteTable('individual_trades', {
   userId: text('user_id').notNull(),
   dailySummaryId: text('daily_summary_id'),
   sopTypeId: text('sop_type_id'),
+  entryType: text('entry_type', { enum: ['TRANSACTION', 'COMMISSION'] }).notNull().default('TRANSACTION'),
   tradeTimestamp: integer('trade_timestamp', { mode: 'timestamp' }).notNull(),
-  result: text('result', { enum: ['WIN', 'LOSS'] }).notNull(),
-  sopFollowed: integer('sop_followed', { mode: 'boolean' }).notNull(),
+  result: text('result', { enum: ['WIN', 'LOSS', 'BE'] }), // nullable: not applicable for COMMISSION entries; BE = break-even
+  sopFollowed: integer('sop_followed', { mode: 'boolean' }), // nullable: not applicable for COMMISSION entries
   profitLossUsd: real('profit_loss_usd').notNull(),
   marketSession: text('market_session', { enum: ['ASIA', 'EUROPE', 'US', 'ASIA_EUROPE_OVERLAP', 'EUROPE_US_OVERLAP'] }).notNull(),
   symbol: text('symbol'), // Trading symbol (e.g., EURUSD, GBPJPY) - optional

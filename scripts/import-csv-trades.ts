@@ -108,7 +108,7 @@ const csvData = `Date & time;Result;SOP;SOP Type;Amount;;
 
 interface ParsedTrade {
   dateTime: Date;
-  result: 'WIN' | 'LOSS';
+  result: 'WIN' | 'LOSS' | 'BE';
   sopFollowed: boolean;
   sopTypeName: string;
   amount: number;
@@ -145,7 +145,7 @@ function parseCSV(csvContent: string, timezone: string): ParsedTrade[] {
     const dateTime = datetimeLocalToUTC(datetimeLocalStr, timezone);
 
     // Parse other fields
-    const parsedResult = result.trim() as 'WIN' | 'LOSS';
+    const parsedResult = result.trim() as 'WIN' | 'LOSS' | 'BE';
     const sopFollowed = sop.trim().toUpperCase() === 'YES';
     const amount = parseFloat(amountStr.trim());
 

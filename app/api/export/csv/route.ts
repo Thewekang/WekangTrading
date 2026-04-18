@@ -25,13 +25,15 @@ export async function GET(req: NextRequest) {
     };
 
     if (searchParams.get('startDate')) {
+      // Client sends UTC ISO string already converted from user's timezone
       filters.startDate = new Date(searchParams.get('startDate')!);
     }
     if (searchParams.get('endDate')) {
+      // Client sends UTC ISO string already converted from user's timezone
       filters.endDate = new Date(searchParams.get('endDate')!);
     }
     if (searchParams.get('result')) {
-      filters.result = searchParams.get('result') as 'WIN' | 'LOSS';
+      filters.result = searchParams.get('result') as 'WIN' | 'LOSS' | 'BE';
     }
     if (searchParams.get('marketSession')) {
       filters.marketSession = searchParams.get('marketSession') as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
