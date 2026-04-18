@@ -1,8 +1,8 @@
 # WekangTradingJournal Design Summary
 
-**Document Version**: 3.0  
-**Last Updated**: January 18, 2026  
-**Status**: ✅ v1.2.0 Production Release
+**Document Version**: 4.0  
+**Last Updated**: April 18, 2026  
+**Status**: ✅ v1.13.0 Production Release
 
 ## 🏍️💰 App Icon: Fast motorcycle with money element
 
@@ -74,10 +74,10 @@ lib/
 
 ---
 
-### 3. [Database Schema](./03-DATABASE-SCHEMA.md) - **UPDATED v2.0**
+### 3. [Database Schema](./03-DATABASE-SCHEMA.md) - **UPDATED v4.0**
 **Tables**:
 1. **users** - User accounts with role-based access
-2. **individual_trades** - Each trade with timestamp, result, SOP, profit/loss USD, auto-calculated market session
+2. **individual_trades** - Each trade row is either a `TRANSACTION` (WIN/LOSS/BE) or a `COMMISSION` (broker fee). Market session auto-calculated from UTC timestamp
 3. **daily_summaries** - Auto-calculated daily aggregations for fast queries
 4. **user_targets** - Customizable performance targets
 5. **badges** - Achievement badges for gamification

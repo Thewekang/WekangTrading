@@ -29,8 +29,8 @@ Trading Performance Tracking System for monitoring individual and team trading r
 
 ### Tables
 1. **users**: User accounts (role: USER/ADMIN)
-2. **individual_trades**: Each trade with timestamp, result, SOP, profit/loss USD, **auto-calculated** marketSession
-3. **daily_summaries**: Auto-calculated aggregates (totalTrades, totalWins, bestSession, etc.)
+2. **individual_trades**: Each row is either a `TRANSACTION` (WIN/LOSS/BE trade) or a `COMMISSION` (broker fee). Market session auto-calculated from UTC timestamp.
+3. **daily_summaries**: Auto-calculated aggregates — TRANSACTION-only counts for totalTrades/totalWins/bestSession; separate `totalCommissionUsd`
 4. **user_targets**: Performance targets (targetWinRate, targetSopRate)
 5. **sessions**: NextAuth sessions
 6. **accounts**: NextAuth OAuth (future)
@@ -43,7 +43,8 @@ Trading Performance Tracking System for monitoring individual and team trading r
 ### Enums
 ```typescript
 enum Role { USER, ADMIN }
-enum TradeResult { WIN, LOSS }
+enum TradeResult { WIN, LOSS, BE }   // BE = Break-Even (profit_loss_usd = 0)
+enum EntryType { TRANSACTION, COMMISSION }  // COMMISSION = broker fee row
 enum MarketSession { ASIA, ASIA_EUROPE_OVERLAP, EUROPE, EUROPE_US_OVERLAP, US }
 enum TargetType { WEEKLY, MONTHLY, YEARLY }
 enum TargetCategory { PROP_FIRM, PERSONAL }
@@ -79,11 +80,20 @@ enum TargetCategory { PROP_FIRM, PERSONAL }
 **Function**: `updateDailySummary(userId: string, tradeDate: Date)`
 
 **What it does**:
-1. Aggregate all `individual_trades` for userId + tradeDate
-2. Calculate totals (trades, wins, losses, SOP compliance, profit/loss USD)
-3. Count trades per session (ASIA, EUROPE, US, OVERLAP)
-4. Determine `bestSession` (highest win rate)
-5. UPSERT into `daily_summaries` table
+1. Separate TRANSACTION rows from COMMISSION rows
+2. Aggregate TRANSACTION rows only for: totalTrades, totalWins, totalLosses, totalBeTrades, totalSopFollowed, all session counts
+3. Aggregate COMMISSION rows for: totalCommissionUsd
+4. Count trades per session (TRANSACTION only)
+5. Determine `bestSession` (highest TRANSACTION win rate, min 3 trades)
+6. UPSERT into `daily_summaries` table
+
+**Metric Definitions (enforced app-wide)**:
+- `totalTrades` = TRANSACTION count (WIN + LOSS + BE)
+- `winRate` = totalWins / totalTrades × 100 (BE in denominator)
+- `sopRate` = totalSopFollowed / totalTrades × 100
+- `totalProfitLossUsd` = sum of TRANSACTION profit_loss_usd
+- `totalCommissionUsd` = sum of COMMISSION profit_loss_usd
+- `netProfitLossUsd` = totalProfitLossUsd + totalCommissionUsd
 
 **Location**: `lib/services/dailySummaryService.ts`
 
@@ -93,14 +103,26 @@ enum TargetCategory { PROP_FIRM, PERSONAL }
 
 ## Validation Rules (CRITICAL)
 
-### Individual Trade
+### Individual Trade — TRANSACTION
 ```typescript
 {
+  entryType: z.literal('TRANSACTION').default('TRANSACTION'),
   tradeTimestamp: z.date().max(new Date()), // Cannot be future
-  result: z.enum(['WIN', 'LOSS']),
+  result: z.enum(['WIN', 'LOSS', 'BE']),
   sopFollowed: z.boolean(),
-  profitLossUsd: z.number().refine(val => val !== 0), // Non-zero
+  profitLossUsd: z.number().refine(val => result === 'BE' ? true : val !== 0), // 0 only for BE
   notes: z.string().max(500).optional()
+}
+```
+
+### Individual Trade — COMMISSION
+```typescript
+{
+  entryType: z.literal('COMMISSION'),
+  tradeTimestamp: z.date().max(new Date()),
+  profitLossUsd: z.number().negative(), // Must be negative
+  notes: z.string().max(500).optional()
+  // result and sopFollowed: absent (null in DB)
 }
 ```
 
@@ -108,9 +130,9 @@ enum TargetCategory { PROP_FIRM, PERSONAL }
 ```typescript
 {
   tradeDate: z.date(),
-  trades: z.array(individualTradeSchema).min(1).max(100),
-  // All trades must be on same date (validate in API)
-  // Duplicate timestamps are allowed (time format excludes seconds)
+  trades: z.array(transactionTradeSchema | commissionTradeSchema).min(1).max(100),
+  // All timestamps must be on same date
+  // Mixed TRANSACTION + COMMISSION rows in one batch is allowed
 }
 ```
 
@@ -397,6 +419,9 @@ xl: 1280px  // Large screens
 ❌ **DON'T query individual_trades** for dashboard stats  
 ✅ **DO query** `daily_summaries` for fast dashboard
 
+❌ **DON'T include COMMISSION rows** in trade counts, win rates, or SOP rates  
+✅ **DO filter** `eq(individualTrades.entryType, 'TRANSACTION')` in any direct individual_trades analytics query
+
 ❌ **DON'T allow future timestamps**  
 ✅ **DO validate** `tradeTimestamp <= new Date()`
 
@@ -533,15 +558,17 @@ turso db list  # Command not found
 
 ---
 
-**Last Updated**: January 9, 2026  
-**Version**: 2.1 (Phase 2 Complete - Individual Trade Tracking)
+**Last Updated**: April 18, 2026  
+**Version**: 3.0 (v1.13.0 — BE + Commission entry types)
 
-**Phase 2 Status**: ✅ COMPLETE
-- Real-time trade entry (mobile-optimized)
-- Bulk trade entry (up to 100 trades)
-- Trade list with filters & pagination
-- Customizable page size (10/25/50/100) with localStorage
-- Auto-calculated market sessions
-- Daily summary auto-updates
+**Phase 3 Status**: ✅ COMPLETE
+- Dashboard & Analytics with TRANSACTION-only stats
+- BE (Break-Even) result type across all entry methods
+- Commission entry type (broker fee rows, excluded from trade stats)
+- Session, hourly, symbol analytics exclude COMMISSION rows
+- Yearly/monthly performance analytics exclude COMMISSION rows
+- Badge system stats exclude COMMISSION rows
+- Daily summaries: separate `totalCommissionUsd` column
+- Migration 0010 applied to staging and production
 
-**Next Phase**: Phase 3 - Dashboard & Analytics
+**Next Phase**: Phase 4 - Rankings & Advanced Features

@@ -8,6 +8,8 @@
 import { db } from '@/lib/db';
 import { dailySummaries, individualTrades } from '@/lib/db/schema';
 import { eq, and, gte, isNotNull, sql, count } from 'drizzle-orm';
+
+const TRANSACTION = 'TRANSACTION' as const;
 import type { DailySummary } from '@/lib/db/schema/summaries';
 
 type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
@@ -119,7 +121,7 @@ export async function getPersonalStats(
     EUROPE_US_OVERLAP: { trades: 0, wins: 0 },
   };
 
-  // Query individual_trades for accurate session breakdown
+  // Query individual_trades for accurate session breakdown (TRANSACTION only — exclude COMMISSION)
   const tradesForPeriod = await db
     .select({
       marketSession: individualTrades.marketSession,
@@ -128,8 +130,8 @@ export async function getPersonalStats(
     .from(individualTrades)
     .where(
       startDate
-        ? and(eq(individualTrades.userId, userId), gte(individualTrades.tradeTimestamp, startDate))
-        : eq(individualTrades.userId, userId)
+        ? and(eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION), gte(individualTrades.tradeTimestamp, startDate))
+        : and(eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION))
     );
 
   tradesForPeriod.forEach((trade) => {
@@ -213,8 +215,8 @@ export async function getSessionStats(
         break;
     }
 
-    // Query individual trades directly for accurate session stats
-    const conditions = [eq(individualTrades.userId, userId)];
+    // Query TRANSACTION trades only — exclude COMMISSION entries from session stats
+    const conditions = [eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION)];
     if (startDate) {
       conditions.push(gte(individualTrades.tradeTimestamp, startDate));
     }
@@ -355,8 +357,8 @@ export async function getHourlyStats(
         break;
     }
 
-    // Query individual trades (need timestamp precision)
-    const conditions = [eq(individualTrades.userId, userId)];
+    // Query TRANSACTION trades only — exclude COMMISSION entries from hourly stats
+    const conditions = [eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION)];
     if (startDate) {
       conditions.push(gte(individualTrades.tradeTimestamp, startDate));
     }
@@ -455,8 +457,10 @@ export async function getSymbolStats(
     default: startDate = undefined;
   }
 
+  // TRANSACTION entries only — COMMISSION entries skew symbol P/L and have no result
   const conditions = [
     eq(individualTrades.userId, userId),
+    eq(individualTrades.entryType, TRANSACTION),
     isNotNull(individualTrades.symbol),
   ];
   if (startDate) conditions.push(gte(individualTrades.tradeTimestamp, startDate));

@@ -18,12 +18,26 @@ if (-not (Test-Path $envPath)) {
 
 $dbUrl = ""
 $authToken = ""
-foreach ($line in Get-Content $envPath) {
-  if ($line -match '^TURSO_DATABASE_URL=(.+)') {
-    $dbUrl = $matches[1].Trim('"').Trim("'") -replace '^libsql://', 'https://'
+
+if ($Target -eq "prod") {
+  # Read commented-out production credentials (lines starting with "# TURSO_DATABASE_URL=" or "# TURSO_AUTH_TOKEN=")
+  foreach ($line in Get-Content $envPath) {
+    if ($line -match '^#\s*TURSO_DATABASE_URL=(.+)') {
+      $dbUrl = $matches[1].Trim('"').Trim("'") -replace '^libsql://', 'https://'
+    }
+    if ($line -match '^#\s*TURSO_AUTH_TOKEN=(.+)') {
+      $authToken = $matches[1].Trim('"').Trim("'")
+    }
   }
-  if ($line -match '^TURSO_AUTH_TOKEN=(.+)') {
-    $authToken = $matches[1].Trim('"').Trim("'")
+} else {
+  # Read active staging credentials
+  foreach ($line in Get-Content $envPath) {
+    if ($line -match '^TURSO_DATABASE_URL=(.+)') {
+      $dbUrl = $matches[1].Trim('"').Trim("'") -replace '^libsql://', 'https://'
+    }
+    if ($line -match '^TURSO_AUTH_TOKEN=(.+)') {
+      $authToken = $matches[1].Trim('"').Trim("'")
+    }
   }
 }
 
