@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.0] - 2026-04-18
+
+### Fixed
+- **Analytics consistency — COMMISSION rows excluded from all analytics**
+  - `getSessionStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows no longer counted in session trade counts or win rates
+  - `getHourlyStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows no longer counted in hourly trade counts
+  - `getPersonalStats` (session breakdown sub-query): added `entryType = 'TRANSACTION'` filter
+  - `getSymbolStats`: added `entryType = 'TRANSACTION'` filter — COMMISSION rows with a symbol no longer distort symbol P/L or win rate
+  - `getYearlyPerformance`: added `entryType = 'TRANSACTION'` filter — yearly totalTrades, winRate, sopRate now TRANSACTION-only
+  - `getMonthlyPerformance`: added `entryType = 'TRANSACTION'` filter — monthly breakdown now TRANSACTION-only
+  - `updateUserStatsFromTrades` (badgeService): separates TRANSACTION trades for totalTrades, winRate, sopRate, session counts, SOP streak; P/L sum still includes COMMISSION for net profit accuracy
+- **CSV import semicolon support**: PapaParse `delimiter: ''` explicitly enables auto-detect, fixing import failures for semicolon-delimited CSV files (e.g. Apex Trader exports)
+
+### Changed
+- Metric definitions enforced consistently across all services:
+  - `totalTrades` = TRANSACTION rows only (WIN + LOSS + BE)
+  - `winRate` = totalWins / totalTrades (BE counts in denominator)
+  - `sopRate` = totalSopFollowed / totalTrades
+  - `totalProfitLossUsd` = TRANSACTION P/L sum (BE = $0.00 included)
+  - `totalCommissionUsd` = COMMISSION sum (separate, tracked independently)
+  - `netProfitLossUsd` = totalProfitLossUsd + totalCommissionUsd
+
+### Documentation
+- `docs/03-DATABASE-SCHEMA.md` → v4.0: updated `individual_trades` and `daily_summaries` tables, added Analytics Metric Definitions section
+- `docs/04-API-SPECIFICATION.md` → v4.0: split trade POST into TRANSACTION/COMMISSION schemas, updated bulk and filter endpoints
+- `docs/00-DESIGN-SUMMARY.md` → v4.0
+- `.github/copilot-instructions.md` → v3.0: updated enums, daily summary rules, validation schemas, common mistakes
+
+---
+
 ## [1.13.0] - 2026-04-18
 
 ### Added
