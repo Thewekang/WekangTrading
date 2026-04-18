@@ -9,6 +9,7 @@ import { eq, and, desc, gte, lte, inArray, count, like, isNotNull } from 'drizzl
 import { calculateMarketSession } from '../utils/marketSessions';
 import { updateDailySummary } from './dailySummaryService';
 import { updateUserStatsFromTrades } from './badgeService';
+import { invalidateUserRanking } from './rankingService';
 import { VALIDATION, PAGINATION } from '../constants';
 
 interface CreateTradeInput {
@@ -108,6 +109,9 @@ export async function createTrade(input: CreateTradeInput) {
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(input.userId);
 
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(input.userId);
+
   return trade;
 }
 
@@ -159,6 +163,9 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(userId);
+
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(userId);
 
   return { count: trades.length };
 }
@@ -403,6 +410,9 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(userId);
 
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(userId);
+
   return updatedTrade;
 }
 
@@ -434,6 +444,9 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
   await updateUserStatsFromTrades(userId);
+
+  // Invalidate ranking cache so next fetch recalculates
+  await invalidateUserRanking(userId);
 
   return { success: true };
 }

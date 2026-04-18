@@ -48,7 +48,12 @@ export async function getUserRanking(userId: string) {
       const userTradeCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(individualTrades)
-        .where(eq(individualTrades.userId, userId));
+        .where(
+          and(
+            eq(individualTrades.userId, userId),
+            eq(individualTrades.entryType, 'TRANSACTION')
+          )
+        );
 
       return {
         rank: null,
@@ -85,20 +90,20 @@ export async function getUserRanking(userId: string) {
  */
 export async function calculateAllRankings() {
   try {
-    // Get all users with their trading statistics
+    // Get all users with their trading statistics (TRANSACTION rows only for counts/rates)
     const userStats = await db
       .select({
         userId: users.id,
-        totalTrades: sql<number>`count(${individualTrades.id})`,
-        wins: sql<number>`sum(case when ${individualTrades.result} = 'WIN' then 1 else 0 end)`,
-        sopFollowed: sql<number>`sum(case when ${individualTrades.sopFollowed} = 1 then 1 else 0 end)`,
+        totalTrades: sql<number>`count(case when ${individualTrades.entryType} = 'TRANSACTION' then 1 end)`,
+        wins: sql<number>`sum(case when ${individualTrades.entryType} = 'TRANSACTION' and ${individualTrades.result} = 'WIN' then 1 else 0 end)`,
+        sopFollowed: sql<number>`sum(case when ${individualTrades.entryType} = 'TRANSACTION' and ${individualTrades.sopFollowed} = 1 then 1 else 0 end)`,
         totalPnl: sql<number>`sum(${individualTrades.profitLossUsd})`,
       })
       .from(users)
       .leftJoin(individualTrades, eq(users.id, individualTrades.userId))
       .where(eq(users.role, 'USER'))
       .groupBy(users.id)
-      .having(sql`count(${individualTrades.id}) >= ${MIN_TRADES_FOR_RANKING}`);
+      .having(sql`count(case when ${individualTrades.entryType} = 'TRANSACTION' then 1 end) >= ${MIN_TRADES_FOR_RANKING}`);
 
     // Calculate rates and prepare for ranking
     const userDataWithRates = userStats.map(stat => ({
@@ -186,6 +191,18 @@ export async function calculateAllRankings() {
   } catch (error) {
     console.error('Error calculating rankings:', error);
     throw new Error('Failed to calculate rankings');
+  }
+}
+
+/**
+ * Invalidate cached ranking for a user so it recalculates on next fetch.
+ * Call this after any trade insert/update/delete.
+ */
+export async function invalidateUserRanking(userId: string) {
+  try {
+    await db.delete(userRankings).where(eq(userRankings.userId, userId));
+  } catch (error) {
+    console.error('Error invalidating user ranking cache:', error);
   }
 }
 
