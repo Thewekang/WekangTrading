@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.2] - 2026-04-18
+
+### Fixed
+- **BE (Break-Even) trades: "An unexpected error occurred" on submit** — root cause was a `CHECK(result IN ('WIN','LOSS'))` constraint on the `individual_trades.result` column in the database. This constraint was applied by an earlier `drizzle-kit push` before `BE` was added as a valid result type. Migration 0010 changed `result` to nullable but preserved the old CHECK constraint, so inserting `result = 'BE'` always failed at the DB level with `SQLITE_CONSTRAINT`. Migration **0011** recreates `individual_trades` with the updated constraint `CHECK(result IN ('WIN','LOSS','BE'))`. Applied to both staging and production.
+- **BE trades: `createTrade` zero-check blocked BE** (from v1.14.1) — `isBeTransaction` guard allows `profitLossUsd = 0` when `entryType = 'TRANSACTION' && result = 'BE'`
+- **Bulk form: BE amount field auto-fills 0** (from v1.14.1) — amount field is read-only and forced to `'0'` when result is `BE`
+
+### Migration
+- `drizzle/migrations/0011_fix_result_check_constraint.sql` — recreates `individual_trades` with `CHECK(result IN ('WIN','LOSS','BE'))` and all indexes; applied to staging and production
+
+---
+
 ## [1.14.1] - 2026-04-18
 
 ### Fixed
