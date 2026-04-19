@@ -1,8 +1,7 @@
 /**
  * Statistics Service
- * Provides aggregated stats from daily_summaries for dashboard and analytics
- * 
- * CRITICAL: Query daily_summaries (fast, pre-aggregated) NOT individual_trades
+ * Queries individual_trades directly (single source of truth, same as /trades page).
+ * This guarantees stats are always accurate regardless of daily_summaries state.
  */
 
 import { db } from '@/lib/db';
@@ -10,6 +9,7 @@ import { dailySummaries, individualTrades } from '@/lib/db/schema';
 import { eq, and, gte, isNotNull, sql, count } from 'drizzle-orm';
 
 const TRANSACTION = 'TRANSACTION' as const;
+const COMMISSION = 'COMMISSION' as const;
 import type { DailySummary } from '@/lib/db/schema/summaries';
 
 type MarketSession = 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP';
@@ -52,16 +52,18 @@ export interface HourlyStats {
 }
 
 /**
- * Get personal statistics for a user within a timeframe
+ * Get personal statistics for a user within a timeframe.
+ * Queries individual_trades directly — same source as the /trades page — so stats
+ * are always accurate regardless of daily_summaries state.
  * @param userId - User ID
  * @param timeframe - 'week' | 'month' | 'year' | 'all' (default: 'month')
+ * @param accountId - Optional trading account ID to scope the stats
  */
 export async function getPersonalStats(
   userId: string,
   timeframe: 'week' | 'month' | 'year' | 'all' = 'month',
   accountId?: string
 ): Promise<PersonalStats> {
-  // Calculate date range
   const now = new Date();
   let startDate: Date | undefined;
 
@@ -76,45 +78,42 @@ export async function getPersonalStats(
       startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
       break;
     case 'all':
-      startDate = undefined; // No filter
+      startDate = undefined;
       break;
   }
 
-  // Query daily_summaries (FAST, pre-aggregated)
-  const conditions = [eq(dailySummaries.userId, userId)];
-  if (accountId) conditions.push(eq(dailySummaries.tradingAccountId, accountId));
-  if (startDate) {
-    conditions.push(gte(dailySummaries.tradeDate, startDate));
-  }
+  // Query individual_trades directly (single source of truth, same as /trades page)
+  const conditions = [eq(individualTrades.userId, userId)];
+  if (accountId) conditions.push(eq(individualTrades.tradingAccountId, accountId));
+  if (startDate) conditions.push(gte(individualTrades.tradeTimestamp, startDate));
 
-  const summaries = await db
+  const trades = await db
     .select({
-      totalTrades: dailySummaries.totalTrades,
-      totalWins: dailySummaries.totalWins,
-      totalLosses: dailySummaries.totalLosses,
-      totalSopFollowed: dailySummaries.totalSopFollowed,
-      totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
-      totalCommissionUsd: dailySummaries.totalCommissionUsd,
+      entryType: individualTrades.entryType,
+      result: individualTrades.result,
+      sopFollowed: individualTrades.sopFollowed,
+      profitLossUsd: individualTrades.profitLossUsd,
+      marketSession: individualTrades.marketSession,
     })
-    .from(dailySummaries)
-    .where(and(...conditions))
-    .orderBy(dailySummaries.tradeDate);
+    .from(individualTrades)
+    .where(and(...conditions));
 
-  // Aggregate across days
-  const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
-  const totalWins = summaries.reduce((sum, s) => sum + s.totalWins, 0);
-  const totalLosses = summaries.reduce((sum, s) => sum + s.totalLosses, 0);
-  const totalSopFollowed = summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0);
-  const totalProfitLossUsd = summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0);
-  const totalCommissionUsd = summaries.reduce((sum, s) => sum + (s.totalCommissionUsd ?? 0), 0);
+  // Split TRANSACTION vs COMMISSION (same logic as getTrades in individualTradeService)
+  const transactions = trades.filter(t => t.entryType === TRANSACTION);
+  const commissions = trades.filter(t => t.entryType === COMMISSION);
+
+  const totalTrades = transactions.length;
+  const totalWins = transactions.filter(t => t.result === 'WIN').length;
+  const totalLosses = transactions.filter(t => t.result === 'LOSS').length;
+  const totalSopFollowed = transactions.filter(t => t.sopFollowed === true).length;
+  const totalProfitLossUsd = transactions.reduce((sum, t) => sum + t.profitLossUsd, 0);
+  const totalCommissionUsd = commissions.reduce((sum, t) => sum + t.profitLossUsd, 0);
   const netProfitLossUsd = totalProfitLossUsd + totalCommissionUsd;
 
   const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   const sopRate = totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0;
 
-  // Determine best session across all days
-  // NOTE: daily_summaries still has overlapSessionTrades/Wins (not split yet)
-  // So we need to query individual_trades directly for accurate split
+  // Session breakdown (TRANSACTION only)
   const sessionTotals: Record<MarketSession, { trades: number; wins: number }> = {
     ASIA: { trades: 0, wins: 0 },
     EUROPE: { trades: 0, wins: 0 },
@@ -123,32 +122,14 @@ export async function getPersonalStats(
     EUROPE_US_OVERLAP: { trades: 0, wins: 0 },
   };
 
-  // Query individual_trades for accurate session breakdown (TRANSACTION only — exclude COMMISSION)
-  const sessionConditions = [
-    eq(individualTrades.userId, userId),
-    eq(individualTrades.entryType, TRANSACTION),
-  ];
-  if (accountId) sessionConditions.push(eq(individualTrades.tradingAccountId, accountId));
-  if (startDate) sessionConditions.push(gte(individualTrades.tradeTimestamp, startDate));
-  const tradesForPeriod = await db
-    .select({
-      marketSession: individualTrades.marketSession,
-      result: individualTrades.result,
-    })
-    .from(individualTrades)
-    .where(and(...sessionConditions));
-
-  tradesForPeriod.forEach((trade) => {
+  transactions.forEach((trade) => {
     const session = trade.marketSession as MarketSession;
     if (sessionTotals[session]) {
       sessionTotals[session].trades++;
-      if (trade.result === 'WIN') {
-        sessionTotals[session].wins++;
-      }
+      if (trade.result === 'WIN') sessionTotals[session].wins++;
     }
   });
 
-  // Calculate win rate for each session and find best
   const sessionBreakdown: Record<MarketSession, { trades: number; wins: number; winRate: number }> = {
     ASIA: { ...sessionTotals.ASIA, winRate: 0 },
     EUROPE: { ...sessionTotals.EUROPE, winRate: 0 },
@@ -161,15 +142,12 @@ export async function getPersonalStats(
   let bestWinRate = 0;
 
   (Object.keys(sessionTotals) as MarketSession[]).forEach((session) => {
-    const { trades, wins } = sessionTotals[session];
-    const sessionWinRate = trades > 0 ? (wins / trades) * 100 : 0;
-    sessionBreakdown[session].winRate = Math.round(sessionWinRate * 10) / 10;
-    
-    if (trades >= 3) { // Require at least 3 trades for statistical relevance
-      if (sessionWinRate > bestWinRate) {
-        bestWinRate = sessionWinRate;
-        bestSession = session;
-      }
+    const { trades: t, wins: w } = sessionTotals[session as MarketSession];
+    const sessionWinRate = t > 0 ? (w / t) * 100 : 0;
+    sessionBreakdown[session as MarketSession].winRate = Math.round(sessionWinRate * 10) / 10;
+    if (t >= 3 && sessionWinRate > bestWinRate) {
+      bestWinRate = sessionWinRate;
+      bestSession = session as MarketSession;
     }
   });
 
@@ -177,16 +155,16 @@ export async function getPersonalStats(
     totalTrades,
     totalWins,
     totalLosses,
-    winRate: Math.round(winRate * 10) / 10, // Round to 1 decimal
+    winRate: Math.round(winRate * 10) / 10,
     totalSopFollowed,
     sopRate: Math.round(sopRate * 10) / 10,
-    totalProfitLossUsd: Math.round(totalProfitLossUsd * 100) / 100, // Round to cents
+    totalProfitLossUsd: Math.round(totalProfitLossUsd * 100) / 100,
     totalCommissionUsd: Math.round(totalCommissionUsd * 100) / 100,
     netProfitLossUsd: Math.round(netProfitLossUsd * 100) / 100,
     bestSession,
     bestSessionWinRate: Math.round(bestWinRate * 10) / 10,
     sessionBreakdown,
-    periodDays: summaries.length,
+    periodDays: totalTrades > 0 ? 1 : 0, // kept for interface compatibility
   };
 }
 
