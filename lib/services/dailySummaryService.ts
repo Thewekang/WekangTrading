@@ -6,7 +6,7 @@
 
 import { db } from '../db';
 import { individualTrades, dailySummaries } from '../db/schema';
-import { eq, and, gte, lte, desc, sql, isNull } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { getDayBoundariesInTimezone } from '../utils/dateUtils';
 import { getAccountRules } from './tradingAccountService';
@@ -127,18 +127,6 @@ export async function updateDailySummary(userId: string, tradeDate: Date, accoun
 
   const bestSession = bestSessionData ? bestSessionData.session as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP' : null;
 
-  // Check if summary exists for this user + date + account
-  const summaryConditions = [
-    eq(dailySummaries.userId, userId),
-    eq(dailySummaries.tradeDate, summaryDateKey),
-    accountId ? eq(dailySummaries.tradingAccountId, accountId) : isNull(dailySummaries.tradingAccountId),
-  ];
-  const [existingSummary] = await db
-    .select({ id: dailySummaries.id })
-    .from(dailySummaries)
-    .where(and(...summaryConditions))
-    .limit(1);
-
   const summaryData = {
     totalTrades,
     totalWins,
@@ -158,27 +146,23 @@ export async function updateDailySummary(userId: string, tradeDate: Date, accoun
     bestSession,
   };
 
-  if (existingSummary) {
-    // Update existing summary
-    await db
-      .update(dailySummaries)
-      .set({
+  // Atomic UPSERT — avoids the check-then-insert race condition and silent INSERT failures
+  // that can occur with the Drizzle singleton on brand-new date rows.
+  await db
+    .insert(dailySummaries)
+    .values({
+      userId,
+      tradingAccountId: accountId ?? null,
+      tradeDate: summaryDateKey,
+      ...summaryData,
+    })
+    .onConflictDoUpdate({
+      target: [dailySummaries.userId, dailySummaries.tradeDate, dailySummaries.tradingAccountId],
+      set: {
         ...summaryData,
-        tradingAccountId: accountId ?? null,
         updatedAt: new Date(),
-      })
-      .where(eq(dailySummaries.id, existingSummary.id));
-  } else {
-    // Create new summary
-    await db
-      .insert(dailySummaries)
-      .values({
-        userId,
-        tradingAccountId: accountId ?? null,
-        tradeDate: summaryDateKey,
-        ...summaryData,
-      });
-  }
+      },
+    });
 }
 
 /**
