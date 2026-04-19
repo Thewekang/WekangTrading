@@ -229,6 +229,7 @@ export const accountRulesSchema = z.object({
   totalDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
   consistencyTargetPct: z.number().min(1).max(100).nullable().optional(),
   cycleTargetProfitUsd: z.number().min(0).nullable().optional(),
+  dailyResetTimezone: z.string().optional(),
 });
 
 export const withdrawalEventSchema = z.object({
@@ -244,6 +245,7 @@ export const drawdownTemplateSchema = z.object({
   totalDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
   consistencyTargetPct: z.number().min(1).max(100).nullable().optional(),
   targetGainPct: z.number().min(0.1).max(100).nullable().optional(),
+  dailyResetTimezone: z.string().optional(),
   isDefault: z.boolean().optional(),
 });
 

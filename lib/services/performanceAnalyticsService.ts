@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { dailySummaries, individualTrades } from '@/lib/db/schema';
+import { dailySummaries, individualTrades, withdrawalEvents, tradingAccounts } from '@/lib/db/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 const TRANSACTION = 'TRANSACTION' as const;
@@ -30,9 +30,38 @@ interface YearlyPerformanceData {
   year: number;
   overview: PerformanceOverview;
   monthlyBreakdown: MonthlyPerformance[];
+  withdrawals: { date: string; amount: number }[];
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Fetch all withdrawal events for a user (optionally filtered to a specific account).
+ * Used to subtract withdrawals from P&L in performance views.
+ */
+async function getAccountWithdrawals(
+  userId: string,
+  accountId?: string,
+): Promise<{ withdrawalDate: string; withdrawalAmount: number }[]> {
+  if (accountId) {
+    return db
+      .select({
+        withdrawalDate: withdrawalEvents.withdrawalDate,
+        withdrawalAmount: withdrawalEvents.withdrawalAmount,
+      })
+      .from(withdrawalEvents)
+      .where(eq(withdrawalEvents.tradingAccountId, accountId));
+  }
+  // All accounts for this user — join through trading_accounts
+  return db
+    .select({
+      withdrawalDate: withdrawalEvents.withdrawalDate,
+      withdrawalAmount: withdrawalEvents.withdrawalAmount,
+    })
+    .from(withdrawalEvents)
+    .innerJoin(tradingAccounts, eq(withdrawalEvents.tradingAccountId, tradingAccounts.id))
+    .where(eq(tradingAccounts.userId, userId));
+}
 
 /**
  * Get performance data for a specific year
@@ -46,7 +75,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)); // Jan 1, 00:00:00 UTC
     const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // Dec 31, 23:59:59 UTC
 
-    // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
+    // Get TRANSACTION trades only (for win/SOP/trade counts and transaction P&L)
     const yearConditions: any[] = [
       eq(individualTrades.userId, userId),
       eq(individualTrades.entryType, TRANSACTION),
@@ -55,15 +84,33 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     ];
     if (accountId) yearConditions.push(eq(individualTrades.tradingAccountId, accountId));
 
-    const yearTrades = await db
-      .select({
-        timestamp: individualTrades.tradeTimestamp,
-        result: individualTrades.result,
-        sopFollowed: individualTrades.sopFollowed,
-        profitLossUsd: individualTrades.profitLossUsd,
-      })
-      .from(individualTrades)
-      .where(and(...yearConditions));
+    // Get COMMISSION trades separately (for net P&L calculation)
+    const yearCommissionConditions: any[] = [
+      eq(individualTrades.userId, userId),
+      eq(individualTrades.entryType, 'COMMISSION' as const),
+      gte(individualTrades.tradeTimestamp, startDate),
+      lte(individualTrades.tradeTimestamp, endDate),
+    ];
+    if (accountId) yearCommissionConditions.push(eq(individualTrades.tradingAccountId, accountId));
+
+    const [yearTrades, yearCommissions] = await Promise.all([
+      db
+        .select({
+          timestamp: individualTrades.tradeTimestamp,
+          result: individualTrades.result,
+          sopFollowed: individualTrades.sopFollowed,
+          profitLossUsd: individualTrades.profitLossUsd,
+        })
+        .from(individualTrades)
+        .where(and(...yearConditions)),
+      db
+        .select({
+          timestamp: individualTrades.tradeTimestamp,
+          profitLossUsd: individualTrades.profitLossUsd,
+        })
+        .from(individualTrades)
+        .where(and(...yearCommissionConditions)),
+    ]);
 
     // Initialize monthly data
     const monthlyData: { [key: number]: { trades: number; wins: number; losses: number; sopFollowed: number; pnl: number } } = {};
@@ -78,14 +125,10 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     let totalSopFollowed = 0;
     let totalPnl = 0;
 
+    const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'numeric', timeZone: timezone });
+
     yearTrades.forEach(trade => {
-      // Convert UTC timestamp to user's timezone to get correct month
-      // Use Intl.DateTimeFormat to properly extract month in user's timezone
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        month: 'numeric',
-        timeZone: timezone
-      });
-      const month = parseInt(formatter.format(trade.timestamp));
+      const month = parseInt(monthFormatter.format(trade.timestamp));
       
       monthlyData[month].trades++;
       monthlyData[month].pnl += trade.profitLossUsd;
@@ -104,6 +147,23 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
       if (trade.sopFollowed) {
         monthlyData[month].sopFollowed++;
         totalSopFollowed++;
+      }
+    });
+
+    // Add commission P&L to each month (net P&L)
+    yearCommissions.forEach(commission => {
+      const month = parseInt(monthFormatter.format(commission.timestamp));
+      monthlyData[month].pnl += commission.profitLossUsd;
+      totalPnl += commission.profitLossUsd;
+    });
+
+    // Subtract withdrawals from the month they occurred — they reduce retained P&L
+    const yearWithdrawals = await getAccountWithdrawals(userId, accountId);
+    yearWithdrawals.forEach(w => {
+      const [y, m] = w.withdrawalDate.split('-').map(Number);
+      if (y === year) {
+        monthlyData[m].pnl -= w.withdrawalAmount;
+        totalPnl -= w.withdrawalAmount;
       }
     });
 
@@ -141,6 +201,11 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
       year,
       overview,
       monthlyBreakdown,
+      // Full withdrawal list for this year so the calendar can show markers.
+      // Each entry is { date: 'YYYY-MM-DD', amount: number }.
+      withdrawals: yearWithdrawals
+        .filter(w => parseInt(w.withdrawalDate.split('-')[0]) === year)
+        .map(w => ({ date: w.withdrawalDate, amount: w.withdrawalAmount })),
     };
   } catch (error) {
     console.error('Error getting yearly performance:', error);
@@ -161,7 +226,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     const startDate = new Date(Date.UTC(year, month - 1, -1, 0, 0, 0, 0)); // 2 days before month start
     const endDate = new Date(Date.UTC(year, month, 2, 23, 59, 59, 999)); // 2 days after month end
 
-    // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
+    // Get TRANSACTION trades only (for win/SOP/trade counts and transaction P&L)
     const monthConditions: any[] = [
       eq(individualTrades.userId, userId),
       eq(individualTrades.entryType, TRANSACTION),
@@ -170,16 +235,34 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     ];
     if (accountId) monthConditions.push(eq(individualTrades.tradingAccountId, accountId));
 
-    const trades = await db
-      .select({
-        timestamp: individualTrades.tradeTimestamp,
-        result: individualTrades.result,
-        sopFollowed: individualTrades.sopFollowed,
-        profitLossUsd: individualTrades.profitLossUsd,
-      })
-      .from(individualTrades)
-      .where(and(...monthConditions))
-      .orderBy(individualTrades.tradeTimestamp);
+    // Get COMMISSION trades separately (for net P&L calculation)
+    const monthCommissionConditions: any[] = [
+      eq(individualTrades.userId, userId),
+      eq(individualTrades.entryType, 'COMMISSION' as const),
+      gte(individualTrades.tradeTimestamp, startDate),
+      lte(individualTrades.tradeTimestamp, endDate),
+    ];
+    if (accountId) monthCommissionConditions.push(eq(individualTrades.tradingAccountId, accountId));
+
+    const [trades, commissions] = await Promise.all([
+      db
+        .select({
+          timestamp: individualTrades.tradeTimestamp,
+          result: individualTrades.result,
+          sopFollowed: individualTrades.sopFollowed,
+          profitLossUsd: individualTrades.profitLossUsd,
+        })
+        .from(individualTrades)
+        .where(and(...monthConditions))
+        .orderBy(individualTrades.tradeTimestamp),
+      db
+        .select({
+          timestamp: individualTrades.tradeTimestamp,
+          profitLossUsd: individualTrades.profitLossUsd,
+        })
+        .from(individualTrades)
+        .where(and(...monthCommissionConditions)),
+    ]);
 
     // Group trades by day in user's timezone
     const dailyMap = new Map<number, {
@@ -237,6 +320,42 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       }
     });
 
+    // Add commission P&L to each day (net P&L)
+    const dayFormatter = new Intl.DateTimeFormat('en-US', {
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+      timeZone: timezone,
+    });
+    commissions.forEach(commission => {
+      const parts = dayFormatter.formatToParts(commission.timestamp);
+      const dayInTimezone = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+      const monthInTimezone = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+      const yearInTimezone = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+
+      if (yearInTimezone === year && monthInTimezone === month) {
+        if (!dailyMap.has(dayInTimezone)) {
+          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 });
+        }
+        dailyMap.get(dayInTimezone)!.pnl += commission.profitLossUsd;
+        totalPnl += commission.profitLossUsd;
+      }
+    });
+
+    // Subtract withdrawals from the day they occurred — they reduce retained P&L.
+    // withdrawalDate is a YYYY-MM-DD local date string (no timezone needed).
+    const monthWithdrawals = await getAccountWithdrawals(userId, accountId);
+    monthWithdrawals.forEach(w => {
+      const [y, m, d] = w.withdrawalDate.split('-').map(Number);
+      if (y === year && m === month) {
+        if (!dailyMap.has(d)) {
+          dailyMap.set(d, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 });
+        }
+        dailyMap.get(d)!.pnl -= w.withdrawalAmount;
+        totalPnl -= w.withdrawalAmount;
+      }
+    });
+
     // Convert map to array of daily breakdowns
     const dailyBreakdown = Array.from(dailyMap.entries()).map(([day, data]) => ({
       date: new Date(year, month - 1, day), // Local date for display
@@ -262,6 +381,13 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
         winLossRecord: `W:${totalWins} L:${totalLosses}`,
       },
       dailyBreakdown,
+      // Withdrawals in this month so the calendar can show markers.
+      withdrawals: monthWithdrawals
+        .filter(w => {
+          const [y, m] = w.withdrawalDate.split('-').map(Number);
+          return y === year && m === month;
+        })
+        .map(w => ({ date: w.withdrawalDate, amount: w.withdrawalAmount })),
     };
   } catch (error) {
     console.error('Error getting monthly performance:', error);
@@ -296,6 +422,12 @@ export async function getAvailableYears(userId: string, timezone: string = 'Asia
       });
       const year = parseInt(formatter.format(trade.timestamp));
       years.add(year);
+    });
+
+    // Also include years that have withdrawal events (withdrawalDate is YYYY-MM-DD local date)
+    const withdrawals = await getAccountWithdrawals(userId, accountId);
+    withdrawals.forEach(w => {
+      years.add(parseInt(w.withdrawalDate.split('-')[0]));
     });
 
     // Sort descending (most recent first)

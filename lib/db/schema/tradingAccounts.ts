@@ -55,6 +55,11 @@ export const accountRules = sqliteTable('account_rules', {
   consistencyTargetPct: real('consistency_target_pct'), // NULL = no consistency rule
   // Cycle profit target (USD) — resets on withdrawal; distinct from user_targets
   cycleTargetProfitUsd: real('cycle_target_profit_usd'), // NULL = no profit target
+  // Daily reset timezone — IANA timezone string used to determine day boundaries
+  // e.g. 'America/Chicago' for Tradovate/Apex (5 PM CT = CME session boundary)
+  // e.g. 'Europe/Prague' for FTMO (CET midnight)
+  // NULL = fall back to user's preferred timezone
+  dailyResetTimezone: text('daily_reset_timezone'), // NULL = use user timezone
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 });

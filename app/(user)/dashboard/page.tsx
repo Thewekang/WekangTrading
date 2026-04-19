@@ -166,6 +166,17 @@ export default async function DashboardPage() {
                         </p>
                       </div>
                     )}
+                    {status.lastWithdrawal && (
+                      <div className="col-span-2 bg-purple-50 rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-purple-500 mb-0.5">Last Withdrawal</p>
+                          <p className="text-sm font-bold text-purple-700">
+                            −{status.lastWithdrawal.amount.toFixed(2)} {account.currency}
+                          </p>
+                        </div>
+                        <p className="text-xs text-purple-400">{status.lastWithdrawal.date}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 

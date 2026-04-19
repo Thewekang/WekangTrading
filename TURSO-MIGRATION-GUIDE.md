@@ -11,8 +11,9 @@
 | 0009 | `0009_condemned_invisible_woman` | Quote system, discipline tracker rows | ✅ Done |
 | 0010 | `0010_big_johnny_blaze` | BE result type, nullable result column | ✅ Done |
 | 0010-fix | `0011_fix_result_check_constraint.sql` *(manual, not in journal)* | Recreates `individual_trades` with correct `CHECK (result IN ('WIN','LOSS','BE'))` constraint | ✅ Done |
-| 0011 | `0011_watery_night_thrasher` | Multi-account: adds `trading_account_id` to 9 tables; new `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables | ⬜ Pending |
+| 0011 | `0011_watery_night_thrasher` | Multi-account: adds `trading_account_id` to 9 tables; new `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables | ✅ Done |
 | 0012 | `0012_clever_blue_blade` | Fixes `daily_summaries` unique index for multi-account: replaces `(user_id, trade_date)` with `(user_id, trade_date, trading_account_id)` | ⬜ Pending |
+| 0013 | `0013_add_daily_reset_timezone` | Per-account daily reset timezone: adds `daily_reset_timezone` column to `account_rules` and `drawdown_templates` | ⬜ Pending |
 
 ---
 
@@ -23,16 +24,24 @@
 
 ---
 
-## 🚀 v2.0.0 Production Migration (Migrations 0011 + 0012)
+## 🚀 v2.0.0 Production Migration (Migration 0012 + 0013)
+
+### Current Prod State (as of April 20, 2026)
+
+| Migration | Status | Notes |
+|-----------|--------|-------|
+| 0011 | ✅ Applied | `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` all created |
+| 0012 | ⬜ Pending | `daily_summaries` unique index fix — apply before deploying multi-account code |
+| 0013 | ⬜ Pending | `daily_reset_timezone` columns — apply before deploying timezone feature |
 
 ### Overview
 
-Two migrations must be applied together for the multi-account feature:
+Two migrations remain before the current feature branch can go to production:
 
-1. **0011** — Adds the `trading_accounts` system (new tables + `trading_account_id` FK columns on 9 existing tables)
-2. **0012** — Fixes `daily_summaries` unique index to allow multiple accounts per day
+1. **0012** — Fixes `daily_summaries` unique index to allow multiple accounts per day  
+2. **0013** — Adds `daily_reset_timezone` to `account_rules` and `drawdown_templates`
 
-> ⚠️ **Order matters:** Apply 0011 before 0012. Both must succeed before deploying v2.0.0 code.
+> ⚠️ **Order matters:** Apply 0012 before 0013.
 
 ---
 
@@ -64,60 +73,27 @@ turso db shell wekangtrading-prod
 ```
 
 ```sql
--- Confirm tables NOT yet present (expected before migration)
-SELECT name FROM sqlite_master WHERE type='table' AND name IN ('trading_accounts','account_rules','withdrawal_events','drawdown_templates','admin_settings');
--- Expected: 0 rows
-
--- Confirm trading_account_id NOT yet on individual_trades
-PRAGMA table_info(individual_trades);
--- Expected: no trading_account_id column
-
--- Confirm old unique index on daily_summaries
-SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'daily_summaries%';
--- Expected: daily_summaries_user_date_unique, daily_summaries_user_date_idx, etc.
-
-.exit
-```
-
-If `trading_accounts` already exists, skip Step 4 (0011 already applied) and go straight to Step 5.
-
----
-
-### Step 4: Apply Migration 0011 (Multi-account tables + columns)
-```bash
-turso db shell wekangtrading-prod < drizzle/migrations/0011_watery_night_thrasher.sql
-```
-
-**Expected output:** Series of blank lines (statements executed silently). Errors to watch for:
-- `duplicate column name` → column already added, safe to ignore
-- `table already exists` → table already created, safe to ignore
-- Any other error → stop and investigate
-
-**Verify 0011:**
-```bash
-turso db shell wekangtrading-prod
-```
-```sql
--- New tables exist
+-- Confirm 0011 is already applied
 SELECT name FROM sqlite_master WHERE type='table' AND name IN ('trading_accounts','account_rules','withdrawal_events','drawdown_templates','admin_settings');
 -- Expected: 5 rows
 
--- trading_account_id column added
-PRAGMA table_info(individual_trades);
--- Expected: see trading_account_id column (nullable)
+-- Confirm 0012 NOT yet applied (old index still present)
+SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'daily_summaries%';
+-- Expected: daily_summaries_user_date_unique still present (NOT daily_summaries_user_account_date_unique)
 
-PRAGMA table_info(daily_summaries);
--- Expected: see trading_account_id column (nullable)
-
-PRAGMA table_info(user_targets);
--- Expected: see trading_account_id column (nullable)
+-- Confirm 0013 NOT yet applied (column absent)
+PRAGMA table_info(account_rules);
+-- Expected: no daily_reset_timezone column
 
 .exit
 ```
 
+If `daily_summaries_user_account_date_unique` already exists, skip Step 4 (0012 already applied). 
+If `daily_reset_timezone` column already exists in `account_rules`, skip Step 5.
+
 ---
 
-### Step 5: Apply Migration 0012 (Fix daily_summaries unique index)
+### Step 4: Apply Migration 0012 (Fix daily_summaries unique index)
 ```bash
 turso db shell wekangtrading-prod < drizzle/migrations/0012_clever_blue_blade.sql
 ```
@@ -132,7 +108,29 @@ turso db shell wekangtrading-prod
 -- Old index is gone, new index exists
 SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'daily_summaries%';
 -- Expected: daily_summaries_user_account_date_unique (NOT daily_summaries_user_date_unique)
--- Also: daily_summaries_user_date_idx, daily_summaries_trade_date_idx, etc.
+
+.exit
+```
+
+---
+
+### Step 5: Apply Migration 0013 (Per-account daily reset timezone)
+```bash
+turso db shell wekangtrading-prod < drizzle/migrations/0013_add_daily_reset_timezone.sql
+```
+
+**Why this is needed:** Adds `daily_reset_timezone` (nullable text) to `account_rules` and `drawdown_templates`. This allows each account to specify its broker's trading day boundary (e.g. `America/Chicago` for Tradovate, `Europe/Prague` for FTMO). Existing rows default to `NULL` which the app treats as `'UTC'`.
+
+**Verify 0013:**
+```bash
+turso db shell wekangtrading-prod
+```
+```sql
+PRAGMA table_info(account_rules);
+-- Expected: daily_reset_timezone column present (nullable text)
+
+PRAGMA table_info(drawdown_templates);
+-- Expected: daily_reset_timezone column present (nullable text)
 
 .exit
 ```
@@ -141,7 +139,9 @@ SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'daily_summaries
 
 ### Step 6: Seed Default Account for Existing Users
 
-After deploying the v2.0.0 code, existing users have no `trading_accounts` rows. Run this once to create a default account for each user so their existing trades remain accessible:
+> Only needed once per environment after first deploying the multi-account code. Existing users have no `trading_accounts` rows — this creates a default one so their existing trades remain accessible.
+
+> **Status:** Already done on staging. Run this on prod after deploying.
 
 ```bash
 turso db shell wekangtrading-prod
@@ -183,30 +183,31 @@ exit
 
 ## ✅ Post-Migration Checklist
 
-- [ ] `trading_accounts` table exists with 5 columns minimum
-- [ ] `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables exist
-- [ ] `individual_trades.trading_account_id` column present (nullable)
-- [ ] `daily_summaries.trading_account_id` column present (nullable)
-- [ ] `daily_summaries_user_date_unique` index **removed**
-- [ ] `daily_summaries_user_account_date_unique` index **present**
-- [ ] `user_targets.trading_account_id`, `user_badges.trading_account_id`, `user_rankings.trading_account_id` present
+- [ ] `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables exist (0011 ✅ already done)
+- [ ] `daily_summaries_user_date_unique` index **removed** (0012)
+- [ ] `daily_summaries_user_account_date_unique` index **present** (0012)
+- [ ] `account_rules.daily_reset_timezone` column present (0013)
+- [ ] `drawdown_templates.daily_reset_timezone` column present (0013)
 - [ ] Default accounts seeded for all existing users
-- [ ] v2.0.0 Vercel deployment live
+- [ ] v2.x Vercel deployment live
 - [ ] `/dashboard` shows account picker
-- [ ] `/accounts/[id]` loads account landing page
+- [ ] `/accounts/[id]/settings` shows Daily Reset Timezone selector
 
 ---
 
 ## ⚠️ Rollback Plan
 
-Migrations 0011 and 0012 are **additive only** (new tables, new nullable columns, index swap). To rollback:
+Migrations 0012 and 0013 are **additive only** (index swap, new nullable columns). To rollback:
 
 ```sql
--- Drop 0012 change (restore old unique index)
+-- Rollback 0013 (column removal not supported in SQLite — columns are nullable so no harm)
+-- Nothing needed for 0013 rollback; just redeploy without the feature
+
+-- Rollback 0012 (restore old unique index)
 DROP INDEX IF EXISTS daily_summaries_user_account_date_unique;
 CREATE UNIQUE INDEX daily_summaries_user_date_unique ON daily_summaries (user_id, trade_date);
 
--- Drop 0011 new tables (column removal not possible in SQLite without table recreation)
+-- Rollback 0011 new tables (if needed — WARNING: drops all multi-account data)
 DROP TABLE IF EXISTS withdrawal_events;
 DROP TABLE IF EXISTS account_rules;
 DROP TABLE IF EXISTS admin_settings;

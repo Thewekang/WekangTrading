@@ -127,6 +127,26 @@ export default async function AccountsPage() {
                         </p>
                       </div>
                     )}
+                    {status.totalWithdrawn > 0 && (
+                      <div className="col-span-2 bg-purple-50 rounded p-2 border border-purple-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-purple-500">Total Withdrawn</p>
+                            <p className="font-semibold text-purple-700">
+                              −{status.totalWithdrawn.toFixed(2)} {account.currency}
+                            </p>
+                          </div>
+                          {status.lastWithdrawal && (
+                            <div className="text-right">
+                              <p className="text-xs text-purple-400">Last withdrawal</p>
+                              <p className="text-xs font-medium text-purple-600">
+                                −{status.lastWithdrawal.amount.toFixed(2)} on {status.lastWithdrawal.date}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

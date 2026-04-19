@@ -11,6 +11,7 @@ interface Template {
   totalDrawdownPct: number | null;
   consistencyTargetPct: number | null;
   targetGainPct: number | null;
+  dailyResetTimezone: string | null;
   isDefault: boolean | null;
 }
 
@@ -19,6 +20,20 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   '': 'All types',
   PROP_FIRM: 'Prop Firm', FUTURES: 'Futures', CFD: 'CFD', FOREX: 'Forex', SHARE: 'Share', DEMO: 'Demo',
 };
+
+const BROKER_TIMEZONES = [
+  { value: '', label: '— None —' },
+  { value: 'UTC', label: 'UTC' },
+  { value: 'America/Chicago', label: 'CT — America/Chicago (Tradovate/Apex)' },
+  { value: 'America/New_York', label: 'ET — America/New_York' },
+  { value: 'America/Los_Angeles', label: 'PT — America/Los_Angeles' },
+  { value: 'Europe/London', label: 'GMT/BST — Europe/London' },
+  { value: 'Europe/Prague', label: 'CET — Europe/Prague (FTMO)' },
+  { value: 'Asia/Kuala_Lumpur', label: 'MYT — Asia/Kuala_Lumpur' },
+  { value: 'Asia/Singapore', label: 'SGT — Asia/Singapore' },
+  { value: 'Asia/Tokyo', label: 'JST — Asia/Tokyo' },
+  { value: 'Australia/Sydney', label: 'AEST — Australia/Sydney' },
+];
 
 // ------------------------------------------------
 // Empty form state
@@ -30,6 +45,7 @@ const emptyForm = () => ({
   totalDrawdownPct: '',
   consistencyTargetPct: '',
   targetGainPct: '',
+  dailyResetTimezone: '',
   isDefault: false,
 });
 
@@ -45,6 +61,7 @@ function TemplateRow({ template, onDeleted }: { template: Template; onDeleted: (
     totalDrawdownPct: template.totalDrawdownPct?.toString() ?? '',
     consistencyTargetPct: template.consistencyTargetPct?.toString() ?? '',
     targetGainPct: template.targetGainPct?.toString() ?? '',
+    dailyResetTimezone: template.dailyResetTimezone ?? '',
     isDefault: template.isDefault ?? false,
   });
   const [saving, setSaving] = useState(false);
@@ -63,6 +80,7 @@ function TemplateRow({ template, onDeleted }: { template: Template; onDeleted: (
         totalDrawdownPct: form.totalDrawdownPct ? parseFloat(form.totalDrawdownPct) : null,
         consistencyTargetPct: form.consistencyTargetPct ? parseFloat(form.consistencyTargetPct) : null,
         targetGainPct: form.targetGainPct ? parseFloat(form.targetGainPct) : null,
+        dailyResetTimezone: form.dailyResetTimezone || null,
         isDefault: form.isDefault,
       }),
     });
@@ -88,6 +106,7 @@ function TemplateRow({ template, onDeleted }: { template: Template; onDeleted: (
         <td className="py-3 px-4 text-sm text-center">{template.totalDrawdownPct ?? '—'}</td>
         <td className="py-3 px-4 text-sm text-center">{template.consistencyTargetPct ?? '—'}</td>
         <td className="py-3 px-4 text-sm text-center">{template.targetGainPct ?? '—'}</td>
+        <td className="py-3 px-4 text-sm text-center">{template.dailyResetTimezone ?? '—'}</td>
         <td className="py-3 px-4 text-sm text-center">{template.isDefault ? '✓' : ''}</td>
         <td className="py-3 px-4">
           <div className="flex items-center gap-2 justify-end">
@@ -110,6 +129,11 @@ function TemplateRow({ template, onDeleted }: { template: Template; onDeleted: (
       {(['dailyDrawdownPct', 'totalDrawdownPct', 'consistencyTargetPct', 'targetGainPct'] as const).map((field) => (
         <td key={field} className="py-2 px-4"><input type="number" step="0.1" value={form[field]} onChange={(e) => setForm((p) => ({ ...p, [field]: e.target.value }))} className="w-full border rounded px-2 py-1 text-sm text-center" placeholder="—" /></td>
       ))}
+      <td className="py-2 px-4">
+        <select value={form.dailyResetTimezone} onChange={(e) => setForm((p) => ({ ...p, dailyResetTimezone: e.target.value }))} className="w-full border rounded px-2 py-1 text-sm">
+          {BROKER_TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+        </select>
+      </td>
       <td className="py-2 px-4 text-center"><input type="checkbox" checked={form.isDefault} onChange={(e) => setForm((p) => ({ ...p, isDefault: e.target.checked }))} /></td>
       <td className="py-2 px-4">
         <div className="flex items-center gap-2 justify-end">
@@ -145,6 +169,7 @@ function AddTemplateRow({ onAdded }: { onAdded: (t: Template) => void }) {
         totalDrawdownPct: form.totalDrawdownPct ? parseFloat(form.totalDrawdownPct) : null,
         consistencyTargetPct: form.consistencyTargetPct ? parseFloat(form.consistencyTargetPct) : null,
         targetGainPct: form.targetGainPct ? parseFloat(form.targetGainPct) : null,
+        dailyResetTimezone: form.dailyResetTimezone || null,
         isDefault: form.isDefault,
       }),
     });
@@ -196,6 +221,12 @@ function AddTemplateRow({ onAdded }: { onAdded: (t: Template) => void }) {
           <label className="block text-xs text-gray-600 mb-1">Target Gain %</label>
           <input type="number" step="0.1" value={form.targetGainPct} onChange={(e) => setForm((p) => ({ ...p, targetGainPct: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm" placeholder="e.g. 10" />
         </div>
+        <div className="col-span-2 sm:col-span-3">
+          <label className="block text-xs text-gray-600 mb-1">Daily Reset Timezone</label>
+          <select value={form.dailyResetTimezone} onChange={(e) => setForm((p) => ({ ...p, dailyResetTimezone: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm">
+            {BROKER_TIMEZONES.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+          </select>
+        </div>
         <div className="flex items-center gap-2">
           <input type="checkbox" id="isDefault" checked={form.isDefault} onChange={(e) => setForm((p) => ({ ...p, isDefault: e.target.checked }))} />
           <label htmlFor="isDefault" className="text-xs text-gray-600">Default template</label>
@@ -235,13 +266,14 @@ export function DrawdownTemplatesManager({ initialTemplates }: DrawdownTemplates
               <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase text-center">Total DD%</th>
               <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase text-center">Consistency%</th>
               <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase text-center">Target%</th>
+              <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase text-center">Reset TZ</th>
               <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase text-center">Default</th>
               <th className="py-3 px-4"></th>
             </tr>
           </thead>
           <tbody>
             {templates.length === 0 ? (
-              <tr><td colSpan={8} className="py-8 text-center text-gray-400 text-sm">No templates yet</td></tr>
+              <tr><td colSpan={9} className="py-8 text-center text-gray-400 text-sm">No templates yet</td></tr>
             ) : (
               templates.map((t) => <TemplateRow key={t.id} template={t} onDeleted={handleDeleted} />)
             )}

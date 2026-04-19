@@ -69,6 +69,7 @@ export async function GET(
           totalWins: dailySummaries.totalWins,
           totalLosses: dailySummaries.totalLosses,
           totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+          totalCommissionUsd: dailySummaries.totalCommissionUsd,
           totalSopFollowed: dailySummaries.totalSopFollowed,
         })
         .from(dailySummaries)
@@ -85,7 +86,7 @@ export async function GET(
             totalWins: summary.totalWins,
             totalLosses: summary.totalLosses,
             totalSopFollowed: summary.totalSopFollowed,
-            profitLoss: summary.totalProfitLossUsd,
+            profitLoss: summary.totalProfitLossUsd + summary.totalCommissionUsd,
             winRate: summary.totalTrades > 0 
               ? (summary.totalWins / summary.totalTrades) * 100 
               : 0,
@@ -122,7 +123,7 @@ export async function GET(
         winRate: number;
         sopRate: number;
       } = {
-        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
+        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd + s.totalCommissionUsd, 0),
         totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
         totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
         totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
@@ -163,6 +164,7 @@ export async function GET(
           totalWins: dailySummaries.totalWins,
           totalLosses: dailySummaries.totalLosses,
           totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+          totalCommissionUsd: dailySummaries.totalCommissionUsd,
           totalSopFollowed: dailySummaries.totalSopFollowed,
         })
         .from(dailySummaries)
@@ -198,7 +200,7 @@ export async function GET(
           totalWins: existing.totalWins + summary.totalWins,
           totalLosses: existing.totalLosses + summary.totalLosses,
           totalSopFollowed: existing.totalSopFollowed + summary.totalSopFollowed,
-          profitLoss: existing.profitLoss + summary.totalProfitLossUsd
+          profitLoss: existing.profitLoss + summary.totalProfitLossUsd + summary.totalCommissionUsd
         });
       });
 
@@ -235,7 +237,7 @@ export async function GET(
         winRate: number;
         sopRate: number;
       } = {
-        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
+        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd + s.totalCommissionUsd, 0),
         totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
         totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
         totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),

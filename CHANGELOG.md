@@ -9,7 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — v2.0.0 Multi-Account Trading Account Isolation (branch: feature/multi-trading-accounts)
+### Added — v2.0.0-alpha.2 Per-Account Timezone + Withdrawal Tracking
+
+#### Per-Account Daily Reset Timezone
+- **`lib/utils/dateUtils.ts`** (new) — `getDayBoundariesInTimezone(timestamp, timezone)` utility; returns `{ start, end }` UTC Date objects for the local calendar day that `timestamp` falls in
+- **Schema** — `account_rules.daily_reset_timezone` column (text, default `'UTC'`); `drawdown_templates.daily_reset_timezone` column
+- **Migration 0013** — `drizzle/migrations/0013_add_daily_reset_timezone.sql`
+- **`upsertAccountRules`** — persists `dailyResetTimezone` field
+- **`lib/validations.ts`** — `accountRulesSchema` and `drawdownTemplateSchema` include `dailyResetTimezone` (optional string, default `'UTC'`)
+- **`AccountSettingsForm.tsx`** — timezone dropdown in Risk Rules section (lists all IANA timezones grouped by region)
+- **`DrawdownTemplatesManager.tsx`** — timezone field in template create/edit form
+
+#### Timezone-Aware Daily Summary
+- **`dailySummaryService.ts`** — `updateDailySummary` now reads account's `dailyResetTimezone` from `getAccountRules`; uses `getDayBoundariesInTimezone` to compute query window and `summaryDateKey` (UTC midnight of local calendar date) for `tradeDate` storage; backward-compatible for UTC accounts
+
+#### Timezone-Aware Performance Analytics
+- **`performance/route.ts`** — when `accountId` is present, fetches account rules and uses `effectiveTimezone = rules?.dailyResetTimezone ?? userTimezone` for all `getAvailableYears`, `getMonthlyPerformance`, `getYearlyPerformance` calls
+
+#### Withdrawal Tracking in P&L
+- **`accountRulesService.ts`** — `getCycleStatus` now:
+  - Fetches `totalWithdrawn` (sum of all `withdrawal_events.withdrawalAmount`) in the parallel Promise.all
+  - `cumulativePnl = grossCumulativePnl - totalWithdrawn` (deducts withdrawals; represents retained account balance)
+  - `recordWithdrawal` uses `grossCumulativePnl - pastWithdrawals` for accurate `balanceAtWithdrawal` snapshot
+  - `CycleStatus` interface gains `totalWithdrawn: number` and `lastWithdrawal: { date, amount } | null`
+
+- **`performanceAnalyticsService.ts`** — `getAccountWithdrawals(userId, accountId?)` helper; `getYearlyPerformance` and `getMonthlyPerformance` subtract withdrawal amounts from P&L figures and return `withdrawals: { date, amount }[]` in the response; `getAvailableYears` includes years from withdrawal events
+
+#### Withdrawal Visibility in UI
+
+| Location | What's shown |
+|---|---|
+| **`/dashboard`** account cards | Purple "Last Withdrawal" row (date + amount) |
+| **`/accounts`** (accounts landing) | Purple "Total Withdrawn" + "Last withdrawal" row in stats grid |
+| **`/accounts/[id]/dashboard`** (Account Health card) | "Total Withdrawn" + "Last withdrawal" rows below Consistency Rule |
+| **Performance calendar — month view** | Purple "W/D −AMOUNT" badge on each day cell with a withdrawal |
+| **Performance calendar — year view** | Purple "Withdrawal: −AMOUNT" row in each month card; withdrawal-only months show withdrawal instead of "No trades" |
+| **Performance calendar — summary cards** | 5th "Total Withdrawals" card (only shown when withdrawals exist) |
+| **Performance calendar — legend** | Purple "Withdrawal" swatch in both month and year views |
+
+#### Design decisions
+- **Stats/Rankings `totalPnl`** — NOT deducted (measures trading skill, not cash management)
+- **Performance calendar P&L** — withdrawals DO reduce the displayed P&L (shows retained account balance over time)
+- **`currentCyclePnl`** — NOT deducted (trades since last withdrawal; withdrawal starts a new cycle)
+
+
 
 #### Full Account Isolation — Services
 - **`trendAnalysisService`** — `getDailyTrends`, `getPeriodStats`, `getWeeklyComparison`, `getMonthlyComparison`, `getTrendIndicators` all accept optional `accountId` parameter; adds `eq(dailySummaries.tradingAccountId, accountId)` condition when provided

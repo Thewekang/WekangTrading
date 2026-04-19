@@ -27,6 +27,8 @@ export const drawdownTemplates = sqliteTable('drawdown_templates', {
   consistencyTargetPct: real('consistency_target_pct'),
   // targetGainPct: % of starting balance to auto-fill cycleTargetProfitUsd
   targetGainPct: real('target_gain_pct'),
+  // Daily reset timezone — IANA timezone string (e.g. 'America/Chicago' for Tradovate)
+  dailyResetTimezone: text('daily_reset_timezone'),
   isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 }, (table) => ({

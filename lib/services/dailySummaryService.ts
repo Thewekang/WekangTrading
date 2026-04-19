@@ -8,6 +8,8 @@ import { db } from '../db';
 import { individualTrades, dailySummaries } from '../db/schema';
 import { eq, and, gte, lte, desc, sql, isNull } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
+import { getDayBoundariesInTimezone } from '../utils/dateUtils';
+import { getAccountRules } from './tradingAccountService';
 
 interface DailySummaryData {
   totalTrades: number;
@@ -33,12 +35,22 @@ interface DailySummaryData {
  * @param accountId - Optional trading account ID to scope the summary
  */
 export async function updateDailySummary(userId: string, tradeDate: Date, accountId?: string): Promise<void> {
-  // Normalize date to start of day (00:00:00)
-  const startOfDay = new Date(tradeDate);
-  startOfDay.setUTCHours(0, 0, 0, 0);
+  // Determine day boundaries using the account's configured timezone.
+  // Falls back to UTC when no accountId or no dailyResetTimezone is set.
+  let timezone = 'UTC';
+  if (accountId) {
+    const rules = await getAccountRules(accountId);
+    if (rules?.dailyResetTimezone) {
+      timezone = rules.dailyResetTimezone;
+    }
+  }
 
-  const endOfDay = new Date(tradeDate);
-  endOfDay.setUTCHours(23, 59, 59, 999);
+  // Get the UTC start/end boundaries of the trading day in the account's timezone.
+  // Storage key (startOfDay) is always UTC midnight of the LOCAL calendar date,
+  // so summaries for "April 20 MYT" are keyed as 2026-04-20T00:00:00Z regardless of timezone.
+  const { start: startOfDay, end: endOfDay, localDateStr } = getDayBoundariesInTimezone(tradeDate, timezone);
+  // Normalize storage key to UTC midnight of local date (e.g. "2026-04-20" → 2026-04-20T00:00:00Z)
+  const summaryDateKey = new Date(localDateStr + 'T00:00:00Z');
 
   // Fetch trades for this user and date, filtered by account if provided
   const tradeConditions = [
@@ -118,7 +130,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date, accoun
   // Check if summary exists for this user + date + account
   const summaryConditions = [
     eq(dailySummaries.userId, userId),
-    eq(dailySummaries.tradeDate, startOfDay),
+    eq(dailySummaries.tradeDate, summaryDateKey),
     accountId ? eq(dailySummaries.tradingAccountId, accountId) : isNull(dailySummaries.tradingAccountId),
   ];
   const [existingSummary] = await db
@@ -163,7 +175,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date, accoun
       .values({
         userId,
         tradingAccountId: accountId ?? null,
-        tradeDate: startOfDay,
+        tradeDate: summaryDateKey,
         ...summaryData,
       });
   }

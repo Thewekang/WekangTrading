@@ -173,6 +173,7 @@ export async function upsertAccountRules(
     totalDrawdownPct?: number | null;
     consistencyTargetPct?: number | null;
     cycleTargetProfitUsd?: number | null;
+    dailyResetTimezone?: string | null;
   }
 ) {
   const existing = await getAccountRules(accountId);
@@ -185,6 +186,7 @@ export async function upsertAccountRules(
         totalDrawdownPct: input.totalDrawdownPct,
         consistencyTargetPct: input.consistencyTargetPct,
         cycleTargetProfitUsd: input.cycleTargetProfitUsd,
+        dailyResetTimezone: input.dailyResetTimezone,
       })
       .where(eq(accountRules.tradingAccountId, accountId))
       .returning();
@@ -199,6 +201,7 @@ export async function upsertAccountRules(
       totalDrawdownPct: input.totalDrawdownPct ?? null,
       consistencyTargetPct: input.consistencyTargetPct ?? null,
       cycleTargetProfitUsd: input.cycleTargetProfitUsd ?? null,
+      dailyResetTimezone: input.dailyResetTimezone ?? null,
     })
     .returning();
 

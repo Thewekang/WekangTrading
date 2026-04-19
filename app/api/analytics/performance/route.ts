@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getYearlyPerformance, getMonthlyPerformance, getAvailableYears } from '@/lib/services/performanceAnalyticsService';
+import { getAccountRules } from '@/lib/services/tradingAccountService';
 
 /**
  * GET /api/analytics/performance?year=2026&month=1
@@ -25,12 +26,20 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action');
     const accountId = searchParams.get('accountId') || undefined;
     
-    // Get user's timezone (default to Asia/Kuala_Lumpur)
+    // Use account's dailyResetTimezone when accountId is provided (broker's trading day boundary).
+    // Falls back to user's preferredTimezone so the calendar groups days correctly.
     const userTimezone = session.user.preferredTimezone || 'Asia/Kuala_Lumpur';
+    let timezone = userTimezone;
+    if (accountId) {
+      const rules = await getAccountRules(accountId);
+      if (rules?.dailyResetTimezone) {
+        timezone = rules.dailyResetTimezone;
+      }
+    }
 
     // Get available years
     if (action === 'years') {
-      const years = await getAvailableYears(session.user.id, userTimezone, accountId);
+      const years = await getAvailableYears(session.user.id, timezone, accountId);
       return NextResponse.json({ success: true, data: years });
     }
 
@@ -56,12 +65,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const monthlyData = await getMonthlyPerformance(session.user.id, year, month, userTimezone, accountId);
+      const monthlyData = await getMonthlyPerformance(session.user.id, year, month, timezone, accountId);
       return NextResponse.json({ success: true, data: monthlyData });
     }
 
     // Otherwise, return yearly data
-    const yearlyData = await getYearlyPerformance(session.user.id, year, userTimezone, accountId);
+    const yearlyData = await getYearlyPerformance(session.user.id, year, timezone, accountId);
     return NextResponse.json({ success: true, data: yearlyData });
   } catch (error) {
     console.error('Error fetching performance analytics:', error);

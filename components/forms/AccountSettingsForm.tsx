@@ -26,6 +26,7 @@ type Rules = {
   totalDrawdownPct: number | null;
   consistencyTargetPct: number | null;
   cycleTargetProfitUsd: number | null;
+  dailyResetTimezone: string | null;
 } | null;
 
 type WithdrawalHistoryItem = {
@@ -48,6 +49,19 @@ const ACCOUNT_TYPES = [
 ];
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'SGD', 'MYR', 'AUD', 'JPY'];
+
+const BROKER_TIMEZONES = [
+  { value: 'UTC', label: 'UTC (default)' },
+  { value: 'America/Chicago', label: 'CT — America/Chicago (Tradovate, Apex, TopStep)' },
+  { value: 'America/New_York', label: 'ET — America/New_York' },
+  { value: 'America/Los_Angeles', label: 'PT — America/Los_Angeles' },
+  { value: 'Europe/London', label: 'GMT/BST — Europe/London' },
+  { value: 'Europe/Prague', label: 'CET — Europe/Prague (FTMO)' },
+  { value: 'Asia/Kuala_Lumpur', label: 'MYT — Asia/Kuala_Lumpur' },
+  { value: 'Asia/Singapore', label: 'SGT — Asia/Singapore' },
+  { value: 'Asia/Tokyo', label: 'JST — Asia/Tokyo' },
+  { value: 'Australia/Sydney', label: 'AEST — Australia/Sydney' },
+];
 
 // ------------------------------------------------
 // Account Info Section
@@ -155,6 +169,7 @@ function RulesSection({ accountId, initialRules }: { accountId: string; initialR
       totalDrawdownPct: initialRules?.totalDrawdownPct ?? undefined,
       consistencyTargetPct: initialRules?.consistencyTargetPct ?? undefined,
       cycleTargetProfitUsd: initialRules?.cycleTargetProfitUsd ?? undefined,
+      dailyResetTimezone: initialRules?.dailyResetTimezone ?? 'UTC',
     },
   });
 
@@ -198,6 +213,15 @@ function RulesSection({ accountId, initialRules }: { accountId: string; initialR
             <label className="block text-sm font-medium text-gray-700 mb-1">Cycle Profit Target ($)</label>
             <input {...register('cycleTargetProfitUsd', { setValueAs: (v) => v === '' ? null : parseFloat(v) })} type="number" step="0.01" min="0" placeholder="e.g. 1000" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Reset Timezone</label>
+          <select {...register('dailyResetTimezone')} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            {BROKER_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-0.5">Match your broker&apos;s trading day boundary (e.g. CME: America/Chicago, FTMO: Europe/Prague)</p>
         </div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         {success && <p className="text-green-600 text-sm">Rules saved!</p>}

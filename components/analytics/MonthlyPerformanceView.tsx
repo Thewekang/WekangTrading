@@ -29,6 +29,11 @@ interface MonthlyPerformance {
   sopRate: number;
 }
 
+interface WithdrawalEntry {
+  date: string;   // YYYY-MM-DD
+  amount: number;
+}
+
 interface PerformanceSummary {
   profitLoss: number;
   totalTrades: number;
@@ -50,6 +55,10 @@ export function MonthlyPerformanceView() {
   const [monthlyPerformance, setMonthlyPerformance] = useState<MonthlyPerformance[]>([]);
   const [scale, setScale] = useState(1);
   const [lastDistance, setLastDistance] = useState(0);
+  // withdrawal markers: day number → total amount (month view), monthNumber → total amount (year view)
+  const [withdrawalsByDay, setWithdrawalsByDay] = useState<Map<number, number>>(new Map());
+  const [withdrawalsByMonth, setWithdrawalsByMonth] = useState<Map<number, number>>(new Map());
+  const [totalWithdrawals, setTotalWithdrawals] = useState(0);
   const [summary, setSummary] = useState<PerformanceSummary>({
     profitLoss: 0,
     totalTrades: 0,
@@ -83,7 +92,19 @@ export function MonthlyPerformanceView() {
       const result = await response.json();
 
       if (result.success) {
+        // Parse withdrawal markers (present in both month and year responses)
+        const rawWithdrawals: WithdrawalEntry[] = result.data.withdrawals ?? [];
+        let total = 0;
         if (view === 'month' && result.data.dailyBreakdown) {
+          const byDay = new Map<number, number>();
+          rawWithdrawals.forEach(w => {
+            const day = parseInt(w.date.split('-')[2]);
+            byDay.set(day, (byDay.get(day) ?? 0) + w.amount);
+            total += w.amount;
+          });
+          setWithdrawalsByDay(byDay);
+          setWithdrawalsByMonth(new Map());
+          setTotalWithdrawals(total);
           // Map daily breakdown to match DailyPerformance interface
           const dailyData = result.data.dailyBreakdown.map((day: any) => ({
             date: new Date(day.date).getDate(),
@@ -107,6 +128,15 @@ export function MonthlyPerformanceView() {
             sopRate: result.data.overview.sopRate
           });
         } else if (view === 'year' && result.data.monthlyBreakdown) {
+          const byMonth = new Map<number, number>();
+          rawWithdrawals.forEach(w => {
+            const m = parseInt(w.date.split('-')[1]);
+            byMonth.set(m, (byMonth.get(m) ?? 0) + w.amount);
+            total += w.amount;
+          });
+          setWithdrawalsByMonth(byMonth);
+          setWithdrawalsByDay(new Map());
+          setTotalWithdrawals(total);
           // Map monthly breakdown to match MonthlyPerformance interface
           const monthlyData = result.data.monthlyBreakdown.map((m: any) => ({
             month: m.monthNumber,
@@ -245,6 +275,10 @@ export function MonthlyPerformanceView() {
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-100 border border-orange-300 rounded"></div>
             <span className="text-gray-700">P/L (USD)</span>
           </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-purple-100 border border-purple-300 rounded"></div>
+            <span className="text-gray-700">Withdrawal</span>
+          </div>
         </div>
 
         {/* Calendar header */}
@@ -303,6 +337,15 @@ export function MonthlyPerformanceView() {
                       ) : (
                         <div className="text-[8px] sm:text-xs text-gray-400 text-center mt-1 sm:mt-4">No</div>
                       )}
+                      {/* Withdrawal badge — shown whenever there's a withdrawal on this day */}
+                      {withdrawalsByDay.has(day.date) && (
+                        <div className="flex items-center justify-between bg-purple-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-purple-300 mt-0.5">
+                          <span className="text-[7px] sm:text-xs text-purple-600 font-medium">W/D</span>
+                          <span className="text-[7px] sm:text-xs font-bold text-purple-700">
+                            −{withdrawalsByDay.get(day.date)!.toFixed(0)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -330,6 +373,10 @@ export function MonthlyPerformanceView() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded"></div>
             <span className="text-sm text-gray-700">P/L (USD)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
+            <span className="text-sm text-gray-700">Withdrawal</span>
           </div>
         </div>
 
@@ -363,11 +410,30 @@ export function MonthlyPerformanceView() {
                           {monthData.profitLoss >= 0 ? '+' : ''}{formatCurrency(monthData.profitLoss)}
                         </span>
                       </div>
+                      {withdrawalsByMonth.has(monthData.month) && (
+                        <div className="flex items-center justify-between bg-purple-50 px-2 py-1.5 rounded border border-purple-300">
+                          <span className="text-xs text-purple-600 font-medium">Withdrawal:</span>
+                          <span className="text-sm font-bold text-purple-700">
+                            −{formatCurrency(withdrawalsByMonth.get(monthData.month)!)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-sm text-gray-400 text-center py-4">No trades</div>
+                    {withdrawalsByMonth.has(monthData.month) ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-purple-50 px-2 py-1.5 rounded border border-purple-300">
+                          <span className="text-xs text-purple-600 font-medium">Withdrawal:</span>
+                          <span className="text-sm font-bold text-purple-700">
+                            −{formatCurrency(withdrawalsByMonth.get(monthData.month)!)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 text-center py-4">No trades</div>
+                    )}
                   </>
                 )}
               </div>
@@ -482,6 +548,15 @@ export function MonthlyPerformanceView() {
             W:{summary.totalWins} L:{summary.totalLosses}
           </div>
         </Card>
+        {totalWithdrawals > 0 && (
+          <Card className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 border-2 border-purple-400">
+            <div className="text-sm text-gray-600 mb-1">Total Withdrawals</div>
+            <div className="text-2xl font-bold text-purple-800">
+              −${formatCurrency(totalWithdrawals)}
+            </div>
+            <div className="text-xs text-purple-600 mt-1">Reduces retained P&amp;L</div>
+          </Card>
+        )}
       </div>
 
       {/* Calendar/Grid view */}

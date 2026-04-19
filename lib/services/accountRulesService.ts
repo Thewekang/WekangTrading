@@ -29,6 +29,10 @@ export interface CycleStatus {
   currentCyclePnl: number;
   cumulativePnl: number;
   cycleStartDate: Date | null; // null = since account creation
+  // Last withdrawal (for display in dashboard / calendar context)
+  lastWithdrawal: { date: string; amount: number } | null;
+  // Total withdrawn all-time from this account
+  totalWithdrawn: number;
   // Drawdown
   dailyDrawdownLimitUsd: number | null;
   dailyDrawdownUsedUsd: number;
@@ -59,6 +63,19 @@ export interface WithdrawalInput {
 // ============================================
 // CYCLE HELPERS
 // ============================================
+
+/** Returns the start of the current cycle AND the last withdrawal snapshot. */
+async function getLastWithdrawal(
+  tradingAccountId: string,
+): Promise<{ withdrawalDate: string; withdrawalAmount: number } | null> {
+  const [latest] = await db
+    .select({ withdrawalDate: withdrawalEvents.withdrawalDate, withdrawalAmount: withdrawalEvents.withdrawalAmount })
+    .from(withdrawalEvents)
+    .where(eq(withdrawalEvents.tradingAccountId, tradingAccountId))
+    .orderBy(desc(withdrawalEvents.withdrawalDate))
+    .limit(1);
+  return latest ?? null;
+}
 
 /** Returns the start of the current cycle: the day AFTER the last withdrawal, or null if none. */
 async function getCycleStartDate(tradingAccountId: string): Promise<Date | null> {
@@ -93,12 +110,12 @@ async function sumPnl(tradingAccountId: string, since: Date | null): Promise<num
   return Number(result?.total ?? 0);
 }
 
-/** Returns the highest single-day P&L (TRANSACTION-only) within a cycle. */
-async function getBestDayCyclePnl(tradingAccountId: string, since: Date | null): Promise<number> {
-  // We need per-day totals — use a raw subquery approach via Drizzle
+/** Returns the highest single-day net P&L (all entry types, including commissions) within a cycle.
+ * Groups by the user's local timezone date to match what is shown in the performance calendar. */
+async function getBestDayCyclePnl(tradingAccountId: string, since: Date | null, timezone: string): Promise<number> {
+  // We need per-day net totals — include all entry types (TRANSACTION + COMMISSION)
   const conditions = [
     eq(individualTrades.tradingAccountId, tradingAccountId),
-    eq(individualTrades.entryType, 'TRANSACTION'),
   ];
   if (since) {
     conditions.push(gte(individualTrades.tradeTimestamp, since));
@@ -113,16 +130,26 @@ async function getBestDayCyclePnl(tradingAccountId: string, since: Date | null):
     .from(individualTrades)
     .where(and(...conditions));
 
-  // Group by day
+  // Group by local date in user's timezone (avoids UTC day boundary mismatch with calendar)
+  const dayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }); // en-CA gives YYYY-MM-DD
   const byDay: Record<string, number> = {};
   for (const t of trades) {
-    const day = t.timestamp.toISOString().slice(0, 10);
+    const day = dayFormatter.format(t.timestamp);
     byDay[day] = (byDay[day] ?? 0) + t.pnl;
   }
 
   const dailyValues = Object.values(byDay);
   if (dailyValues.length === 0) return 0;
   return Math.max(...dailyValues.filter((v) => v > 0), 0);
+}
+
+/** Returns the total amount withdrawn from an account across all withdrawal events. */
+async function sumWithdrawals(tradingAccountId: string): Promise<number> {
+  const [result] = await db
+    .select({ total: sum(withdrawalEvents.withdrawalAmount) })
+    .from(withdrawalEvents)
+    .where(eq(withdrawalEvents.tradingAccountId, tradingAccountId));
+  return Number(result?.total ?? 0);
 }
 
 /** Returns today's net P&L for an account (all entry types). */
@@ -148,19 +175,33 @@ async function getTodayPnl(tradingAccountId: string): Promise<number> {
 /**
  * Returns the full live cycle status for a trading account.
  * Call this to power the DrawdownStatusCard, CycleProfitTargetCard, and account health badge.
+ * Day boundaries use the account's dailyResetTimezone (from account_rules), falling back to UTC.
  */
 export async function getCycleStatus(tradingAccountId: string): Promise<CycleStatus> {
-  const [rules, cycleStartDate] = await Promise.all([
+  const [rules, cycleStartDate, lastWithdrawalRow] = await Promise.all([
     getAccountRules(tradingAccountId),
     getCycleStartDate(tradingAccountId),
+    getLastWithdrawal(tradingAccountId),
   ]);
 
-  const [currentCyclePnl, cumulativePnl, todayPnl, bestDayCyclePnl] = await Promise.all([
+  const lastWithdrawal = lastWithdrawalRow
+    ? { date: lastWithdrawalRow.withdrawalDate, amount: lastWithdrawalRow.withdrawalAmount }
+    : null;
+
+  // Use account's configured timezone for day boundaries (e.g. broker's trading day reset)
+  const timezone = rules?.dailyResetTimezone ?? 'UTC';
+
+  const [currentCyclePnl, grossCumulativePnl, todayPnl, bestDayCyclePnl, totalWithdrawn] = await Promise.all([
     sumPnl(tradingAccountId, cycleStartDate),
     sumPnl(tradingAccountId, null),
     getTodayPnl(tradingAccountId),
-    getBestDayCyclePnl(tradingAccountId, cycleStartDate),
+    getBestDayCyclePnl(tradingAccountId, cycleStartDate, timezone),
+    sumWithdrawals(tradingAccountId),
   ]);
+
+  // Cumulative P&L = total trading profits minus total withdrawals.
+  // Represents net retained earnings in the account (withdrawals leave the account).
+  const cumulativePnl = grossCumulativePnl - totalWithdrawn;
 
   // We need the account's starting balance for DD calculations
   // Caller should supply it, but we look it up from tradingAccounts via a join — fetch inline
@@ -237,6 +278,8 @@ export async function getCycleStatus(tradingAccountId: string): Promise<CycleSta
     currentCyclePnl,
     cumulativePnl,
     cycleStartDate,
+    lastWithdrawal,
+    totalWithdrawn,
     dailyDrawdownLimitUsd,
     dailyDrawdownUsedUsd,
     dailyDrawdownUsedPct,
@@ -268,15 +311,18 @@ export async function recordWithdrawal(input: WithdrawalInput) {
   const cycleStartDate = await getCycleStartDate(input.tradingAccountId);
   const cyclePnlAtWithdrawal = await sumPnl(input.tradingAccountId, cycleStartDate);
 
-  // Compute current balance = startingBalance + cumulativePnl
-  const cumulativePnl = await sumPnl(input.tradingAccountId, null);
+  // Compute current balance = startingBalance + totalTradingPnl - pastWithdrawals
+  const [grossCumulativePnl, pastWithdrawals] = await Promise.all([
+    sumPnl(input.tradingAccountId, null),
+    sumWithdrawals(input.tradingAccountId),
+  ]);
   const { tradingAccounts: taTable } = await import('../db/schema');
   const [accountRow] = await db
     .select({ startingBalance: taTable.startingBalance })
     .from(taTable)
     .where(eq(taTable.id, input.tradingAccountId))
     .limit(1);
-  const balanceAtWithdrawal = (accountRow?.startingBalance ?? 0) + cumulativePnl;
+  const balanceAtWithdrawal = (accountRow?.startingBalance ?? 0) + grossCumulativePnl - pastWithdrawals;
 
   const [event] = await db
     .insert(withdrawalEvents)

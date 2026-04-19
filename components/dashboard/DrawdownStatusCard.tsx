@@ -86,6 +86,22 @@ export function DrawdownStatusCard({ status, currency = 'USD' }: DrawdownStatusC
           </span>
         </div>
       )}
+
+      {/* Withdrawal Info */}
+      {status.totalWithdrawn > 0 && (
+        <div className="border-t border-purple-200 pt-3 space-y-1.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-purple-600 font-medium">Total Withdrawn</span>
+            <span className="font-bold text-purple-700">−{status.totalWithdrawn.toFixed(2)} {currency}</span>
+          </div>
+          {status.lastWithdrawal && (
+            <div className="flex items-center justify-between text-xs text-purple-400">
+              <span>Last withdrawal</span>
+              <span>−{status.lastWithdrawal.amount.toFixed(2)} on {status.lastWithdrawal.date}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
