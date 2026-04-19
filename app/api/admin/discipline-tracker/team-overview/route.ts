@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
           : {
               id: '',
               userId: user.id,
+              tradingAccountId: null,
               maxTradesPerDay: 2,
               slValue: -80,
               beValue: 0,

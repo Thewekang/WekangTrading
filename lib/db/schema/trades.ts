@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import { tradingAccounts } from './tradingAccounts';
 
 // ============================================
 // INDIVIDUAL TRADE MODEL
@@ -6,6 +7,7 @@ import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core
 export const individualTrades = sqliteTable('individual_trades', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull(),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   dailySummaryId: text('daily_summary_id'),
   sopTypeId: text('sop_type_id'),
   entryType: text('entry_type', { enum: ['TRANSACTION', 'COMMISSION'] }).notNull().default('TRANSACTION'),
@@ -30,6 +32,8 @@ export const individualTrades = sqliteTable('individual_trades', {
   userTimestampResultIdx: index('idx_trades_user_timestamp_result').on(table.userId, table.tradeTimestamp, table.result),
   userDateResultIdx: index('idx_trades_user_date_result').on(table.userId, table.tradeTimestamp, table.result),
   userSessionIdx: index('idx_trades_user_session').on(table.userId, table.marketSession),
+  // v2.0.0: account-scoped index
+  accountIdIdx: index('individual_trades_account_id_idx').on(table.tradingAccountId),
 }));
 
 // Export types

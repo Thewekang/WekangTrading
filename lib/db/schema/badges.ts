@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { users } from './users';
+import { tradingAccounts } from './tradingAccounts';
 
 /**
  * Badges table - Defines all available achievement badges
@@ -28,6 +29,7 @@ export const badges = sqliteTable('badges', {
 export const userBadges = sqliteTable('user_badges', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   badgeId: text('badge_id').notNull().references(() => badges.id, { onDelete: 'cascade' }),
   earnedAt: text('earned_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   progress: integer('progress').default(0), // Current progress to next tier (if applicable)

@@ -11,7 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.14.6] - 2026-04-18
+## [2.0.0-alpha.1] - 2026-04-19
+
+### Added
+- **Multi-account UX flow** — redesigned navigation hierarchy: Login → User Dashboard (account picker) → Account Landing → Account Dashboard
+- **`/dashboard`** now serves as account picker: shows all user accounts as cards with health status, P&L summary, Enter Account button, and settings gear
+- **`/accounts/[id]`** — account landing page with quick-action tiles (Dashboard, New Trade, Trades, Discipline, Performance, Targets, Account Settings), drawdown health cards, and rules setup hint
+- **`/accounts/[id]/dashboard`** — full rich per-account dashboard: daily loss alert, drawdown/cycle cards, quote of the day, achievements, economic news, ranking, stats (scoped to account), best SOP, symbol performance, active targets, session charts, hourly heatmap
+- **Account context strip** — indigo bar below main nav always shows active account name; quick links: Dashboard | Trades | Discipline | Performance (visible on all screen sizes)
+- **`EnterAccountButton`** client component — sets `active_account_id` cookie and navigates to account landing
+- **Per-account stat scoping** — `getPersonalStats`, `getSymbolStats`, `getBestSopType`, `getSopPerformanceStats` all accept optional `accountId` parameter to filter results per account
+
+### Changed
+- **Top-level navigation** — Trades, Discipline, Performance, and Analytics removed from main nav; now accessed via account context strip. Main nav: Home | Resources (Strategies, Calendar) | Settings
+- **`AccountSwitcher`** — navigates to `/accounts/[id]` on account switch instead of just refreshing
+
+---
+
+## [Unreleased — pre v2.0.0-alpha.1]
 
 ### Fixed
 - **Trends page (`/analytics/trends`): BE trades counted as losses in all W/L displays** — `getYearlyPerformance` and `getMonthlyPerformance` both calculated `losses = trades - wins`, so any BE trade fell into the loss bucket. Fixed by tracking losses with a dedicated counter incremented only on `result === 'LOSS'`. BE trades count in `totalTrades` (denominator) but not in wins or losses. Fixes monthly calendar "W:10 L:2" → "W:10 L:0", tooltip hover text, yearly month cards, and `MonthlyAnalyticsChart` tooltip.

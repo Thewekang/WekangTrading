@@ -58,7 +58,8 @@ export interface HourlyStats {
  */
 export async function getPersonalStats(
   userId: string,
-  timeframe: 'week' | 'month' | 'year' | 'all' = 'month'
+  timeframe: 'week' | 'month' | 'year' | 'all' = 'month',
+  accountId?: string
 ): Promise<PersonalStats> {
   // Calculate date range
   const now = new Date();
@@ -81,6 +82,7 @@ export async function getPersonalStats(
 
   // Query daily_summaries (FAST, pre-aggregated)
   const conditions = [eq(dailySummaries.userId, userId)];
+  if (accountId) conditions.push(eq(dailySummaries.tradingAccountId, accountId));
   if (startDate) {
     conditions.push(gte(dailySummaries.tradeDate, startDate));
   }
@@ -122,17 +124,19 @@ export async function getPersonalStats(
   };
 
   // Query individual_trades for accurate session breakdown (TRANSACTION only — exclude COMMISSION)
+  const sessionConditions = [
+    eq(individualTrades.userId, userId),
+    eq(individualTrades.entryType, TRANSACTION),
+  ];
+  if (accountId) sessionConditions.push(eq(individualTrades.tradingAccountId, accountId));
+  if (startDate) sessionConditions.push(gte(individualTrades.tradeTimestamp, startDate));
   const tradesForPeriod = await db
     .select({
       marketSession: individualTrades.marketSession,
       result: individualTrades.result,
     })
     .from(individualTrades)
-    .where(
-      startDate
-        ? and(eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION), gte(individualTrades.tradeTimestamp, startDate))
-        : and(eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION))
-    );
+    .where(and(...sessionConditions));
 
   tradesForPeriod.forEach((trade) => {
     const session = trade.marketSession as MarketSession;
@@ -445,7 +449,8 @@ export interface SymbolStats {
 export async function getSymbolStats(
   userId: string,
   timeframe: 'week' | 'month' | 'year' | 'all' = 'all',
-  limit = 5
+  limit = 5,
+  accountId?: string
 ): Promise<SymbolStats> {
   const now = new Date();
   let startDate: Date | undefined;
@@ -463,6 +468,7 @@ export async function getSymbolStats(
     eq(individualTrades.entryType, TRANSACTION),
     isNotNull(individualTrades.symbol),
   ];
+  if (accountId) conditions.push(eq(individualTrades.tradingAccountId, accountId));
   if (startDate) conditions.push(gte(individualTrades.tradeTimestamp, startDate));
 
   const rows = await db

@@ -78,6 +78,13 @@
       "when": 1776449614242,
       "tag": "0010_big_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1776576888075,
+      "tag": "0011_watery_night_thrasher",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { users } from './users';
+import { tradingAccounts } from './tradingAccounts';
 
 /**
  * Streaks table - Tracks user streaks (winning days, logging consistency, SOP compliance)
@@ -8,6 +9,7 @@ import { users } from './users';
 export const streaks = sqliteTable('streaks', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   streakType: text('streak_type').notNull(), // 'WIN_STREAK', 'LOG_STREAK', 'SOP_STREAK'
   currentStreak: integer('current_streak').notNull().default(0), // Current consecutive streak count
   longestStreak: integer('longest_streak').notNull().default(0), // All-time longest streak

@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { tradingAccounts } from './tradingAccounts';
 
 // ============================================
 // DAILY SUMMARY MODEL (Auto-calculated)
@@ -6,6 +7,7 @@ import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-or
 export const dailySummaries = sqliteTable('daily_summaries', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull(),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   tradeDate: integer('trade_date', { mode: 'timestamp' }).notNull(),
   totalTrades: integer('total_trades').notNull().default(0),
   totalWins: integer('total_wins').notNull().default(0),
@@ -33,6 +35,8 @@ export const dailySummaries = sqliteTable('daily_summaries', {
   
   // Phase 2: Enhanced index for date range queries
   userDateRangeIdx: index('idx_summary_user_date').on(table.userId, table.tradeDate),
+  // v2.0.0: account-scoped index
+  accountIdIdx: index('daily_summaries_account_id_idx').on(table.tradingAccountId),
 }));
 
 // Export types

@@ -179,7 +179,8 @@ export async function deleteSopType(id: string) {
  */
 export async function getSopPerformanceStats(
   userId: string,
-  period: 'week' | 'month' | 'year' | 'all' = 'month'
+  period: 'week' | 'month' | 'year' | 'all' = 'month',
+  accountId?: string
 ) {
   const dateFilter = getDateFilter(period);
   const conditions = [
@@ -187,6 +188,7 @@ export async function getSopPerformanceStats(
     eq(individualTrades.entryType, 'TRANSACTION'),
     isNotNull(individualTrades.sopTypeId),
   ];
+  if (accountId) conditions.push(eq(individualTrades.tradingAccountId, accountId));
   if (dateFilter) {
     conditions.push(gte(individualTrades.tradeTimestamp, new Date(dateFilter)));
   }
@@ -249,9 +251,10 @@ export async function getSopPerformanceStats(
  */
 export async function getBestSopType(
   userId: string,
-  period: 'week' | 'month' | 'year' | 'all' = 'month'
+  period: 'week' | 'month' | 'year' | 'all' = 'month',
+  accountId?: string
 ) {
-  const stats = await getSopPerformanceStats(userId, period);
+  const stats = await getSopPerformanceStats(userId, period, accountId);
   
   if (stats.length === 0) {
     return null;

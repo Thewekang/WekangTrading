@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Info, Link as LinkIcon, User } from 'lucide-react';
+import { Settings, Info, Link as LinkIcon, User, SlidersHorizontal } from 'lucide-react';
+import { getAllSettings } from '@/lib/services/adminSettingsService';
+import { AdminSettingsEditor } from '@/components/admin/AdminSettingsEditor';
 
 export default async function AdminSettingsPage() {
   const session = await auth();
@@ -15,7 +17,9 @@ export default async function AdminSettingsPage() {
   const databaseName = process.env.DATABASE_URL?.includes('wekangtrading-prod') 
     ? 'Turso (Production)' 
     : 'Turso (Staging)';
-  const version = '1.7.0';
+  const version = '2.0.0';
+
+  const adminSettings = await getAllSettings();
 
   return (
     <div className="space-y-6">
@@ -100,6 +104,39 @@ export default async function AdminSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin Settings Key-Value Store */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5" />
+            System Parameters
+          </CardTitle>
+          <CardDescription>Editable system-wide constants (rankings thresholds, cache durations, etc.)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminSettingsEditor settings={adminSettings} />
+        </CardContent>
+      </Card>
+
+      {/* Drawdown Templates Link */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Drawdown Templates
+          </CardTitle>
+          <CardDescription>Manage preset risk rules users can apply to their accounts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <a
+            href="/admin/drawdown-templates"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          >
+            Manage Drawdown Templates →
+          </a>
+        </CardContent>
+      </Card>
     </div>
   );
 }

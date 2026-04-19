@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, TrendingUp, Calendar, Menu, X, Settings, ChevronDown, FileText, Ticket, Quote, Target } from 'lucide-react';
+import { LayoutDashboard, Users, TrendingUp, Calendar, Menu, X, Settings, ChevronDown, FileText, Ticket, Quote, Target, ShieldCheck } from 'lucide-react';
 import SettingsDropdown from '@/components/admin/SettingsDropdown';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 
@@ -176,6 +176,18 @@ export function AdminNav({ userEmail }: AdminNavProps) {
                     >
                       <Calendar className="h-4 w-4" />
                       Calendar Settings
+                    </Link>
+                    <Link
+                      href="/admin/drawdown-templates"
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium ${
+                        pathname === '/admin/drawdown-templates'
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Drawdown Templates
                     </Link>
                   </div>
                 )}

@@ -203,3 +203,63 @@ export type IndividualTradeInput = z.infer<typeof individualTradeSchema>;
 export type BulkTradeEntryInput = z.infer<typeof bulkTradeEntrySchema>;
 export type UserTargetInput = z.infer<typeof userTargetSchema>;
 export type UserPreferencesInput = z.infer<typeof userPreferencesSchema>;
+// ============================================
+// TRADING ACCOUNT VALIDATION SCHEMAS
+// ============================================
+
+const accountTypeEnum = z.enum(['PROP_FIRM', 'FUTURES', 'CFD', 'FOREX', 'SHARE', 'DEMO']);
+
+export const createTradingAccountSchema = z.object({
+  name: z.string().min(1, 'Account name is required').max(100, 'Name must be less than 100 characters'),
+  accountType: accountTypeEnum.default('FUTURES'),
+  currency: z.string().min(1).max(10).default('USD'),
+  startingBalance: z.number().min(0, 'Starting balance cannot be negative').default(0),
+});
+
+export const updateTradingAccountSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  accountType: accountTypeEnum.optional(),
+  currency: z.string().min(1).max(10).optional(),
+  startingBalance: z.number().min(0).optional(),
+  active: z.boolean().optional(),
+});
+
+export const accountRulesSchema = z.object({
+  dailyDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  totalDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  consistencyTargetPct: z.number().min(1).max(100).nullable().optional(),
+  cycleTargetProfitUsd: z.number().min(0).nullable().optional(),
+});
+
+export const withdrawalEventSchema = z.object({
+  withdrawalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  withdrawalAmount: z.number().positive('Withdrawal amount must be positive'),
+  notes: z.string().max(500).optional(),
+});
+
+export const drawdownTemplateSchema = z.object({
+  name: z.string().min(1).max(100),
+  accountType: accountTypeEnum.nullable().optional(),
+  dailyDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  totalDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  consistencyTargetPct: z.number().min(1).max(100).nullable().optional(),
+  targetGainPct: z.number().min(0.1).max(100).nullable().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const adminSettingSchema = z.object({
+  key: z.string().min(1).max(100),
+  value: z.string(),
+  description: z.string().max(500).optional(),
+});
+
+// ============================================
+// TYPES FROM NEW SCHEMAS
+// ============================================
+
+export type CreateTradingAccountInput = z.infer<typeof createTradingAccountSchema>;
+export type UpdateTradingAccountInput = z.infer<typeof updateTradingAccountSchema>;
+export type AccountRulesInput = z.infer<typeof accountRulesSchema>;
+export type WithdrawalEventInput = z.infer<typeof withdrawalEventSchema>;
+export type DrawdownTemplateInput = z.infer<typeof drawdownTemplateSchema>;
+export type AdminSettingInput = z.infer<typeof adminSettingSchema>;

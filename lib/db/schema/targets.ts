@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import { tradingAccounts } from './tradingAccounts';
 
 // ============================================
 // USER TARGET MODEL
@@ -6,6 +7,7 @@ import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core
 export const userTargets = sqliteTable('user_targets', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull(),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   targetCategory: text('target_category', { enum: ['PROP_FIRM', 'PERSONAL'] }).notNull().default('PERSONAL'),
   targetType: text('target_type', { enum: ['WEEKLY', 'MONTHLY', 'YEARLY'] }).notNull(),

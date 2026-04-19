@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { users } from './users';
+import { tradingAccounts } from './tradingAccounts';
 
 /**
  * User Stats table - Denormalized stats for fast badge calculation and progress tracking
@@ -9,6 +10,7 @@ import { users } from './users';
 export const userStats = sqliteTable('user_stats', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   
   // Trading Volume Stats
   totalTrades: integer('total_trades').notNull().default(0),
