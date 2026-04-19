@@ -24,6 +24,10 @@ export async function GET(req: NextRequest) {
       userId: session.user.id,
     };
 
+    if (searchParams.get('accountId')) {
+      filters.tradingAccountId = searchParams.get('accountId');
+    }
+
     if (searchParams.get('startDate')) {
       // Client sends UTC ISO string already converted from user's timezone
       filters.startDate = new Date(searchParams.get('startDate')!);

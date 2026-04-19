@@ -47,7 +47,7 @@ export default function DisciplineTrackerPage() {
   // Fetch settings and rows on mount
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [activeAccount?.id]);
 
   // Recalculate stats when filtered rows or settings change
   useEffect(() => {
@@ -62,7 +62,10 @@ export default function DisciplineTrackerPage() {
       setIsLoading(true);
       
       // Fetch settings
-      const settingsRes = await fetch('/api/discipline-tracker/settings');
+      const settingsUrl = activeAccount?.id
+        ? `/api/discipline-tracker/settings?accountId=${activeAccount.id}`
+        : '/api/discipline-tracker/settings';
+      const settingsRes = await fetch(settingsUrl);
       const settingsData = await settingsRes.json();
       
       if (settingsData.success) {
@@ -93,7 +96,7 @@ export default function DisciplineTrackerPage() {
       const res = await fetch('/api/discipline-tracker/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ ...updates, ...(activeAccount?.id ? { accountId: activeAccount.id } : {}) }),
       });
 
       const data = await res.json();

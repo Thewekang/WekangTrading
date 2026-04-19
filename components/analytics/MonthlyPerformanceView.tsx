@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 interface DailyPerformance {
   date: number;
@@ -40,6 +41,7 @@ interface PerformanceSummary {
 
 export function MonthlyPerformanceView() {
   const { timezone } = useTimezone();
+  const { activeAccount } = useActiveAccount();
   const [view, setView] = useState<'month' | 'year'>('year');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -67,14 +69,15 @@ export function MonthlyPerformanceView() {
 
   useEffect(() => {
     fetchPerformanceData();
-  }, [year, month, view]);
+  }, [year, month, view, activeAccount?.id]);
 
   const fetchPerformanceData = async () => {
     setLoading(true);
     try {
+      const acctParam = activeAccount?.id ? `&accountId=${activeAccount.id}` : '';
       const url = view === 'month'
-        ? `/api/analytics/performance?year=${year}&month=${month}`
-        : `/api/analytics/performance?year=${year}`;
+        ? `/api/analytics/performance?year=${year}&month=${month}${acctParam}`
+        : `/api/analytics/performance?year=${year}${acctParam}`;
 
       const response = await fetch(url);
       const result = await response.json();

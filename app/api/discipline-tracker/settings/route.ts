@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const settings = await getUserSettings(session.user.id);
+    const settings = await getUserSettings(session.user.id, request.nextUrl.searchParams.get('accountId') || undefined);
 
     return NextResponse.json({ success: true, data: settings });
   } catch (error) {
@@ -51,9 +51,10 @@ export async function PATCH(request: NextRequest) {
     
     // Validate input
     const validatedData = updateDisciplineTrackerSettingsSchema.parse(body);
+    const accountId = (body as any).accountId || undefined;
 
     // Update settings
-    const updatedSettings = await updateUserSettings(session.user.id, validatedData);
+    const updatedSettings = await updateUserSettings(session.user.id, validatedData, accountId);
 
     return NextResponse.json({
       success: true,

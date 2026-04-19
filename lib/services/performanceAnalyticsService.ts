@@ -39,7 +39,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
  * Returns overview and monthly breakdown
  * Converts UTC timestamps to user's timezone for month grouping
  */
-export async function getYearlyPerformance(userId: string, year: number, timezone: string = 'Asia/Kuala_Lumpur'): Promise<YearlyPerformanceData> {
+export async function getYearlyPerformance(userId: string, year: number, timezone: string = 'Asia/Kuala_Lumpur', accountId?: string): Promise<YearlyPerformanceData> {
   try {
     // Create start and end dates for the year in user's timezone
     // Convert to UTC for database query
@@ -47,6 +47,14 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // Dec 31, 23:59:59 UTC
 
     // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
+    const yearConditions: any[] = [
+      eq(individualTrades.userId, userId),
+      eq(individualTrades.entryType, TRANSACTION),
+      gte(individualTrades.tradeTimestamp, startDate),
+      lte(individualTrades.tradeTimestamp, endDate),
+    ];
+    if (accountId) yearConditions.push(eq(individualTrades.tradingAccountId, accountId));
+
     const yearTrades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
@@ -55,14 +63,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
         profitLossUsd: individualTrades.profitLossUsd,
       })
       .from(individualTrades)
-      .where(
-        and(
-          eq(individualTrades.userId, userId),
-          eq(individualTrades.entryType, TRANSACTION),
-          gte(individualTrades.tradeTimestamp, startDate),
-          lte(individualTrades.tradeTimestamp, endDate)
-        )
-      );
+      .where(and(...yearConditions));
 
     // Initialize monthly data
     const monthlyData: { [key: number]: { trades: number; wins: number; losses: number; sopFollowed: number; pnl: number } } = {};
@@ -153,7 +154,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
  * Converts UTC timestamps to user's timezone for day grouping
  * Uses individualTrades to ensure timezone-correct daily aggregation
  */
-export async function getMonthlyPerformance(userId: string, year: number, month: number, timezone: string = 'Asia/Kuala_Lumpur') {
+export async function getMonthlyPerformance(userId: string, year: number, month: number, timezone: string = 'Asia/Kuala_Lumpur', accountId?: string) {
   try {
     // Create start and end dates for the month with buffer for timezone offset
     // Start from 2 days before to catch timezone edge cases
@@ -161,6 +162,14 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     const endDate = new Date(Date.UTC(year, month, 2, 23, 59, 59, 999)); // 2 days after month end
 
     // Get TRANSACTION trades only (exclude COMMISSION entries from win/SOP/trade counts)
+    const monthConditions: any[] = [
+      eq(individualTrades.userId, userId),
+      eq(individualTrades.entryType, TRANSACTION),
+      gte(individualTrades.tradeTimestamp, startDate),
+      lte(individualTrades.tradeTimestamp, endDate),
+    ];
+    if (accountId) monthConditions.push(eq(individualTrades.tradingAccountId, accountId));
+
     const trades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
@@ -169,14 +178,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
         profitLossUsd: individualTrades.profitLossUsd,
       })
       .from(individualTrades)
-      .where(
-        and(
-          eq(individualTrades.userId, userId),
-          eq(individualTrades.entryType, TRANSACTION),
-          gte(individualTrades.tradeTimestamp, startDate),
-          lte(individualTrades.tradeTimestamp, endDate)
-        )
-      )
+      .where(and(...monthConditions))
       .orderBy(individualTrades.tradeTimestamp);
 
     // Group trades by day in user's timezone
@@ -271,15 +273,18 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
  * Get available years with data for the user
  * Uses user's timezone to determine year boundaries
  */
-export async function getAvailableYears(userId: string, timezone: string = 'Asia/Kuala_Lumpur'): Promise<number[]> {
+export async function getAvailableYears(userId: string, timezone: string = 'Asia/Kuala_Lumpur', accountId?: string): Promise<number[]> {
   try {
     // Get all trades
+    const conditions: any[] = [eq(individualTrades.userId, userId)];
+    if (accountId) conditions.push(eq(individualTrades.tradingAccountId, accountId));
+
     const trades = await db
       .select({
         timestamp: individualTrades.tradeTimestamp,
       })
       .from(individualTrades)
-      .where(eq(individualTrades.userId, userId));
+      .where(and(...conditions));
 
     // Convert to user's timezone and extract unique years
     const years = new Set<number>();

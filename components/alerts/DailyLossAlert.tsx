@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 interface DailyLossAlertProps {
   className?: string;
 }
 
 export default function DailyLossAlert({ className = '' }: DailyLossAlertProps) {
+  const { activeAccount } = useActiveAccount();
   const [lossData, setLossData] = useState<{
     lossesToday: number;
     limitReached: boolean;
@@ -26,7 +28,8 @@ export default function DailyLossAlert({ className = '' }: DailyLossAlertProps) 
 
   const checkDailyLosses = async () => {
     try {
-      const response = await fetch('/api/daily-loss-check');
+      const acctParam = activeAccount?.id ? `?accountId=${activeAccount.id}` : '';
+      const response = await fetch(`/api/daily-loss-check${acctParam}`);
       const result = await response.json();
       
       if (result.success) {

@@ -24,17 +24,21 @@ import type { DisciplineTrackerFilter } from '@/lib/validations/disciplineTracke
  * Get user's discipline tracker settings
  * Creates default settings if none exist
  */
-export async function getUserSettings(userId: string): Promise<DisciplineTrackerSettings> {
+export async function getUserSettings(userId: string, accountId?: string): Promise<DisciplineTrackerSettings> {
+  const conditions: any[] = [eq(disciplineTrackerSettings.userId, userId)];
+  if (accountId) conditions.push(eq(disciplineTrackerSettings.tradingAccountId, accountId));
+
   const settings = await db
     .select()
     .from(disciplineTrackerSettings)
-    .where(eq(disciplineTrackerSettings.userId, userId))
+    .where(and(...conditions))
     .limit(1);
 
   if (settings.length === 0) {
     // Create default settings
     const newSettings: NewDisciplineTrackerSettings = {
       userId,
+      tradingAccountId: accountId ?? null,
       maxTradesPerDay: 2,
       slValue: -80,
       beValue: 0,
@@ -57,15 +61,19 @@ export async function getUserSettings(userId: string): Promise<DisciplineTracker
  */
 export async function updateUserSettings(
   userId: string,
-  updates: Partial<DisciplineTrackerSettings>
+  updates: Partial<DisciplineTrackerSettings>,
+  accountId?: string
 ): Promise<DisciplineTrackerSettings> {
+  const conditions: any[] = [eq(disciplineTrackerSettings.userId, userId)];
+  if (accountId) conditions.push(eq(disciplineTrackerSettings.tradingAccountId, accountId));
+
   const updated = await db
     .update(disciplineTrackerSettings)
     .set({
       ...updates,
       updatedAt: new Date(),
     })
-    .where(eq(disciplineTrackerSettings.userId, userId))
+    .where(and(...conditions))
     .returning();
 
   if (updated.length === 0) {
@@ -130,11 +138,14 @@ export async function getUserRows(
 /**
  * Get a single row by ID
  */
-export async function getRowById(userId: string, rowId: string): Promise<DisciplineTrackerRow | null> {
+export async function getRowById(userId: string, rowId: string, accountId?: string): Promise<DisciplineTrackerRow | null> {
+  const conditions: any[] = [eq(disciplineTrackerRows.id, rowId), eq(disciplineTrackerRows.userId, userId)];
+  if (accountId) conditions.push(eq(disciplineTrackerRows.tradingAccountId, accountId));
+
   const rows = await db
     .select()
     .from(disciplineTrackerRows)
-    .where(and(eq(disciplineTrackerRows.id, rowId), eq(disciplineTrackerRows.userId, userId)))
+    .where(and(...conditions))
     .limit(1);
 
   return rows.length > 0 ? rows[0] : null;

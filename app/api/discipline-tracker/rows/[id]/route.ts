@@ -27,7 +27,8 @@ export async function GET(
     }
 
     const { id } = await params;
-    const row = await getRowById(session.user.id, id);
+    const accountId = request.nextUrl.searchParams.get('accountId') || undefined;
+    const row = await getRowById(session.user.id, id, accountId);
 
     if (!row) {
       return NextResponse.json(
@@ -64,17 +65,17 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const body = await request.json();
+    const accountId = body.accountId || undefined;
 
     // Check if row exists
-    const existingRow = await getRowById(session.user.id, id);
+    const existingRow = await getRowById(session.user.id, id, accountId);
     if (!existingRow) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Row not found' } },
         { status: 404 }
       );
     }
-
-    const body = await request.json();
     
     // Convert date string to Date object if needed
     if (body.tradeDate && typeof body.tradeDate === 'string') {

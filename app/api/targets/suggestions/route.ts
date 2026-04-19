@@ -44,8 +44,9 @@ export async function GET(req: NextRequest) {
     }
 
     const { targetType } = validation.data;
+    const accountId = searchParams.get('accountId') || undefined;
 
-    const suggestions = await getTargetSuggestions(session.user.id, targetType);
+    const suggestions = await getTargetSuggestions(session.user.id, targetType, accountId);
 
     return NextResponse.json({
       success: true,

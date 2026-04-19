@@ -10,6 +10,7 @@ import type { IndividualTrade } from '@/lib/db/schema/trades';
 
 export interface ExportFilters {
   userId: string;
+  tradingAccountId?: string;
   startDate?: Date;
   endDate?: Date;
   result?: 'WIN' | 'LOSS' | 'BE';
@@ -25,6 +26,7 @@ export interface ExportFilters {
 export async function getTradesForExport(filters: ExportFilters): Promise<IndividualTrade[]> {
   const {
     userId,
+    tradingAccountId,
     startDate,
     endDate,
     result,
@@ -35,6 +37,8 @@ export async function getTradesForExport(filters: ExportFilters): Promise<Indivi
   } = filters;
 
   const conditions = [eq(individualTrades.userId, userId)];
+
+  if (tradingAccountId) conditions.push(eq(individualTrades.tradingAccountId, tradingAccountId));
 
   if (startDate) {
     conditions.push(gte(individualTrades.tradeTimestamp, startDate));

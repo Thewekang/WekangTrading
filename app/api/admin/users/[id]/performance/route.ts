@@ -33,6 +33,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const monthParam = searchParams.get('month');
+    const tradingAccountId = searchParams.get('tradingAccountId') || undefined;
 
     // Check if user exists
     const [user] = await db
@@ -54,6 +55,13 @@ export async function GET(
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0); // Last day of month
 
+      const monthConditions: any[] = [
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, startDate),
+        lte(dailySummaries.tradeDate, endDate),
+      ];
+      if (tradingAccountId) monthConditions.push(eq(dailySummaries.tradingAccountId, tradingAccountId));
+
       const summaries = await db
         .select({
           tradeDate: dailySummaries.tradeDate,
@@ -64,13 +72,7 @@ export async function GET(
           totalSopFollowed: dailySummaries.totalSopFollowed,
         })
         .from(dailySummaries)
-        .where(
-          and(
-            eq(dailySummaries.userId, userId),
-            gte(dailySummaries.tradeDate, startDate),
-            lte(dailySummaries.tradeDate, endDate)
-          )
-        )
+        .where(and(...monthConditions))
         .orderBy(dailySummaries.tradeDate);
 
       // Create a map for quick lookup

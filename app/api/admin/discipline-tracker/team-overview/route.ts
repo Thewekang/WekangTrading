@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const daysParam = searchParams.get('days') || '14';
     const days = parseInt(daysParam, 10);
+    const tradingAccountId = searchParams.get('tradingAccountId') || undefined;
 
     if (isNaN(days) || days < 1 || days > 90) {
       return NextResponse.json(
@@ -82,16 +83,17 @@ export async function GET(request: NextRequest) {
             };
 
         // Fetch rows in date range
+        const rowConditions: any[] = [
+          eq(disciplineTrackerRows.userId, user.id),
+          gte(disciplineTrackerRows.tradeDate, startDate),
+          lte(disciplineTrackerRows.tradeDate, endDate),
+        ];
+        if (tradingAccountId) rowConditions.push(eq(disciplineTrackerRows.tradingAccountId, tradingAccountId));
+
         const rows = await db
           .select()
           .from(disciplineTrackerRows)
-          .where(
-            and(
-              eq(disciplineTrackerRows.userId, user.id),
-              gte(disciplineTrackerRows.tradeDate, startDate),
-              lte(disciplineTrackerRows.tradeDate, endDate)
-            )
-          )
+          .where(and(...rowConditions))
           .orderBy(desc(disciplineTrackerRows.tradeDate));
 
         // Evaluate each row

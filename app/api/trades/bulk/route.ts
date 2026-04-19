@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
+    const accountId = body.accountId || undefined;
     const validatedData = bulkTradeEntrySchema.parse(body);
 
     // Validate all trades are on the same date (compare UTC dates)
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
     // Prepare trades for bulk insert
     const trades = validatedData.trades.map(trade => ({
       userId: session.user.id,
+      tradingAccountId: accountId ?? null,
       entryType: trade.entryType,
       tradeTimestamp: new Date(trade.tradeTimestamp),
       result: trade.entryType === 'TRANSACTION' ? trade.result : null,

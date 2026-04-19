@@ -12,13 +12,16 @@ const CACHE_DURATION = 60 * 60 * 1000;
  * Get user's current ranking
  * Returns null if user doesn't meet minimum trade requirement
  */
-export async function getUserRanking(userId: string) {
+export async function getUserRanking(userId: string, accountId?: string) {
   try {
     // Check if we have a recent cached ranking (within last hour)
+    const rankingConditions: any[] = [eq(userRankings.userId, userId)];
+    if (accountId) rankingConditions.push(eq(userRankings.tradingAccountId, accountId));
+
     const cachedRanking = await db
       .select()
       .from(userRankings)
-      .where(eq(userRankings.userId, userId))
+      .where(and(...rankingConditions))
       .orderBy(desc(userRankings.calculatedAt))
       .limit(1);
 

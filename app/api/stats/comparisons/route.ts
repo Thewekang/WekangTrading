@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type') || 'weekly'; // 'weekly' or 'monthly'
     const userId = searchParams.get('userId') || session.user.id;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Admin can view any user's comparisons
     if (userId !== session.user.id && session.user.role !== 'ADMIN') {
@@ -30,8 +31,8 @@ export async function GET(request: NextRequest) {
     }
 
     const comparison = type === 'monthly' 
-      ? await getMonthlyComparison(userId)
-      : await getWeeklyComparison(userId);
+      ? await getMonthlyComparison(userId, accountId)
+      : await getWeeklyComparison(userId, accountId);
 
     return NextResponse.json({
       success: true,
