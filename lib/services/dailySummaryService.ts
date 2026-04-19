@@ -6,7 +6,7 @@
 
 import { db } from '../db';
 import { individualTrades, dailySummaries } from '../db/schema';
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql, isNull } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 import { getDayBoundariesInTimezone } from '../utils/dateUtils';
 import { getAccountRules } from './tradingAccountService';
@@ -146,23 +146,36 @@ export async function updateDailySummary(userId: string, tradeDate: Date, accoun
     bestSession,
   };
 
-  // Atomic UPSERT — avoids the check-then-insert race condition and silent INSERT failures
-  // that can occur with the Drizzle singleton on brand-new date rows.
-  await db
-    .insert(dailySummaries)
-    .values({
+  // Try INSERT first. If a unique constraint violation occurs (row already exists for this
+  // user + date + account), fall back to UPDATE. This is more reliable than ON CONFLICT DO UPDATE
+  // because SQLite/libsql rejects multi-column conflict targets with nullable columns.
+  try {
+    await db.insert(dailySummaries).values({
       userId,
       tradingAccountId: accountId ?? null,
       tradeDate: summaryDateKey,
       ...summaryData,
-    })
-    .onConflictDoUpdate({
-      target: [dailySummaries.userId, dailySummaries.tradeDate, dailySummaries.tradingAccountId],
-      set: {
-        ...summaryData,
-        updatedAt: new Date(),
-      },
     });
+  } catch (insertError: unknown) {
+    const isUniqueViolation =
+      insertError instanceof Error &&
+      (insertError.message.includes('UNIQUE constraint failed') ||
+        insertError.message.includes('AlreadyExists'));
+    if (!isUniqueViolation) throw insertError;
+
+    // Row already exists — update it
+    const updateConditions = [
+      eq(dailySummaries.userId, userId),
+      eq(dailySummaries.tradeDate, summaryDateKey),
+      accountId
+        ? eq(dailySummaries.tradingAccountId, accountId)
+        : isNull(dailySummaries.tradingAccountId),
+    ];
+    await db
+      .update(dailySummaries)
+      .set({ ...summaryData, updatedAt: new Date() })
+      .where(and(...updateConditions));
+  }
 }
 
 /**
