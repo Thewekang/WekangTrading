@@ -9,6 +9,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — v2.0.0 Multi-Account Trading Account Isolation (branch: feature/multi-trading-accounts)
+
+#### Full Account Isolation — Services
+- **`trendAnalysisService`** — `getDailyTrends`, `getPeriodStats`, `getWeeklyComparison`, `getMonthlyComparison`, `getTrendIndicators` all accept optional `accountId` parameter; adds `eq(dailySummaries.tradingAccountId, accountId)` condition when provided
+- **`performanceAnalyticsService`** — `getYearlyPerformance`, `getMonthlyPerformance`, `getAvailableYears` accept optional `accountId`; builds `conditions` array scoped to account
+- **`targetService`** — `createTarget`, `getTargets`, `getActiveTarget`, `getTargetWithProgress`, `getActiveTargetsWithProgress`, `getTargetSuggestions` all accept optional `accountId`; `calculateTargetProgress` uses `target.tradingAccountId` directly
+- **`exportService`** — `ExportFilters` interface extended with `tradingAccountId?`; `getTradesForExport` applies account filter when present
+- **`dailyLossService`** — `checkDailyLosses`, `getTodayTradeResults` accept optional `accountId`
+- **`disciplineTrackerService`** — `getUserSettings`, `updateUserSettings`, `getRowById` accept optional `accountId`; default settings INSERT includes `tradingAccountId`
+- **`rankingService`** — `getUserRanking` accepts optional `accountId`; `getUserRows` already had it
+- **Badges & streaks kept user-global** — `badgeService` and `streakService` intentionally not scoped (user achievements span all accounts)
+
+#### Full Account Isolation — API Routes (user)
+All routes now read `accountId` from query params (GET/DELETE) or request body (POST/PATCH) and pass it to their service calls:
+- `GET/DELETE /api/stats/ranking` — `?accountId=`
+- `GET /api/stats/trends` — `?accountId=`
+- `GET /api/stats/monthly` — `?accountId=`
+- `GET /api/stats/comparisons` — `?accountId=`
+- `GET /api/stats/indicators` — `?accountId=`
+- `GET /api/stats/best-sop` — `?accountId=`
+- `GET/POST /api/targets` — GET: `?accountId=`; POST: body `accountId`
+- `GET /api/targets/[id]` — `?accountId=`
+- `GET /api/targets/suggestions` — `?accountId=`
+- `POST /api/trades/bulk` — body `accountId`; stamped on each trade row
+- `GET /api/analytics/performance` — `?accountId=`
+- `GET/PATCH /api/discipline-tracker/settings` — GET: `?accountId=`; PATCH: body `accountId`
+- `GET/PATCH /api/discipline-tracker/rows/[id]` — GET: `?accountId=`; PATCH: body `accountId`
+- `GET /api/export/csv` — `?accountId=`
+- `POST /api/export/pdf` — body `accountId`
+- `GET /api/daily-loss-check` — `?accountId=`
+
+#### Full Account Isolation — API Routes (admin)
+- `GET /api/admin/users/[id]/performance` — `?tradingAccountId=`; `monthConditions` array
+- `GET /api/admin/discipline-tracker/team-overview` — `?tradingAccountId=`; `rowConditions` array
+- `GET /api/admin/users/[id]/discipline-tracker/rows` — `?accountId=`
+- `GET /api/admin/users/[id]/discipline-tracker/settings` — `?accountId=`
+
+#### Full Account Isolation — Client Components
+All components use `useActiveAccount()` hook and append `activeAccount?.id` to requests:
+- `app/(user)/analytics/trends/page.tsx` — `accountId` in 4 parallel fetches; `useEffect` dep
+- `components/analytics/MonthlyPerformanceView.tsx` — `accountId` in performance fetch; `useEffect` dep
+- `components/alerts/DailyLossAlert.tsx` — `accountId` in daily-loss-check fetch
+- `components/dashboard/RankingCard.tsx` — `accountId` in GET + DELETE ranking; `useEffect` dep
+- `components/targets/TargetModal.tsx` — `accountId` in suggestions fetch + POST body
+- `components/ExportModal.tsx` — `accountId` in CSV query params + PDF POST body
+- `app/(user)/discipline-tracker/page.tsx` — `accountId` in settings GET/PATCH; `useEffect` dep
+- `ActiveStreaksWidget`, `NextBadgesProgress`, `AchievementShowcase` intentionally kept user-global
+
+#### Account Landing Page
+- **`/accounts/[id]`** — added **Achievements** quick-action tile (`Trophy` icon → `/dashboard/achievements`)
+
+### Fixed — v2.0.0 Database Migrations
+
+#### Migration 0012 (new)
+- **`daily_summaries` unique index broken for multi-account** — the existing `UNIQUE (user_id, trade_date)` index would cause a constraint violation when two accounts trade on the same day. Replaced with `UNIQUE (user_id, trade_date, trading_account_id)`. Migration file: `drizzle/migrations/0012_clever_blue_blade.sql`
+
+#### Migration 0011 manual fix updated
+- **`0011_fix_result_check_constraint.sql`** — updated to include `trading_account_id` column in the recreated `individual_trades_new` table; switched from `SELECT *` to explicit column INSERT so the file is safe to apply regardless of whether 0011_watery_night_thrasher has already run. Added ordering warning in file header.
+
+#### Migration 0011 (previously added)
+- **Multi-account schema** — `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables created; `trading_account_id` FK column (nullable) added to: `individual_trades`, `daily_summaries`, `user_targets`, `user_badges`, `discipline_tracker_rows`, `discipline_tracker_settings`, `streaks`, `user_stats`, `user_rankings`; `display_name` column added to `user_rankings`
+
 ---
 
 ## [2.0.0-alpha.1] - 2026-04-19

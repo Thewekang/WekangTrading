@@ -1,5 +1,21 @@
 # Manual Migration Guide - Turso CLI via WSL
 
+**Last Updated:** April 20, 2026
+
+---
+
+## 🗺️ Migration History
+
+| Version | Drizzle Tag | Description | Applied to Prod |
+|---------|-------------|-------------|-----------------|
+| 0009 | `0009_condemned_invisible_woman` | Quote system, discipline tracker rows | ✅ Done |
+| 0010 | `0010_big_johnny_blaze` | BE result type, nullable result column | ✅ Done |
+| 0010-fix | `0011_fix_result_check_constraint.sql` *(manual, not in journal)* | Recreates `individual_trades` with correct `CHECK (result IN ('WIN','LOSS','BE'))` constraint | ✅ Done |
+| 0011 | `0011_watery_night_thrasher` | Multi-account: adds `trading_account_id` to 9 tables; new `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables | ⬜ Pending |
+| 0012 | `0012_clever_blue_blade` | Fixes `daily_summaries` unique index for multi-account: replaces `(user_id, trade_date)` with `(user_id, trade_date, trading_account_id)` | ⬜ Pending |
+
+---
+
 ## 📋 Prerequisites
 - WSL installed and configured
 - Turso CLI installed at `~/.turso/turso`
@@ -7,7 +23,18 @@
 
 ---
 
-## 🚀 Step-by-Step Instructions
+## 🚀 v2.0.0 Production Migration (Migrations 0011 + 0012)
+
+### Overview
+
+Two migrations must be applied together for the multi-account feature:
+
+1. **0011** — Adds the `trading_accounts` system (new tables + `trading_account_id` FK columns on 9 existing tables)
+2. **0012** — Fixes `daily_summaries` unique index to allow multiple accounts per day
+
+> ⚠️ **Order matters:** Apply 0011 before 0012. Both must succeed before deploying v2.0.0 code.
+
+---
 
 ### Step 1: Open WSL
 ```powershell
@@ -19,58 +46,202 @@ wsl
 
 ---
 
-### Step 2: Navigate to Project Directory
+### Step 2: Setup Environment
+```bash
+cd /mnt/g/'Hasil Kerja'/Website/WekangTrading
+export PATH=/home/h4mim/.turso:$PATH
+
+# Verify Turso CLI
+turso --version
+turso db list
+```
+
+---
+
+### Step 3: Pre-Migration Health Check
+```bash
+turso db shell wekangtrading-prod
+```
+
+```sql
+-- Confirm tables NOT yet present (expected before migration)
+SELECT name FROM sqlite_master WHERE type='table' AND name IN ('trading_accounts','account_rules','withdrawal_events','drawdown_templates','admin_settings');
+-- Expected: 0 rows
+
+-- Confirm trading_account_id NOT yet on individual_trades
+PRAGMA table_info(individual_trades);
+-- Expected: no trading_account_id column
+
+-- Confirm old unique index on daily_summaries
+SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'daily_summaries%';
+-- Expected: daily_summaries_user_date_unique, daily_summaries_user_date_idx, etc.
+
+.exit
+```
+
+If `trading_accounts` already exists, skip Step 4 (0011 already applied) and go straight to Step 5.
+
+---
+
+### Step 4: Apply Migration 0011 (Multi-account tables + columns)
+```bash
+turso db shell wekangtrading-prod < drizzle/migrations/0011_watery_night_thrasher.sql
+```
+
+**Expected output:** Series of blank lines (statements executed silently). Errors to watch for:
+- `duplicate column name` → column already added, safe to ignore
+- `table already exists` → table already created, safe to ignore
+- Any other error → stop and investigate
+
+**Verify 0011:**
+```bash
+turso db shell wekangtrading-prod
+```
+```sql
+-- New tables exist
+SELECT name FROM sqlite_master WHERE type='table' AND name IN ('trading_accounts','account_rules','withdrawal_events','drawdown_templates','admin_settings');
+-- Expected: 5 rows
+
+-- trading_account_id column added
+PRAGMA table_info(individual_trades);
+-- Expected: see trading_account_id column (nullable)
+
+PRAGMA table_info(daily_summaries);
+-- Expected: see trading_account_id column (nullable)
+
+PRAGMA table_info(user_targets);
+-- Expected: see trading_account_id column (nullable)
+
+.exit
+```
+
+---
+
+### Step 5: Apply Migration 0012 (Fix daily_summaries unique index)
+```bash
+turso db shell wekangtrading-prod < drizzle/migrations/0012_clever_blue_blade.sql
+```
+
+**Why this is needed:** The old unique index `(user_id, trade_date)` would reject a second daily summary for the same user on the same day — which happens when they use multiple accounts. The new index `(user_id, trade_date, trading_account_id)` allows one summary per account per day.
+
+**Verify 0012:**
+```bash
+turso db shell wekangtrading-prod
+```
+```sql
+-- Old index is gone, new index exists
+SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'daily_summaries%';
+-- Expected: daily_summaries_user_account_date_unique (NOT daily_summaries_user_date_unique)
+-- Also: daily_summaries_user_date_idx, daily_summaries_trade_date_idx, etc.
+
+.exit
+```
+
+---
+
+### Step 6: Seed Default Account for Existing Users
+
+After deploying the v2.0.0 code, existing users have no `trading_accounts` rows. Run this once to create a default account for each user so their existing trades remain accessible:
+
+```bash
+turso db shell wekangtrading-prod
+```
+
+```sql
+-- Insert a default account for every existing user (skip users who already have one)
+INSERT INTO trading_accounts (id, user_id, name, account_type, currency, starting_balance, is_default, active, created_at, updated_at)
+SELECT
+  lower(hex(randomblob(16))),
+  id,
+  'My Account',
+  'FUTURES',
+  'USD',
+  0,
+  1,
+  1,
+  unixepoch(),
+  unixepoch()
+FROM users
+WHERE id NOT IN (SELECT user_id FROM trading_accounts);
+
+-- Confirm
+SELECT u.email, ta.name FROM users u JOIN trading_accounts ta ON ta.user_id = u.id;
+
+.exit
+```
+
+> 💡 **Note:** Existing trades will have `trading_account_id = NULL` — they are still visible because the app gracefully handles null account IDs (shows all trades when no account filter is active).
+
+---
+
+### Step 7: Exit WSL
+```bash
+exit
+```
+
+---
+
+## ✅ Post-Migration Checklist
+
+- [ ] `trading_accounts` table exists with 5 columns minimum
+- [ ] `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables exist
+- [ ] `individual_trades.trading_account_id` column present (nullable)
+- [ ] `daily_summaries.trading_account_id` column present (nullable)
+- [ ] `daily_summaries_user_date_unique` index **removed**
+- [ ] `daily_summaries_user_account_date_unique` index **present**
+- [ ] `user_targets.trading_account_id`, `user_badges.trading_account_id`, `user_rankings.trading_account_id` present
+- [ ] Default accounts seeded for all existing users
+- [ ] v2.0.0 Vercel deployment live
+- [ ] `/dashboard` shows account picker
+- [ ] `/accounts/[id]` loads account landing page
+
+---
+
+## ⚠️ Rollback Plan
+
+Migrations 0011 and 0012 are **additive only** (new tables, new nullable columns, index swap). To rollback:
+
+```sql
+-- Drop 0012 change (restore old unique index)
+DROP INDEX IF EXISTS daily_summaries_user_account_date_unique;
+CREATE UNIQUE INDEX daily_summaries_user_date_unique ON daily_summaries (user_id, trade_date);
+
+-- Drop 0011 new tables (column removal not possible in SQLite without table recreation)
+DROP TABLE IF EXISTS withdrawal_events;
+DROP TABLE IF EXISTS account_rules;
+DROP TABLE IF EXISTS admin_settings;
+DROP TABLE IF EXISTS drawdown_templates;
+DROP TABLE IF EXISTS trading_accounts;
+```
+
+> Columns added by `ALTER TABLE` cannot be dropped in SQLite — but since all are nullable, they cause no harm.
+
+---
+
+## 📜 Legacy: Migration 0009 (Quote System)
+
+For historical reference — this was the previous production migration guide.
+
+### Step-by-Step Instructions (legacy)
+
+**Step 1: Open WSL**
+```powershell
+wsl
+```
+
+**Step 2: Navigate to Project Directory**
 ```bash
 cd /mnt/g/'Hasil Kerja'/Website/WekangTrading
 ```
 
----
-
-### Step 3: Verify Turso CLI is Working
+**Step 3: Verify Turso CLI is Working**
 ```bash
-# Add turso to PATH
 export PATH=/home/h4mim/.turso:$PATH
-
-# Test turso command
 turso --version
-
-# List your databases (should show wekangtrading-prod)
 turso db list
 ```
 
-**Expected output:**
-```
-NAME                   TYPE     LOCATION         
-wekangtrading-prod     ...      aws-eu-west-1
-wekangtrading-staging  ...      aws-eu-west-1
-```
-
----
-
-### Step 4: Check Current Production Schema
-```bash
-# Open production database shell
-turso db shell wekangtrading-prod
-
-# Inside the shell, check if trading_quotes exists
-.schema trading_quotes
-
-# Check users table structure
-PRAGMA table_info(users);
-
-# Exit the shell
-.exit
-```
-
-**If `trading_quotes` already exists:** Migration may have been partially applied
-
-**If error "no such table":** Migration needs to be applied
-
----
-
-### Step 5: Apply Migration (Choose ONE method)
-
-#### Method A: Apply Full Migration File (Recommended)
+**Step 4: Apply Migration**
 ```bash
 # Apply the migration SQL file
 turso db shell wekangtrading-prod < apply-migration-0009.sql
@@ -103,22 +274,18 @@ CREATE TABLE trading_quotes (
   created_at integer DEFAULT (unixepoch()) NOT NULL,
   updated_at integer DEFAULT (unixepoch()) NOT NULL
 );
-```
-
-```sql
--- 2. Create indexes
 CREATE INDEX trading_quotes_category_idx ON trading_quotes (category);
 CREATE INDEX trading_quotes_enabled_idx ON trading_quotes (enabled);
 ```
 
 ```sql
--- 3. Update discipline_tracker_rows
+-- 2. Update discipline_tracker_rows
 ALTER TABLE discipline_tracker_rows ADD COLUMN is_aplus_day integer DEFAULT 0 NOT NULL;
 ALTER TABLE discipline_tracker_rows ADD COLUMN is_range_expansion_day integer DEFAULT 0 NOT NULL;
 ```
 
 ```sql
--- 4. Update users table (paste one at a time)
+-- 3. Update users table (paste one at a time)
 ALTER TABLE users ADD COLUMN show_quotes integer DEFAULT 1 NOT NULL;
 ALTER TABLE users ADD COLUMN quotes_cooldown_minutes integer DEFAULT 15 NOT NULL;
 ALTER TABLE users ADD COLUMN last_quote_shown_at integer;
@@ -127,67 +294,7 @@ ALTER TABLE users ADD COLUMN last_quote_language text DEFAULT 'en';
 ALTER TABLE users ADD COLUMN quote_show_count integer DEFAULT 0 NOT NULL;
 ```
 
-**Note:** If you get "duplicate column name" error, that column already exists - skip it and continue with the next one.
-
----
-
-### Step 6: Verify Migration Success
-```bash
-# Still in turso db shell wekangtrading-prod
-```
-
-```sql
--- Check trading_quotes table
-.schema trading_quotes
-
--- Expected output: Should show table definition with all columns
-
--- Check users table has new columns
-PRAGMA table_info(users);
-
--- Expected output: Should see show_quotes, quotes_cooldown_minutes, etc.
-
--- Count rows (should be 0 initially)
-SELECT COUNT(*) FROM trading_quotes;
-
--- Check discipline_tracker_rows columns
-PRAGMA table_info(discipline_tracker_rows);
-
--- Expected output: Should see is_aplus_day, is_range_expansion_day
-```
-
----
-
-### Step 7: Exit WSL
-```bash
-# Exit database shell (if still in it)
-.exit
-
-# Exit WSL
-exit
-```
-
----
-
-## ✅ Success Indicators
-
-After running the migration, you should see:
-
-1. **trading_quotes table exists** with columns: id, enabled, category, weight, text_en, text_bm, author, source_type, display_count, created_at, updated_at
-
-2. **users table has 6 new columns:**
-   - show_quotes
-   - quotes_cooldown_minutes
-   - last_quote_shown_at
-   - last_quote_id
-   - last_quote_language
-   - quote_show_count
-
-3. **discipline_tracker_rows has 2 new columns:**
-   - is_aplus_day
-   - is_range_expansion_day
-
-4. **No critical errors** (duplicate column errors are OK)
+**Note:** "duplicate column name" errors are safe to ignore — the column already exists.
 
 ---
 
@@ -195,49 +302,34 @@ After running the migration, you should see:
 
 ### Issue 1: "turso: command not found"
 ```bash
-# Solution: Add to PATH
 export PATH=/home/h4mim/.turso:$PATH
 ```
 
 ### Issue 2: "You are not logged in"
 ```bash
-# Solution: Login to Turso
 turso auth login
-# This will open a browser - complete the authentication
 ```
 
 ### Issue 3: "duplicate column name"
-**This is OK!** It means that column was already added in a previous attempt. Skip and continue.
+**Safe to ignore.** The column was already added in a previous attempt.
 
 ### Issue 4: "table already exists"
-**This is OK!** The table was already created. You can skip the CREATE TABLE statement.
+**Safe to ignore.** The table was already created.
 
 ---
 
-## 🎯 After Migration Success
+## 🔧 Useful Debug SQL
 
-1. ✅ Come back to this chat and confirm migration is complete
-2. ✅ We'll merge PR #15 to main
-3. ✅ Vercel will auto-deploy to production
-4. ✅ Test quote system in production
-
----
-
-## 📞 Need Help?
-
-If you encounter errors:
-1. Copy the error message
-2. Share it in this chat
-3. We'll troubleshoot together
-
-**Common SQL that helps debug:**
 ```sql
--- See all tables
+-- List all tables
 .tables
 
--- See table structure
-.schema [table_name]
+-- See full table definition
+.schema <table_name>
 
--- See column info
-PRAGMA table_info([table_name]);
+-- See column names and types
+PRAGMA table_info(<table_name>);
+
+-- See all indexes
+SELECT name, tbl_name FROM sqlite_master WHERE type = 'index' ORDER BY tbl_name;
 ```
