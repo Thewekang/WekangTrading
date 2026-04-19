@@ -84,10 +84,14 @@ export async function updateUserSettings(
  */
 export async function getUserRows(
   userId: string,
-  filter?: DisciplineTrackerFilter
+  filter?: DisciplineTrackerFilter,
+  accountId?: string
 ): Promise<DisciplineTrackerRow[]> {
   // Build conditions array
   const conditions = [eq(disciplineTrackerRows.userId, userId)];
+  if (accountId) {
+    conditions.push(eq(disciplineTrackerRows.tradingAccountId, accountId));
+  }
 
   // Apply month filter
   if (filter?.month) {
@@ -193,7 +197,7 @@ export async function deleteRow(userId: string, rowId: string): Promise<void> {
 /**
  * Check if a date already exists for a user
  */
-export async function dateExists(userId: string, tradeDate: Date, excludeId?: string): Promise<boolean> {
+export async function dateExists(userId: string, tradeDate: Date, excludeId?: string, accountId?: string): Promise<boolean> {
   // Normalize to start of day
   const startOfDay = new Date(tradeDate);
   startOfDay.setHours(0, 0, 0, 0);
@@ -207,6 +211,11 @@ export async function dateExists(userId: string, tradeDate: Date, excludeId?: st
     gte(disciplineTrackerRows.tradeDate, startOfDay),
     lte(disciplineTrackerRows.tradeDate, endOfDay)
   ];
+
+  // Scope to account if provided
+  if (accountId) {
+    conditions.push(eq(disciplineTrackerRows.tradingAccountId, accountId));
+  }
 
   // Exclude specific row if updating
   if (excludeId) {

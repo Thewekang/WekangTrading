@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getUserAccounts } from '@/lib/services/tradingAccountService';
 import { getCycleStatus } from '@/lib/services/accountRulesService';
 import { Plus, Settings, Wallet } from 'lucide-react';
+import { AccountActions } from '@/components/accounts/AccountActions';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   PROP_FIRM: 'Prop Firm',
@@ -129,7 +130,13 @@ export default async function AccountsPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-between">
+                  <AccountActions
+                    accountId={account.id}
+                    accountName={account.name}
+                    isDefault={account.isDefault}
+                    isOnlyAccount={accounts.length <= 1}
+                  />
                   <Link
                     href={`/accounts/${account.id}/settings`}
                     className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"

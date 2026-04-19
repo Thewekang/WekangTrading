@@ -17,7 +17,8 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    const symbols = await getUniqueSymbols(session.user.id);
+    const accountId = _req.nextUrl.searchParams.get('accountId') || undefined;
+    const symbols = await getUniqueSymbols(session.user.id, accountId);
     return NextResponse.json({ success: true, data: symbols }, { status: 200 });
   } catch (error) {
     console.error('[GET /api/stats/symbols]', error);

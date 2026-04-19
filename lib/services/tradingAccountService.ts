@@ -5,8 +5,20 @@
  */
 
 import { db } from '../db';
-import { tradingAccounts, accountRules } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import {
+  tradingAccounts,
+  accountRules,
+  individualTrades,
+  dailySummaries,
+  userTargets,
+  userBadges,
+  userRankings,
+  disciplineTrackerRows,
+  streaks,
+  withdrawalEvents,
+  userStats,
+} from '../db/schema';
+import { eq, and, count, isNull } from 'drizzle-orm';
 
 // ============================================
 // TYPES
@@ -191,4 +203,60 @@ export async function upsertAccountRules(
     .returning();
 
   return created;
+}
+
+// ============================================
+// RESET & DELETE
+// ============================================
+
+/**
+ * Resets all trading data for an account.
+ * Deletes trades, summaries, targets, badges, rankings, discipline rows,
+ * streaks, withdrawal events, and user stats scoped to this account.
+ * The account record and its rules are preserved.
+ */
+export async function resetAccount(accountId: string, userId: string) {
+  const account = await getAccount(accountId, userId);
+  if (!account) throw new Error('Account not found');
+
+  // Count trades before deletion for the return summary
+  const [{ tradesCount }] = await db
+    .select({ tradesCount: count() })
+    .from(individualTrades)
+    .where(eq(individualTrades.tradingAccountId, accountId));
+
+  await db.delete(individualTrades).where(eq(individualTrades.tradingAccountId, accountId));
+  await db.delete(dailySummaries).where(eq(dailySummaries.tradingAccountId, accountId));
+  // Also clean up orphaned null-accountId data for this user (legacy records from before account-scoping)
+  await db.delete(individualTrades).where(and(eq(individualTrades.userId, userId), isNull(individualTrades.tradingAccountId)));
+  await db.delete(dailySummaries).where(and(eq(dailySummaries.userId, userId), isNull(dailySummaries.tradingAccountId)));
+  await db.delete(userTargets).where(eq(userTargets.tradingAccountId, accountId));
+  await db.delete(userBadges).where(eq(userBadges.tradingAccountId, accountId));
+  await db.delete(userRankings).where(eq(userRankings.tradingAccountId, accountId));
+  await db.delete(disciplineTrackerRows).where(eq(disciplineTrackerRows.tradingAccountId, accountId));
+  await db.delete(streaks).where(eq(streaks.tradingAccountId, accountId));
+  await db.delete(withdrawalEvents).where(eq(withdrawalEvents.tradingAccountId, accountId));
+  await db.delete(userStats).where(eq(userStats.tradingAccountId, accountId));
+
+  return { deletedTrades: tradesCount };
+}
+
+/**
+ * Hard-deletes a trading account and all associated data.
+ * Cannot delete the default account or the user's only account.
+ * After deleting, promotes the first remaining account to default if needed.
+ */
+export async function hardDeleteAccount(accountId: string, userId: string) {
+  const account = await getAccount(accountId, userId);
+  if (!account) throw new Error('Account not found');
+
+  const allAccounts = await getUserAccounts(userId);
+  if (allAccounts.length <= 1) throw new Error('Cannot delete your only account');
+  if (account.isDefault) throw new Error('Cannot delete the default account. Set another account as default first.');
+
+  // Clear all account-scoped data first
+  await resetAccount(accountId, userId);
+
+  // Delete the account (cascades to account_rules and withdrawal_events)
+  await db.delete(tradingAccounts).where(eq(tradingAccounts.id, accountId));
 }

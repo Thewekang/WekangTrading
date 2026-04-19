@@ -206,38 +206,59 @@ Dashboard `DrawdownStatusCard` shows: `62.5% / 30% target — FAIL`
 - [x] 3. `lib/db/schema/drawdownTemplates.ts` — drawdown_templates table
 - [x] 4. Add `tradingAccountId` FK to all 9 affected schema files
 - [x] 5. Export new schemas from `lib/db/schema/index.ts`
-- [x] 6. Write migration SQL (`drizzle/migrations/0012_multi_trading_accounts.sql`)
-- [ ] 7. Data migration script: create "Main Account" per user + assign all existing rows
+- [x] 6. Write migration SQL (`drizzle/migrations/0011_watery_night_thrasher.sql`)
+- [x] 7. Data migration script: backfill `trading_account_id` on all existing rows → `backfill-trading-account-id.sql`
 
 ### Phase 2: Services Layer
-- [ ] 8. `lib/services/tradingAccountService.ts`
+- [x] 8. `lib/services/tradingAccountService.ts` — CRUD + resetAccount (cleans null-accountId orphans)
 - [ ] 9. `lib/services/accountRulesService.ts`
 - [ ] 10. `lib/services/adminSettingsService.ts`
 - [ ] 11. `lib/services/drawdownTemplateService.ts`
-- [ ] 12. Update existing services to accept `tradingAccountId`
+- [x] 12. Update existing services to accept `tradingAccountId`:
+  - `individualTradeService.ts` — getTrades, getUniqueSymbols, createTrade, createTradesBulk, updateTrade, deleteTrade
+  - `dailySummaryService.ts` — updateDailySummary
+  - `statsService.ts` — getPersonalStats, getSessionStats, getDailyTrends, getHourlyStats, getSymbolStats
+  - `disciplineTrackerService.ts` — getUserRows, dateExists
 
 ### Phase 3: Validation
 - [ ] 13. Add Zod schemas to `lib/validations.ts`
 
 ### Phase 4: API Routes
-- [ ] 14. `app/api/trading-accounts/` CRUD routes
+- [x] 14. `app/api/trading-accounts/` CRUD routes
 - [ ] 15. `app/api/trading-accounts/[id]/rules`, `/overview`, `/withdrawal`
 - [ ] 16. `app/api/admin/drawdown-templates/` routes
 - [ ] 17. `app/api/admin/settings/` route
-- [ ] 18. Update existing routes to read `tradingAccountId`
+- [x] 18. Update existing routes to read `tradingAccountId`:
+  - `app/api/trades/individual/route.ts` — GET + POST
+  - `app/api/trades/import/route.ts`
+  - `app/api/admin/trades/[id]/route.ts` — DELETE
+  - `app/api/stats/personal/route.ts`
+  - `app/api/stats/by-session/route.ts`
+  - `app/api/stats/by-hour/route.ts`
+  - `app/api/stats/symbols/route.ts`
+  - `app/api/discipline-tracker/rows/route.ts` — GET + POST
 
 ### Phase 5: Active Account Context
-- [ ] 19. `contexts/ActiveAccountContext.tsx`
-- [ ] 20. `components/navigation/AccountSwitcher.tsx`
-- [ ] 21. Update `middleware.ts`
+- [x] 19. `contexts/ActiveAccountContext.tsx`
+- [x] 20. `components/navigation/AccountSwitcher.tsx` / `AccountContextStrip.tsx`
+- [x] 21. Update `middleware.ts`
 
 ### Phase 6: Pages & Components
-- [ ] 22. `app/(user)/accounts/page.tsx` — accounts grid
+- [x] 22. `app/(user)/accounts/page.tsx` — accounts grid
 - [ ] 23. `app/(user)/accounts/new/page.tsx`
 - [ ] 24. `app/(user)/accounts/[id]/settings/page.tsx`
 - [ ] 25. `components/dashboard/DrawdownStatusCard.tsx`
 - [ ] 26. `components/dashboard/CycleProfitTargetCard.tsx`
 - [ ] 27. Update dashboard page
+- [x] Client components updated to pass `accountId` and re-fetch on account switch:
+  - `components/forms/RealTimeTradeEntryForm.tsx`
+  - `components/TradesList.tsx`
+  - `components/charts/SessionComparisonChartWrapper.tsx`
+  - `components/charts/HourlyHeatmapWrapper.tsx`
+  - `components/charts/HourlyHeatmap.tsx`
+  - `app/(user)/discipline-tracker/page.tsx`
+  - `app/(user)/trades/page.tsx` (server-side cookie read)
+  - `app/(user)/trades/import/page.tsx`
 
 ### Phase 7: Admin UI
 - [ ] 28. `app/(admin)/settings/page.tsx`
@@ -246,19 +267,82 @@ Dashboard `DrawdownStatusCard` shows: `62.5% / 30% target — FAIL`
 
 ---
 
+## Production Deployment: DB Migration Checklist
+
+> ⚠️ **CRITICAL — Do this every time you deploy to production after schema changes.**
+
+### Step 1 — Apply Drizzle schema migration (if not yet applied)
+Migration `0011_watery_night_thrasher.sql` adds `trading_account_id` column to all affected tables.
+Apply via WSL + Turso CLI or the LibSQL HTTP API scripts in the project root.
+
+### Step 2 — Backfill `trading_account_id` on existing rows
+All rows inserted before multi-account support was added have `trading_account_id = NULL`.
+They must be assigned to each user's default account before the app goes live.
+
+**Files:**
+- `backfill-trading-account-id.sql` — raw SQL for reference / manual application
+- `apply-backfill-trading-account-id.ps1` — automated script using LibSQL HTTP API
+
+**Run the script:**
+```powershell
+$env:TURSO_PROD_TOKEN = "your-prod-auth-token-here"
+.\apply-backfill-trading-account-id.ps1 -Target prod
+```
+
+The script:
+1. Asks for confirmation before touching production
+2. Runs 9 `UPDATE` statements — one per affected table
+3. Prints a verification table showing null counts (all should be 0)
+
+**Logic per table:**
+```sql
+UPDATE <table>
+SET trading_account_id = COALESCE(
+  -- Prefer the user's marked default account
+  (SELECT id FROM trading_accounts WHERE user_id = <table>.user_id AND is_default = 1 LIMIT 1),
+  -- Fall back to earliest created account
+  (SELECT id FROM trading_accounts WHERE user_id = <table>.user_id ORDER BY created_at ASC LIMIT 1)
+)
+WHERE trading_account_id IS NULL;
+```
+
+**Tables covered:** `individual_trades`, `daily_summaries`, `discipline_tracker_rows`,
+`discipline_tracker_settings`, `user_targets`, `streaks`, `user_stats`, `user_rankings`, `user_badges`
+
+> **Note:** Rows belonging to users with NO trading accounts will remain NULL after this migration.
+> This should not happen in production (every registered user gets a default account on registration),
+> but if it does, those rows are effectively orphaned and safe to ignore.
+
+### Step 3 — Verify
+After the script completes, confirm all counts are 0:
+```powershell
+# Quick spot-check via WSL
+wsl
+turso db shell wekangtrading-prod 'SELECT COUNT(*) FROM individual_trades WHERE trading_account_id IS NULL;'
+```
+
+### Step 4 — Deploy application code
+Push the `develop` branch to Vercel (or merge to `main` for prod deployment).
+The app will now enforce `tradingAccountId` on every new trade insert.
+
+---
+
 ## Verification Checklist
 
-- [ ] First account created → `isDefault = true`; second account → `isDefault = false`
-- [ ] Account switcher updates cookie → all page data reloads for new account
-- [ ] Existing data (post-migration) → visible under "Main Account"
-- [ ] Trade insert triggers `updateDailySummary` with correct `tradingAccountId`
+- [x] First account created → `isDefault = true`; second account → `isDefault = false`
+- [x] Account switcher updates cookie → all page data reloads for new account
+- [x] Existing data (post-migration) → visible only under the assigned account
+- [x] Trade insert triggers `updateDailySummary` with correct `tradingAccountId`
+- [x] Reset account also clears null-accountId orphaned rows (legacy cleanup)
+- [x] All API stats endpoints scoped to active `accountId`
+- [x] All client components re-fetch on account switch
 - [ ] Withdrawal recorded → `currentCyclePnl` resets; `cumulativePnl` unaffected
 - [ ] Consistency: trades +500, +200, +100 → bestDay=500, total=800 → 62.5% FAIL at 30% target
 - [ ] Health: DD 80% used → WARNING; DD 101% → BREACHED
 - [ ] Rankings: per-account; admin leaderboard shows "Username : Account Name"
 - [ ] `/strategies` and `/calendar` load without account context
-- [ ] Migration: zero data loss; all rows assigned to "Main Account"
+- [x] Migration: zero data loss; all rows assigned via backfill script
 
 ---
 
-**Last Updated**: April 19, 2026
+**Last Updated**: April 20, 2026

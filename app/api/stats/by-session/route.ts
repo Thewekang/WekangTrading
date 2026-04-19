@@ -46,9 +46,10 @@ export async function GET(req: NextRequest) {
     }
 
     const { period } = validation.data;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Get session stats
-    const stats = await getSessionStats(session.user.id, period);
+    const stats = await getSessionStats(session.user.id, period, accountId);
 
     return NextResponse.json({
       success: true,

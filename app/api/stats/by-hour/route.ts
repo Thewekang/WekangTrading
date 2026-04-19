@@ -62,9 +62,10 @@ export async function GET(req: NextRequest) {
     }
 
     const { period, timezone } = validation.data;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Get hourly stats with timezone conversion
-    const stats = await getHourlyStats(session.user.id, period, timezone);
+    const stats = await getHourlyStats(session.user.id, period, timezone, accountId);
 
     return NextResponse.json({
       success: true,

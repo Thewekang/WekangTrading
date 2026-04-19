@@ -6,7 +6,7 @@
 
 import { db } from '../db';
 import { individualTrades, dailySummaries } from '../db/schema';
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql, isNull } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
 
 interface DailySummaryData {
@@ -30,8 +30,9 @@ interface DailySummaryData {
  * 
  * @param userId - User ID
  * @param tradeDate - Date to calculate summary for (YYYY-MM-DD format)
+ * @param accountId - Optional trading account ID to scope the summary
  */
-export async function updateDailySummary(userId: string, tradeDate: Date): Promise<void> {
+export async function updateDailySummary(userId: string, tradeDate: Date, accountId?: string): Promise<void> {
   // Normalize date to start of day (00:00:00)
   const startOfDay = new Date(tradeDate);
   startOfDay.setUTCHours(0, 0, 0, 0);
@@ -39,7 +40,16 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
   const endOfDay = new Date(tradeDate);
   endOfDay.setUTCHours(23, 59, 59, 999);
 
-  // Fetch all trades for this user and date
+  // Fetch trades for this user and date, filtered by account if provided
+  const tradeConditions = [
+    eq(individualTrades.userId, userId),
+    gte(individualTrades.tradeTimestamp, startOfDay),
+    lte(individualTrades.tradeTimestamp, endOfDay),
+  ];
+  if (accountId) {
+    tradeConditions.push(eq(individualTrades.tradingAccountId, accountId));
+  }
+
   const trades = await db
     .select({
       entryType: individualTrades.entryType,
@@ -49,11 +59,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
       marketSession: individualTrades.marketSession,
     })
     .from(individualTrades)
-    .where(and(
-      eq(individualTrades.userId, userId),
-      gte(individualTrades.tradeTimestamp, startOfDay),
-      lte(individualTrades.tradeTimestamp, endOfDay)
-    ));
+    .where(and(...tradeConditions));
 
   // Split into transaction entries and commission entries
   const transactions = trades.filter(t => t.entryType === 'TRANSACTION');
@@ -109,16 +115,16 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
 
   const bestSession = bestSessionData ? bestSessionData.session as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP' : null;
 
-  // Check if summary exists
+  // Check if summary exists for this user + date + account
+  const summaryConditions = [
+    eq(dailySummaries.userId, userId),
+    eq(dailySummaries.tradeDate, startOfDay),
+    accountId ? eq(dailySummaries.tradingAccountId, accountId) : isNull(dailySummaries.tradingAccountId),
+  ];
   const [existingSummary] = await db
-    .select({
-      id: dailySummaries.id,
-    })
+    .select({ id: dailySummaries.id })
     .from(dailySummaries)
-    .where(and(
-      eq(dailySummaries.userId, userId),
-      eq(dailySummaries.tradeDate, startOfDay)
-    ))
+    .where(and(...summaryConditions))
     .limit(1);
 
   const summaryData = {
@@ -146,6 +152,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
       .update(dailySummaries)
       .set({
         ...summaryData,
+        tradingAccountId: accountId ?? null,
         updatedAt: new Date(),
       })
       .where(eq(dailySummaries.id, existingSummary.id));
@@ -155,6 +162,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
       .insert(dailySummaries)
       .values({
         userId,
+        tradingAccountId: accountId ?? null,
         tradeDate: startOfDay,
         ...summaryData,
       });
@@ -216,7 +224,7 @@ export async function getAggregatedStats(userId: string, startDate: Date, endDat
  * @param userId - User ID
  * @param date - The date to update summary for
  */
-export async function updateDailySummaryForDate(userId: string, date: Date): Promise<void> {
-  return updateDailySummary(userId, date);
+export async function updateDailySummaryForDate(userId: string, date: Date, accountId?: string): Promise<void> {
+  return updateDailySummary(userId, date, accountId);
 }
 

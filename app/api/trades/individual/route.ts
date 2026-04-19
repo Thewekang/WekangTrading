@@ -63,6 +63,9 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('entryType')) {
       filters.entryType = searchParams.get('entryType') as 'TRANSACTION' | 'COMMISSION';
     }
+    if (searchParams.get('accountId')) {
+      filters.tradingAccountId = searchParams.get('accountId')!;
+    }
 
     // Get trades
     const result = await getTrades(filters);
@@ -98,6 +101,8 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
     const validatedData = individualTradeApiSchema.parse(body);
+    // accountId is not part of the Zod schema — read separately and validate ownership is done server-side by userId
+    const accountId: string | undefined = typeof body.accountId === 'string' ? body.accountId : undefined;
 
     // For COMMISSION entries: negate the amount (user enters positive, stored as negative cost)
     const profitLossUsd = validatedData.entryType === 'COMMISSION'
@@ -107,6 +112,7 @@ export async function POST(request: NextRequest) {
     // Create trade
     const trade = await createTrade({
       userId: session.user.id,
+      tradingAccountId: accountId ?? null,
       entryType: validatedData.entryType,
       tradeTimestamp: new Date(validatedData.tradeTimestamp),
       result: validatedData.entryType === 'TRANSACTION' ? validatedData.result : null,

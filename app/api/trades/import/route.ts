@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { trades } = body as { trades: ImportTradeInput[] };
+    const { trades, accountId } = body as { trades: ImportTradeInput[]; accountId?: string };
 
     if (!trades || !Array.isArray(trades)) {
       return NextResponse.json(
@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
 
       return {
         userId: session.user.id,
+        tradingAccountId: accountId ?? null,
         entryType: trade.entryType,
         tradeTimestamp,
         marketSession: calculateMarketSession(tradeTimestamp),
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
     ];
 
     await Promise.all(
-      uniqueDates.map(dateStr => updateDailySummary(session.user.id, new Date(dateStr)))
+      uniqueDates.map(dateStr => updateDailySummary(session.user.id, new Date(dateStr), accountId ?? undefined))
     );
 
     // Recalculate user stats from all trades (for badge evaluation)

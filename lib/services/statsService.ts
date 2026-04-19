@@ -197,7 +197,8 @@ export async function getPersonalStats(
  */
 export async function getSessionStats(
   userId: string,
-  timeframe: 'week' | 'month' | 'year' | 'all' = 'month'
+  timeframe: 'week' | 'month' | 'year' | 'all' = 'month',
+  accountId?: string
 ): Promise<SessionStats[]> {
   try {
     // Calculate date range
@@ -221,6 +222,9 @@ export async function getSessionStats(
 
     // Query TRANSACTION trades only — exclude COMMISSION entries from session stats
     const conditions = [eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION)];
+    if (accountId) {
+      conditions.push(eq(individualTrades.tradingAccountId, accountId));
+    }
     if (startDate) {
       conditions.push(gte(individualTrades.tradeTimestamp, startDate));
     }
@@ -281,7 +285,8 @@ export async function getSessionStats(
 export async function getDailyTrends(
   userId: string,
   timeframe: 'week' | 'month' | 'year' = 'month',
-  limit: number = 30
+  limit: number = 30,
+  accountId?: string
 ): Promise<DailyTrend[]> {
   // Calculate date range
   const now = new Date();
@@ -300,6 +305,11 @@ export async function getDailyTrends(
   }
 
   // Query daily_summaries
+  const conditions: any[] = [eq(dailySummaries.userId, userId), gte(dailySummaries.tradeDate, startDate)];
+  if (accountId) {
+    conditions.push(eq(dailySummaries.tradingAccountId, accountId));
+  }
+
   const summaries = await db
     .select({
       tradeDate: dailySummaries.tradeDate,
@@ -307,12 +317,7 @@ export async function getDailyTrends(
       totalWins: dailySummaries.totalWins,
     })
     .from(dailySummaries)
-    .where(
-      and(
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDate)
-      )
-    )
+    .where(and(...conditions))
     .orderBy(dailySummaries.tradeDate)
     .limit(limit);
 
@@ -339,7 +344,8 @@ export async function getDailyTrends(
 export async function getHourlyStats(
   userId: string,
   timeframe: 'week' | 'month' | 'year' | 'all' = 'month',
-  timezoneOffset: number = 0
+  timezoneOffset: number = 0,
+  accountId?: string
 ): Promise<HourlyStats[]> {
   try {
     // Calculate date range
@@ -363,6 +369,9 @@ export async function getHourlyStats(
 
     // Query TRANSACTION trades only — exclude COMMISSION entries from hourly stats
     const conditions = [eq(individualTrades.userId, userId), eq(individualTrades.entryType, TRANSACTION)];
+    if (accountId) {
+      conditions.push(eq(individualTrades.tradingAccountId, accountId));
+    }
     if (startDate) {
       conditions.push(gte(individualTrades.tradeTimestamp, startDate));
     }

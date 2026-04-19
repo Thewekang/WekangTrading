@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getAccount, updateAccount, deactivateAccount, setDefaultAccount } from '@/lib/services/tradingAccountService';
+import { getAccount, updateAccount, hardDeleteAccount, setDefaultAccount } from '@/lib/services/tradingAccountService';
 import { updateTradingAccountSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
 
@@ -74,10 +74,13 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   try {
-    await deactivateAccount(id, session.user.id);
-    return NextResponse.json({ success: true, message: 'Account deactivated' });
+    await hardDeleteAccount(id, session.user.id);
+    return NextResponse.json({ success: true, message: 'Account deleted' });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Cannot deactivate the default account') {
+    if (error instanceof Error && (
+      error.message === 'Cannot delete your only account' ||
+      error.message.startsWith('Cannot delete the default account')
+    )) {
       return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: error.message } }, { status: 403 });
     }
     if (error instanceof Error && error.message === 'Account not found') {

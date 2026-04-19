@@ -14,6 +14,7 @@ import { VALIDATION, PAGINATION } from '../constants';
 
 interface CreateTradeInput {
   userId: string;
+  tradingAccountId?: string | null;
   entryType: 'TRANSACTION' | 'COMMISSION';
   tradeTimestamp: Date;
   // TRANSACTION-only fields (required for TRANSACTION, must be omitted/null for COMMISSION)
@@ -39,6 +40,7 @@ interface UpdateTradeInput {
 
 interface GetTradesFilters {
   userId: string;
+  tradingAccountId?: string;
   startDate?: Date;
   endDate?: Date;
   result?: 'WIN' | 'LOSS' | 'BE';
@@ -90,6 +92,7 @@ export async function createTrade(input: CreateTradeInput) {
     .insert(individualTrades)
     .values({
       userId: input.userId,
+      tradingAccountId: input.tradingAccountId ?? null,
       entryType: input.entryType,
       tradeTimestamp: input.tradeTimestamp,
       result: input.entryType === 'TRANSACTION' ? (input.result ?? null) : null,
@@ -102,8 +105,8 @@ export async function createTrade(input: CreateTradeInput) {
     })
     .returning();
 
-  // Update daily summary for this date
-  await updateDailySummary(input.userId, input.tradeTimestamp);
+  // Update daily summary for this date (scoped to account)
+  await updateDailySummary(input.userId, input.tradeTimestamp, input.tradingAccountId ?? undefined);
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
@@ -134,8 +137,11 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   const userId = trades[0].userId;
 
   // Calculate market sessions and prepare data
+  const accountId = trades[0].tradingAccountId ?? undefined;
+
   const tradesWithSessions = trades.map(trade => ({
     userId: trade.userId,
+    tradingAccountId: trade.tradingAccountId ?? null,
     entryType: trade.entryType,
     tradeTimestamp: trade.tradeTimestamp,
     result: trade.entryType === 'TRANSACTION' ? (trade.result ?? null) : null,
@@ -152,11 +158,11 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
     .insert(individualTrades)
     .values(tradesWithSessions);
 
-  // Update daily summaries for all affected dates (in parallel)
+  // Update daily summaries for all affected dates (scoped to account)
   const uniqueDates = new Set(trades.map(t => t.tradeTimestamp.toISOString().split('T')[0]));
   await Promise.all(
     Array.from(uniqueDates).map(dateStr => 
-      updateDailySummary(userId, new Date(dateStr))
+      updateDailySummary(userId, new Date(dateStr), accountId)
     )
   );
   
@@ -176,6 +182,7 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
 export async function getTrades(filters: GetTradesFilters) {
   const {
     userId,
+    tradingAccountId,
     startDate,
     endDate,
     result,
@@ -192,6 +199,9 @@ export async function getTrades(filters: GetTradesFilters) {
 
   // Build where conditions
   const conditions: any[] = [eq(individualTrades.userId, userId)];
+  if (tradingAccountId) {
+    conditions.push(eq(individualTrades.tradingAccountId, tradingAccountId));
+  }
 
   if (startDate) {
     conditions.push(gte(individualTrades.tradeTimestamp, startDate));
@@ -318,11 +328,15 @@ export async function getTrades(filters: GetTradesFilters) {
 /**
  * Get unique symbols traded by a user (for filter autocomplete)
  */
-export async function getUniqueSymbols(userId: string): Promise<string[]> {
+export async function getUniqueSymbols(userId: string, accountId?: string): Promise<string[]> {
+  const conditions: any[] = [eq(individualTrades.userId, userId), isNotNull(individualTrades.symbol)];
+  if (accountId) {
+    conditions.push(eq(individualTrades.tradingAccountId, accountId));
+  }
   const results = await db
     .selectDistinct({ symbol: individualTrades.symbol })
     .from(individualTrades)
-    .where(and(eq(individualTrades.userId, userId), isNotNull(individualTrades.symbol)));
+    .where(and(...conditions));
   return results.map(r => r.symbol!).sort();
 }
 
@@ -401,9 +415,10 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
     .returning();
 
   // Update daily summaries (old date and new date if changed)
-  await updateDailySummary(userId, existingTrade.tradeTimestamp);
+  const accountId = existingTrade.tradingAccountId ?? undefined;
+  await updateDailySummary(userId, existingTrade.tradeTimestamp, accountId);
   if (input.tradeTimestamp && input.tradeTimestamp.toDateString() !== existingTrade.tradeTimestamp.toDateString()) {
-    await updateDailySummary(userId, input.tradeTimestamp);
+    await updateDailySummary(userId, input.tradeTimestamp, accountId);
   }
   
   // Update user stats (for badge progress calculation)
@@ -438,8 +453,8 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
     .delete(individualTrades)
     .where(eq(individualTrades.id, id));
 
-  // Update daily summary for this date
-  await updateDailySummary(userId, trade.tradeTimestamp);
+  // Update daily summary for this date (scoped to account)
+  await updateDailySummary(userId, trade.tradeTimestamp, trade.tradingAccountId ?? undefined);
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
