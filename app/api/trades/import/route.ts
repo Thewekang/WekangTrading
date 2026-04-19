@@ -148,16 +148,17 @@ export async function POST(request: NextRequest) {
     // Batch insert all trades
     await db.insert(individualTrades).values(tradesToInsert);
 
-    // Recalculate daily summaries for affected dates (in parallel)
+    // Recalculate daily summaries for affected dates — sequential to avoid parallel write
+    // contention with the libsql singleton connection (parallel writes can silently fail).
     const uniqueDates = [
       ...new Set(
         tradesToInsert.map(t => t.tradeTimestamp.toISOString().split('T')[0])
       ),
     ];
 
-    await Promise.all(
-      uniqueDates.map(dateStr => updateDailySummary(session.user.id, new Date(dateStr), accountId ?? undefined))
-    );
+    for (const dateStr of uniqueDates) {
+      await updateDailySummary(session.user.id, new Date(dateStr), accountId ?? undefined);
+    }
 
     // Recalculate user stats from all trades (for badge evaluation)
     // Note: initializeUserStats is automatically called in updateUserStatsFromTrades if needed

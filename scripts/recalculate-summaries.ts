@@ -26,10 +26,6 @@ async function main() {
   // accountId is null for legacy trades without account association
   const userAccountDates = new Map<string, Map<string | null, Set<string>>>();
 
-  // Group by userId → Map of accountId → Set of date strings
-  // accountId is null for legacy trades without account association
-  const userAccountDates = new Map<string, Map<string | null, Set<string>>>();
-
   trades.forEach(trade => {
     const dateKey = trade.tradeTimestamp.toISOString().split('T')[0];
     const accountId = trade.tradingAccountId ?? null;
