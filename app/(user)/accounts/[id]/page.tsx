@@ -15,6 +15,7 @@ import {
   Target,
   Settings,
   Wallet,
+  Trophy,
 } from 'lucide-react';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -101,6 +102,13 @@ export default async function AccountLandingPage({
       icon: Settings,
       label: 'Account Settings',
       description: 'Rules & withdrawals',
+      color: 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200',
+    },
+    {
+      href: '/dashboard/achievements',
+      icon: Trophy,
+      label: 'Achievements',
+      description: 'Badges & milestones',
       color: 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200',
     },
   ];

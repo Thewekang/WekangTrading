@@ -29,7 +29,9 @@ export const dailySummaries = sqliteTable('daily_summaries', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({
-  userDateUnique: uniqueIndex('daily_summaries_user_date_unique').on(table.userId, table.tradeDate),
+  // Multi-account: unique on (user_id, trade_date, trading_account_id)
+  // Replaces old (user_id, trade_date) unique that would block multiple accounts per day
+  userAccountDateUnique: uniqueIndex('daily_summaries_user_account_date_unique').on(table.userId, table.tradeDate, table.tradingAccountId),
   userDateIdx: index('daily_summaries_user_date_idx').on(table.userId, table.tradeDate),
   tradeDateIdx: index('daily_summaries_trade_date_idx').on(table.tradeDate),
   

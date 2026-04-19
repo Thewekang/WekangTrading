@@ -85,6 +85,13 @@
       "when": 1776576888075,
       "tag": "0011_watery_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1776617963164,
+      "tag": "0012_clever_blue_blade",
+      "breakpoints": true
     }
   ]
 }
