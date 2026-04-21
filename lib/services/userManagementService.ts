@@ -55,6 +55,17 @@ export async function createUserByAdmin(data: {
       updatedAt: users.updatedAt,
     });
 
+  // Create default trading account for the new user
+  await db.insert(tradingAccounts).values({
+    userId: newUser.id,
+    name: 'Main Account',
+    accountType: 'FUTURES',
+    currency: 'USD',
+    startingBalance: 0,
+    isDefault: true,
+    active: true,
+  });
+
   return newUser;
 }
 
