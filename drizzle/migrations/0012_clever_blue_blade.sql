@@ -1,0 +1,2 @@
+DROP INDEX `daily_summaries_user_date_unique`;--> statement-breakpoint
+CREATE UNIQUE INDEX `daily_summaries_user_account_date_unique` ON `daily_summaries` (`user_id`,`trade_date`,`trading_account_id`);

@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.6
-- **Status**: ACTIVE - v1.14.6 COMMISSION/BE Stats Consistency Fixes ✅  
-- **Last Updated**: April 18, 2026
+- **Version**: 3.10
+- **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
+- **Last Updated**: April 22, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,10 +13,10 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.14.6 - COMMISSION/BE Stats Consistency Fixes ✅  
+**Project Status**: 🚀 v1.14.6 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 18, 2026 (v1.14.6 - stats consistency hotfixes)  
-**Current Phase**: Production Ready  
+**Latest Development**: April 22, 2026 (v2.0.0-alpha.3: per-account achievements + badge fixes)  
+**Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
 ```
@@ -37,11 +37,69 @@ Phase Breakdown:
 ├─ v1.12.x: Symbol Filter + Analytics [100%] ██████████ ✅
 ├─ v1.13.0: Commission + BE Result   [100%] ██████████ ✅
 └─ v1.14.x: Hotfixes (Account Reset + BE Constraint + Stats Consistency) [100%] ██████████ ✅
+└─ v2.0.0: Multi-Trading Accounts    [5%]   █░░░░░░░░░ 🔄
 ```
 
 ---
 
 ## 1.2 Recent Release Summary
+
+### v2.0.0 - IN PROGRESS (Multi-Trading Accounts)
+
+**Branch**: `feature/multi-trading-accounts`  
+**Started**: April 19, 2026  
+**Base**: v1.14.6  
+**Documentation**: [docs/15-MULTI-TRADING-ACCOUNTS.md](./15-MULTI-TRADING-ACCOUNTS.md)
+
+**Summary**: Major architectural overhaul adding multi-trading-account support. Every user dataset
+(trades, summaries, targets, badges, rankings, discipline tracker) becomes scoped to a `tradingAccountId`.
+New tables: `trading_accounts`, `account_rules`, `withdrawal_events`, `admin_settings`, `drawdown_templates`.
+Existing data migrated to "Main Account" per user.
+
+**Key New Concepts**:
+- Dual P&L: `currentCyclePnl` (resets on withdrawal) + `cumulativePnl` (all-time, never resets)
+- Account health: SAFE (green) / WARNING (yellow) / BREACHED (red) based on drawdown % used
+- Consistency rule: no single trading day > X% of total cycle profit
+- Cycle profit target: `cycleTargetProfitUsd` per account rule (distinct from `user_targets`)
+- Rankings per account; admin leaderboard shows "Username : Account Name"
+- `/strategies` and `/calendar` remain top-level (not account-scoped)
+
+**Phase Progress**:
+```
+Phase 1: DB Schema Foundation    [100%] ██████████ ✅
+Phase 2: Services Layer          [100%] ██████████ ✅
+Phase 3: Validation              [100%] ██████████ ✅
+Phase 4: API Routes              [100%] ██████████ ✅
+Phase 5: Active Account Context  [100%] ██████████ ✅
+Phase 6: Pages & Components      [85%]  █████████░ 🔄 IN PROGRESS
+Phase 7: Admin UI                [0%]   ░░░░░░░░░░
+```
+
+**Completed in Phase 6**:
+- ✅ `/dashboard` → account picker (select/add/delete accounts)
+- ✅ `/accounts/[id]` → account landing page (quick-action tiles, drawdown cards, rules hint)
+- ✅ `/accounts/[id]/dashboard` → full rich dashboard (news, ranking, stats, charts, targets)
+- ✅ Account context strip (indigo bar in layout) with Dashboard / Trades / Discipline / Performance links
+- ✅ `EnterAccountButton` component (sets cookie + navigates)
+- ✅ `AccountSwitcher` navigates to `/accounts/[id]` on switch
+- ✅ Per-account stat scoping: `getPersonalStats`, `getSymbolStats`, `getBestSopType`, `getSopPerformanceStats`
+- ✅ Nav restructure: Trades, Discipline, Performance removed from top-level nav
+- ✅ Per-account timezone (alpha.2): `getDayBoundariesInTimezone`, `account_rules.dailyResetTimezone`, timezone dropdown in Account Settings Form
+- ✅ Withdrawal tracking (alpha.2): `withdrawal_events`, `getCycleStatus` deducts withdrawals, calendar + landing page withdrawal display
+- ✅ Per-account achievements (alpha.3): `user_stats`, `user_badges`, `streaks` all `NOT NULL tradingAccountId`; `badgeService` + `streakService` fully per-account; `AchievementShowcase`, `ActiveStreaksWidget`, `NextBadgesProgress` per-account; `/dashboard/achievements` account-aware
+- ✅ Badge error fixes (alpha.3): special badge crash, negative progress bars, null badge entries
+
+**Remaining in Phase 6**:
+- ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
+
+**Next Steps**:
+1. Deploy to staging (Vercel preview) and smoke-test end-to-end
+2. Account-scope `/api/stats/by-session` and `/api/stats/by-hour` (add `accountId` query param)
+3. Admin UI: account list per user, cross-account leaderboard (Phase 7)
+4. End-to-end testing checklist (see docs/10-TESTING-GUIDE.md)
+5. Production deploy
+
+---
 
 ### v1.14.6 - April 18, 2026 (Trends Page W/L Consistency Fix)
 

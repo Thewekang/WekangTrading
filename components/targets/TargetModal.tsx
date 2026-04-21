@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui/Toast';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 interface TargetModalProps {
   onClose: () => void;
@@ -14,6 +15,7 @@ interface TargetModalProps {
 
 export default function TargetModal({ onClose }: TargetModalProps) {
   const router = useRouter();
+  const { activeAccount } = useActiveAccount();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<any>(null);
@@ -66,7 +68,8 @@ export default function TargetModal({ onClose }: TargetModalProps) {
   const loadSuggestions = async () => {
     setIsLoadingSuggestions(true);
     try {
-      const response = await fetch(`/api/targets/suggestions?targetType=${formData.targetType}`);
+      const acctParam = activeAccount?.id ? `&accountId=${activeAccount.id}` : '';
+      const response = await fetch(`/api/targets/suggestions?targetType=${formData.targetType}${acctParam}`);
       const result = await response.json();
       if (result.success) {
         setSuggestions(result.data);
@@ -102,6 +105,7 @@ export default function TargetModal({ onClose }: TargetModalProps) {
           targetSopRate: Number(formData.targetSopRate),
           targetProfitUsd: formData.targetProfitUsd ? Number(formData.targetProfitUsd) : undefined,
           notes: formData.notes || undefined,
+          ...(activeAccount?.id ? { accountId: activeAccount.id } : {}),
         }),
       });
 

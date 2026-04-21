@@ -43,7 +43,8 @@ export async function GET(
     }
 
     const { id } = await params;
-    const target = await getTargetWithProgress(session.user.id, id);
+    const accountId = req.nextUrl.searchParams.get('accountId') || undefined;
+    const target = await getTargetWithProgress(session.user.id, id, accountId);
 
     if (!target) {
       return NextResponse.json(

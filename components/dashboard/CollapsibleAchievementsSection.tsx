@@ -7,7 +7,7 @@ import { ActiveStreaksWidget } from '@/components/dashboard/ActiveStreaksWidget'
 import { NextBadgesProgress } from '@/components/dashboard/NextBadgesProgress';
 import { MotivationalMessagesFeed } from '@/components/dashboard/MotivationalMessagesFeed';
 
-export function CollapsibleAchievementsSection() {
+export function CollapsibleAchievementsSection({ accountId }: { accountId: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -33,13 +33,13 @@ export function CollapsibleAchievementsSection() {
         <div className="space-y-6">
           {/* Achievement Showcase */}
           <div>
-            <AchievementShowcase limit={4} />
+            <AchievementShowcase limit={4} accountId={accountId} />
           </div>
 
           {/* Gamification Widgets Row */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <ActiveStreaksWidget />
-            <NextBadgesProgress limit={3} />
+            <ActiveStreaksWidget accountId={accountId} />
+            <NextBadgesProgress limit={3} accountId={accountId} />
             <MotivationalMessagesFeed limit={5} />
           </div>
         </div>

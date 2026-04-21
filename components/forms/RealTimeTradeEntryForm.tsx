@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { individualTradeSchema, transactionTradeSchema, commissionTradeSchema } from '@/lib/validations';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 import { COMMON_TIMEZONES, datetimeLocalToUTC as convertToUTC } from '@/lib/utils/timezones';
 import type { Badge } from '@/lib/db/schema';
 import { z } from 'zod';
@@ -55,6 +56,7 @@ function formatDateForInput(date: Date): string {
 export function RealTimeTradeEntryForm() {
   const router = useRouter();
   const { timezone: userTimezone, toDatetimeLocal } = useTimezone();
+  const { activeAccount } = useActiveAccount();
   const [entryTimezone, setEntryTimezone] = useState(userTimezone); // Timezone for this entry
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -165,6 +167,7 @@ export function RealTimeTradeEntryForm() {
         profitLossUsd: profitLoss,
         symbol: data.symbol || undefined,
         notes: data.notes || undefined,
+        accountId: activeAccount?.id ?? null,
       };
 
       // Include transaction-only fields for TRANSACTION entries

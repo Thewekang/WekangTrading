@@ -75,17 +75,18 @@ export async function GET(req: NextRequest) {
     }
 
     const { active, targetType, includeExpired, withProgress } = validation.data;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Get targets with or without progress calculation
     let targets;
     if (withProgress && active) {
-      targets = await getActiveTargetsWithProgress(session.user.id);
+      targets = await getActiveTargetsWithProgress(session.user.id, accountId);
     } else {
       targets = await getTargets(session.user.id, {
         active,
         targetType: targetType as 'WEEKLY' | 'MONTHLY' | 'YEARLY' | undefined,
         includeExpired,
-      });
+      }, accountId);
     }
 
     return NextResponse.json({
@@ -142,6 +143,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = validation.data;
+    const accountId = (body as any).accountId || undefined;
 
     // Validate end date must be in the future (to allow measuring against ongoing prop firm targets)
     const now = new Date();
@@ -161,7 +163,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create target
-    const target = await createTarget(session.user.id, data);
+    const target = await createTarget(session.user.id, data, accountId);
 
     return NextResponse.json(
       {

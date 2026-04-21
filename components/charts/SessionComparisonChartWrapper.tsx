@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 const SessionComparisonChart = dynamic(() => import('@/components/charts/SessionComparisonChart'), {
   loading: () => <ChartSkeleton />,
@@ -23,13 +24,16 @@ interface SessionComparisonChartWrapperProps {
 export function SessionComparisonChartWrapper({ userId, bestSession }: SessionComparisonChartWrapperProps) {
   const [sessionStats, setSessionStats] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeAccount } = useActiveAccount();
 
   useEffect(() => {
     const abortController = new AbortController();
     
     const fetchSessionStats = async () => {
       try {
-        const response = await fetch(`/api/stats/by-session?userId=${userId}&period=all`, {
+        const params = new URLSearchParams({ userId, period: 'all' });
+        if (activeAccount?.id) params.set('accountId', activeAccount.id);
+        const response = await fetch(`/api/stats/by-session?${params.toString()}`, {
           signal: abortController.signal
         });
         const data = await response.json();

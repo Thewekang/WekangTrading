@@ -15,10 +15,12 @@ import { aggregateRows } from '@/lib/services/disciplineTrackerRulesEngine';
 import { DisciplineTrackerQuote } from '@/components/quotes/DisciplineTrackerQuote';
 import { useDisciplineQuote } from '@/lib/hooks/useQuoteHooks';
 import { usePagination } from '@/lib/hooks/usePagination';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 import { toast } from 'sonner';
 
 export default function DisciplineTrackerPage() {
   const { showOvertradingQuote, showPatienceQuote } = useDisciplineQuote();
+  const { activeAccount } = useActiveAccount();
   const [settings, setSettings] = useState<DisciplineTrackerSettings | null>(null);
   const [rows, setRows] = useState<DisciplineTrackerRow[]>([]);
   const [filteredRows, setFilteredRows] = useState<DisciplineTrackerRow[]>([]);
@@ -45,7 +47,7 @@ export default function DisciplineTrackerPage() {
   // Fetch settings and rows on mount
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [activeAccount?.id]);
 
   // Recalculate stats when filtered rows or settings change
   useEffect(() => {
@@ -60,7 +62,10 @@ export default function DisciplineTrackerPage() {
       setIsLoading(true);
       
       // Fetch settings
-      const settingsRes = await fetch('/api/discipline-tracker/settings');
+      const settingsUrl = activeAccount?.id
+        ? `/api/discipline-tracker/settings?accountId=${activeAccount.id}`
+        : '/api/discipline-tracker/settings';
+      const settingsRes = await fetch(settingsUrl);
       const settingsData = await settingsRes.json();
       
       if (settingsData.success) {
@@ -68,7 +73,10 @@ export default function DisciplineTrackerPage() {
       }
 
       // Fetch rows
-      const rowsRes = await fetch('/api/discipline-tracker/rows');
+      const rowsUrl = activeAccount?.id
+        ? `/api/discipline-tracker/rows?accountId=${activeAccount.id}`
+        : '/api/discipline-tracker/rows';
+      const rowsRes = await fetch(rowsUrl);
       const rowsData = await rowsRes.json();
       
       if (rowsData.success) {
@@ -88,7 +96,7 @@ export default function DisciplineTrackerPage() {
       const res = await fetch('/api/discipline-tracker/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ ...updates, ...(activeAccount?.id ? { accountId: activeAccount.id } : {}) }),
       });
 
       const data = await res.json();
@@ -116,6 +124,7 @@ export default function DisciplineTrackerPage() {
       if (filters.month) params.append('month', filters.month);
       if (filters.search) params.append('search', filters.search);
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
+      if (activeAccount?.id) params.append('accountId', activeAccount.id);
 
       const res = await fetch(`/api/discipline-tracker/rows?${params.toString()}`);
       const data = await res.json();
@@ -134,7 +143,7 @@ export default function DisciplineTrackerPage() {
       const res = await fetch('/api/discipline-tracker/rows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, accountId: activeAccount?.id ?? null }),
       });
 
       const data = await res.json();

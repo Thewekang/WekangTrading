@@ -21,9 +21,10 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const period = (searchParams.get('period') || 'month') as 'week' | 'month' | 'year' | 'all';
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Get best SOP type
-    const bestSop = await getBestSopType(session.user.id, period);
+    const bestSop = await getBestSopType(session.user.id, period, accountId);
 
     return NextResponse.json(
       { success: true, data: bestSop },

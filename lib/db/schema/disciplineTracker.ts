@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
+import { tradingAccounts } from './tradingAccounts';
 
 /**
  * Discipline Tracker Settings Table
@@ -9,6 +10,7 @@ import { users } from './users';
 export const disciplineTrackerSettings = sqliteTable('discipline_tracker_settings', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   
   // Plan configuration
   maxTradesPerDay: integer('max_trades_per_day').notNull().default(2),
@@ -35,6 +37,7 @@ export const disciplineTrackerSettings = sqliteTable('discipline_tracker_setting
 export const disciplineTrackerRows = sqliteTable('discipline_tracker_rows', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   
   // Row metadata
   tradeDate: integer('trade_date', { mode: 'timestamp' }).notNull(),

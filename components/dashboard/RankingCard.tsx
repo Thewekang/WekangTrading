@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 interface RankingData {
   rank: number | null;
@@ -20,6 +21,7 @@ interface RankingData {
 }
 
 export function RankingCard() {
+  const { activeAccount } = useActiveAccount();
   const [ranking, setRanking] = useState<RankingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,12 +29,13 @@ export function RankingCard() {
 
   useEffect(() => {
     fetchRanking();
-  }, []);
+  }, [activeAccount?.id]);
 
   async function fetchRanking() {
     try {
       setLoading(true);
-      const response = await fetch('/api/stats/ranking');
+      const acctParam = activeAccount?.id ? `?accountId=${activeAccount.id}` : '';
+      const response = await fetch(`/api/stats/ranking${acctParam}`);
       const data = await response.json();
 
       if (data.success) {
@@ -51,7 +54,8 @@ export function RankingCard() {
   async function refreshRanking() {
     try {
       setRefreshing(true);
-      const response = await fetch('/api/stats/ranking', { method: 'DELETE' });
+      const acctParam = activeAccount?.id ? `?accountId=${activeAccount.id}` : '';
+      const response = await fetch(`/api/stats/ranking${acctParam}`, { method: 'DELETE' });
       const data = await response.json();
       if (data.success) {
         setRanking(data.data);

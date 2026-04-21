@@ -36,21 +36,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const yearParam = searchParams.get('year');
     const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear();
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Get all daily summaries for the year
     const startDate = new Date(year, 0, 1); // Jan 1
     const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31
 
+    const summaryConditions: any[] = [
+      eq(dailySummaries.userId, session.user.id),
+      gte(dailySummaries.tradeDate, startDate),
+      lte(dailySummaries.tradeDate, endDate),
+    ];
+    if (accountId) summaryConditions.push(eq(dailySummaries.tradingAccountId, accountId));
+
     const summaries = await db
       .select()
       .from(dailySummaries)
-      .where(
-        and(
-          eq(dailySummaries.userId, session.user.id),
-          gte(dailySummaries.tradeDate, startDate),
-          lte(dailySummaries.tradeDate, endDate)
-        )
-      )
+      .where(and(...summaryConditions))
       .orderBy(asc(dailySummaries.tradeDate));
 
     // Group by month

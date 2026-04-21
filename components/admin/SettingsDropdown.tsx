@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, Settings, FileText, Ticket, Calendar, Quote } from 'lucide-react';
+import { ChevronDown, Settings, FileText, Ticket, Calendar, Quote, ShieldCheck } from 'lucide-react';
 
 export default function SettingsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -71,6 +71,14 @@ export default function SettingsDropdown() {
             >
               <Calendar className="h-4 w-4" />
               Calendar
+            </Link>
+            <Link
+              href="/admin/drawdown-templates"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Drawdown Templates
             </Link>
           </div>
         </div>

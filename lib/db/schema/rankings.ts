@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
+import { tradingAccounts } from './tradingAccounts';
 
 // ============================================
 // USER RANKINGS MODEL
@@ -7,6 +8,9 @@ import { users } from './users';
 export const userRankings = sqliteTable('user_rankings', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'cascade' }),
+  // displayName shown in admin leaderboard: "Username : Account Name"
+  displayName: text('display_name').notNull().default(''),
   rank: integer('rank').notNull(),
   totalUsers: integer('total_users').notNull(),
   winRate: real('win_rate').notNull(),

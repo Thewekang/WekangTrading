@@ -17,6 +17,7 @@ import { LoadingSpinner, LoadingTable } from '@/components/ui/loading';
 import { NoTradesEmptyState, NoResultsEmptyState } from '@/components/ui/empty-state';
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 import { TradesTableVirtualized } from '@/components/TradesTableVirtualized';
 import { TradeMobileView } from '@/components/trades/TradeMobileView';
 import { useIsMobile } from '@/lib/hooks/useMediaQuery';
@@ -47,6 +48,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { formatDate, timezone, datetimeLocalToUTC } = useTimezone();
+  const { activeAccount } = useActiveAccount();
   const isMobile = useIsMobile();
   
   const [trades, setTrades] = useState<Trade[]>(initialTrades);
@@ -73,11 +75,14 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
   // Available symbols for autocomplete
   const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
   useEffect(() => {
-    fetch('/api/stats/symbols')
+    const url = activeAccount?.id
+      ? `/api/stats/symbols?accountId=${activeAccount.id}`
+      : '/api/stats/symbols';
+    fetch(url)
       .then(r => r.json())
       .then(d => { if (d.success) setAvailableSymbols(d.data); })
       .catch(() => {});
-  }, []);
+  }, [activeAccount?.id]);
   
   // Filter presets state
   const [savedPresets, setSavedPresets] = useState<Array<{ name: string; filters: any }>>([]);
@@ -155,10 +160,10 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
     if (urlEntryType) setEntryTypeFilter(urlEntryType);
   }, [searchParams]);
   
-  // Fetch initial pagination data on mount
+  // Fetch trades on mount and whenever active account changes
   useEffect(() => {
     handleApplyFilters(1);
-  }, []); // Only run once on mount
+  }, [activeAccount?.id]); // Re-fetch when account switches
   
   // Save pageSize to localStorage when changed
   useEffect(() => {
@@ -227,6 +232,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       if (maxProfitLoss) params.append('maxProfitLoss', maxProfitLoss);
       if (symbolFilter) params.append('symbol', symbolFilter.trim());
       if (entryTypeFilter) params.append('entryType', entryTypeFilter);
+      if (activeAccount?.id) params.append('accountId', activeAccount.id);
       params.append('page', page.toString());
       params.append('pageSize', pageSize.toString());
 
@@ -277,6 +283,7 @@ export function TradesList({ initialTrades, userId }: TradesListProps) {
       const params = new URLSearchParams();
       params.append('page', '1');
       params.append('pageSize', pageSize.toString());
+      if (activeAccount?.id) params.append('accountId', activeAccount.id);
       
       const response = await fetch(`/api/trades/individual?${params.toString()}`);
       const data = await response.json();

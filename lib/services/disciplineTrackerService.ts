@@ -24,17 +24,21 @@ import type { DisciplineTrackerFilter } from '@/lib/validations/disciplineTracke
  * Get user's discipline tracker settings
  * Creates default settings if none exist
  */
-export async function getUserSettings(userId: string): Promise<DisciplineTrackerSettings> {
+export async function getUserSettings(userId: string, accountId?: string): Promise<DisciplineTrackerSettings> {
+  const conditions: any[] = [eq(disciplineTrackerSettings.userId, userId)];
+  if (accountId) conditions.push(eq(disciplineTrackerSettings.tradingAccountId, accountId));
+
   const settings = await db
     .select()
     .from(disciplineTrackerSettings)
-    .where(eq(disciplineTrackerSettings.userId, userId))
+    .where(and(...conditions))
     .limit(1);
 
   if (settings.length === 0) {
     // Create default settings
     const newSettings: NewDisciplineTrackerSettings = {
       userId,
+      tradingAccountId: accountId ?? null,
       maxTradesPerDay: 2,
       slValue: -80,
       beValue: 0,
@@ -57,15 +61,19 @@ export async function getUserSettings(userId: string): Promise<DisciplineTracker
  */
 export async function updateUserSettings(
   userId: string,
-  updates: Partial<DisciplineTrackerSettings>
+  updates: Partial<DisciplineTrackerSettings>,
+  accountId?: string
 ): Promise<DisciplineTrackerSettings> {
+  const conditions: any[] = [eq(disciplineTrackerSettings.userId, userId)];
+  if (accountId) conditions.push(eq(disciplineTrackerSettings.tradingAccountId, accountId));
+
   const updated = await db
     .update(disciplineTrackerSettings)
     .set({
       ...updates,
       updatedAt: new Date(),
     })
-    .where(eq(disciplineTrackerSettings.userId, userId))
+    .where(and(...conditions))
     .returning();
 
   if (updated.length === 0) {
@@ -84,10 +92,14 @@ export async function updateUserSettings(
  */
 export async function getUserRows(
   userId: string,
-  filter?: DisciplineTrackerFilter
+  filter?: DisciplineTrackerFilter,
+  accountId?: string
 ): Promise<DisciplineTrackerRow[]> {
   // Build conditions array
   const conditions = [eq(disciplineTrackerRows.userId, userId)];
+  if (accountId) {
+    conditions.push(eq(disciplineTrackerRows.tradingAccountId, accountId));
+  }
 
   // Apply month filter
   if (filter?.month) {
@@ -126,11 +138,14 @@ export async function getUserRows(
 /**
  * Get a single row by ID
  */
-export async function getRowById(userId: string, rowId: string): Promise<DisciplineTrackerRow | null> {
+export async function getRowById(userId: string, rowId: string, accountId?: string): Promise<DisciplineTrackerRow | null> {
+  const conditions: any[] = [eq(disciplineTrackerRows.id, rowId), eq(disciplineTrackerRows.userId, userId)];
+  if (accountId) conditions.push(eq(disciplineTrackerRows.tradingAccountId, accountId));
+
   const rows = await db
     .select()
     .from(disciplineTrackerRows)
-    .where(and(eq(disciplineTrackerRows.id, rowId), eq(disciplineTrackerRows.userId, userId)))
+    .where(and(...conditions))
     .limit(1);
 
   return rows.length > 0 ? rows[0] : null;
@@ -193,7 +208,7 @@ export async function deleteRow(userId: string, rowId: string): Promise<void> {
 /**
  * Check if a date already exists for a user
  */
-export async function dateExists(userId: string, tradeDate: Date, excludeId?: string): Promise<boolean> {
+export async function dateExists(userId: string, tradeDate: Date, excludeId?: string, accountId?: string): Promise<boolean> {
   // Normalize to start of day
   const startOfDay = new Date(tradeDate);
   startOfDay.setHours(0, 0, 0, 0);
@@ -207,6 +222,11 @@ export async function dateExists(userId: string, tradeDate: Date, excludeId?: st
     gte(disciplineTrackerRows.tradeDate, startOfDay),
     lte(disciplineTrackerRows.tradeDate, endOfDay)
   ];
+
+  // Scope to account if provided
+  if (accountId) {
+    conditions.push(eq(disciplineTrackerRows.tradingAccountId, accountId));
+  }
 
   // Exclude specific row if updating
   if (excludeId) {

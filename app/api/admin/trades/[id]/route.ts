@@ -43,8 +43,8 @@ export async function DELETE(
     // Delete trade
     await db.delete(individualTrades).where(eq(individualTrades.id, id));
 
-    // Update daily summary
-    await updateDailySummary(trade.userId, trade.tradeTimestamp);
+    // Update daily summary (scoped to trade's account)
+    await updateDailySummary(trade.userId, trade.tradeTimestamp, trade.tradingAccountId ?? undefined);
 
     return NextResponse.json({
       success: true,

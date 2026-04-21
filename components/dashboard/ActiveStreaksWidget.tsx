@@ -12,13 +12,13 @@ interface StreakData {
   sopStreak: { current: number; longest: number };
 }
 
-export const ActiveStreaksWidget = memo(() => {
+export const ActiveStreaksWidget = memo(({ accountId }: { accountId: string }) => {
   const [streaks, setStreaks] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStreaks = useCallback(async () => {
     try {
-      const response = await fetch('/api/streaks');
+      const response = await fetch(`/api/streaks?accountId=${accountId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -30,7 +30,7 @@ export const ActiveStreaksWidget = memo(() => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [accountId]);
 
   useEffect(() => {
     fetchStreaks();

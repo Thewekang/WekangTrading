@@ -5,7 +5,7 @@
 
 import { db } from '@/lib/db';
 import { dailySummaries } from '@/lib/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, isNotNull } from 'drizzle-orm';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, subDays, format } from 'date-fns';
 
 export interface DailyTrend {
@@ -62,8 +62,16 @@ export interface MovingAverageData {
 export async function getDailyTrends(
   userId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  accountId?: string
 ): Promise<DailyTrend[]> {
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(dailySummaries.userId, userId),
+    gte(dailySummaries.tradeDate, startDate),
+    lte(dailySummaries.tradeDate, endDate),
+  ] as any[];
+  if (accountId) conditions.push(eq(dailySummaries.tradingAccountId, accountId) as any);
+
   const summaries = await db
     .select({
       tradeDate: dailySummaries.tradeDate,
@@ -73,13 +81,7 @@ export async function getDailyTrends(
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
     })
     .from(dailySummaries)
-    .where(
-      and(
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDate),
-        lte(dailySummaries.tradeDate, endDate)
-      )
-    )
+    .where(and(...conditions))
     .orderBy(dailySummaries.tradeDate);
 
   return summaries.map(summary => {
@@ -105,7 +107,7 @@ export async function getDailyTrends(
 /**
  * Compare current week vs previous week
  */
-export async function getWeeklyComparison(userId: string): Promise<ComparisonData> {
+export async function getWeeklyComparison(userId: string, accountId?: string): Promise<ComparisonData> {
   const now = new Date();
   const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
   const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -113,8 +115,8 @@ export async function getWeeklyComparison(userId: string): Promise<ComparisonDat
   const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
   const [currentWeekData, previousWeekData] = await Promise.all([
-    getPeriodStats(userId, currentWeekStart, currentWeekEnd),
-    getPeriodStats(userId, previousWeekStart, previousWeekEnd),
+    getPeriodStats(userId, currentWeekStart, currentWeekEnd, accountId),
+    getPeriodStats(userId, previousWeekStart, previousWeekEnd, accountId),
   ]);
 
   return {
@@ -138,7 +140,7 @@ export async function getWeeklyComparison(userId: string): Promise<ComparisonDat
 /**
  * Compare current month vs previous month
  */
-export async function getMonthlyComparison(userId: string): Promise<ComparisonData> {
+export async function getMonthlyComparison(userId: string, accountId?: string): Promise<ComparisonData> {
   const now = new Date();
   const currentMonthStart = startOfMonth(now);
   const currentMonthEnd = endOfMonth(now);
@@ -146,8 +148,8 @@ export async function getMonthlyComparison(userId: string): Promise<ComparisonDa
   const previousMonthEnd = endOfMonth(subMonths(now, 1));
 
   const [currentMonthData, previousMonthData] = await Promise.all([
-    getPeriodStats(userId, currentMonthStart, currentMonthEnd),
-    getPeriodStats(userId, previousMonthStart, previousMonthEnd),
+    getPeriodStats(userId, currentMonthStart, currentMonthEnd, accountId),
+    getPeriodStats(userId, previousMonthStart, previousMonthEnd, accountId),
   ]);
 
   return {
@@ -171,7 +173,14 @@ export async function getMonthlyComparison(userId: string): Promise<ComparisonDa
 /**
  * Get aggregate stats for a period
  */
-async function getPeriodStats(userId: string, startDate: Date, endDate: Date) {
+async function getPeriodStats(userId: string, startDate: Date, endDate: Date, accountId?: string) {
+  const conditions: any[] = [
+    eq(dailySummaries.userId, userId),
+    gte(dailySummaries.tradeDate, startDate),
+    lte(dailySummaries.tradeDate, endDate),
+  ];
+  if (accountId) conditions.push(eq(dailySummaries.tradingAccountId, accountId));
+
   const summaries = await db
     .select({
       totalTrades: dailySummaries.totalTrades,
@@ -180,13 +189,7 @@ async function getPeriodStats(userId: string, startDate: Date, endDate: Date) {
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
     })
     .from(dailySummaries)
-    .where(
-      and(
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDate),
-        lte(dailySummaries.tradeDate, endDate)
-      )
-    );
+    .where(and(...conditions));
 
   const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
   const totalWins = summaries.reduce((sum, s) => sum + s.totalWins, 0);
@@ -240,7 +243,7 @@ export function calculateMovingAverages(
 /**
  * Get trend indicators for key metrics
  */
-export async function getTrendIndicators(userId: string): Promise<TrendIndicator[]> {
+export async function getTrendIndicators(userId: string, accountId?: string): Promise<TrendIndicator[]> {
   const now = new Date();
   const last7Days = subDays(now, 7);
   const last30Days = subDays(now, 30);
@@ -248,10 +251,10 @@ export async function getTrendIndicators(userId: string): Promise<TrendIndicator
   const previous30Days = subDays(now, 60);
 
   const [current7, current30, previous7, previous30] = await Promise.all([
-    getPeriodStats(userId, last7Days, now),
-    getPeriodStats(userId, last30Days, now),
-    getPeriodStats(userId, previous7Days, last7Days),
-    getPeriodStats(userId, previous30Days, last30Days),
+    getPeriodStats(userId, last7Days, now, accountId),
+    getPeriodStats(userId, last30Days, now, accountId),
+    getPeriodStats(userId, previous7Days, last7Days, accountId),
+    getPeriodStats(userId, previous30Days, last30Days, accountId),
   ]);
 
   const indicators: TrendIndicator[] = [];

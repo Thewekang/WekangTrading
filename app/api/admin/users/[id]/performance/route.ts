@@ -1,8 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { users, dailySummaries } from '@/lib/db/schema';
+import { users, dailySummaries, withdrawalEvents, tradingAccounts } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
+
+/**
+ * Fetch withdrawal events for a given user, optionally scoped to a trading account.
+ * tradingAccountId comes from the `tradingAccountId` query param passed by the admin calendar.
+ */
+async function getWithdrawals(
+  userId: string,
+  tradingAccountId?: string,
+): Promise<{ date: string; amount: number }[]> {
+  if (tradingAccountId) {
+    const rows = await db
+      .select({ date: withdrawalEvents.withdrawalDate, amount: withdrawalEvents.withdrawalAmount })
+      .from(withdrawalEvents)
+      .where(eq(withdrawalEvents.tradingAccountId, tradingAccountId));
+    return rows;
+  }
+  // All accounts for this user
+  const rows = await db
+    .select({ date: withdrawalEvents.withdrawalDate, amount: withdrawalEvents.withdrawalAmount })
+    .from(withdrawalEvents)
+    .innerJoin(tradingAccounts, eq(withdrawalEvents.tradingAccountId, tradingAccounts.id))
+    .where(eq(tradingAccounts.userId, userId));
+  return rows;
+}
 
 /**
  * GET /api/admin/users/[id]/performance?year=2025&month=1
@@ -33,6 +57,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const monthParam = searchParams.get('month');
+    const tradingAccountId = searchParams.get('tradingAccountId') || undefined;
 
     // Check if user exists
     const [user] = await db
@@ -54,6 +79,13 @@ export async function GET(
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0); // Last day of month
 
+      const monthConditions: any[] = [
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, startDate),
+        lte(dailySummaries.tradeDate, endDate),
+      ];
+      if (tradingAccountId) monthConditions.push(eq(dailySummaries.tradingAccountId, tradingAccountId));
+
       const summaries = await db
         .select({
           tradeDate: dailySummaries.tradeDate,
@@ -61,16 +93,11 @@ export async function GET(
           totalWins: dailySummaries.totalWins,
           totalLosses: dailySummaries.totalLosses,
           totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+          totalCommissionUsd: dailySummaries.totalCommissionUsd,
           totalSopFollowed: dailySummaries.totalSopFollowed,
         })
         .from(dailySummaries)
-        .where(
-          and(
-            eq(dailySummaries.userId, userId),
-            gte(dailySummaries.tradeDate, startDate),
-            lte(dailySummaries.tradeDate, endDate)
-          )
-        )
+        .where(and(...monthConditions))
         .orderBy(dailySummaries.tradeDate);
 
       // Create a map for quick lookup
@@ -83,7 +110,7 @@ export async function GET(
             totalWins: summary.totalWins,
             totalLosses: summary.totalLosses,
             totalSopFollowed: summary.totalSopFollowed,
-            profitLoss: summary.totalProfitLossUsd,
+            profitLoss: summary.totalProfitLossUsd + summary.totalCommissionUsd,
             winRate: summary.totalTrades > 0 
               ? (summary.totalWins / summary.totalTrades) * 100 
               : 0,
@@ -120,7 +147,7 @@ export async function GET(
         winRate: number;
         sopRate: number;
       } = {
-        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
+        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd + s.totalCommissionUsd, 0),
         totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
         totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
         totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
@@ -137,6 +164,14 @@ export async function GET(
         ? (monthlyTotal.totalSopFollowed / monthlyTotal.totalTrades) * 100
         : 0;
 
+      // Fetch withdrawals and include as markers for the calendar
+      const allWithdrawals = await getWithdrawals(userId, tradingAccountId);
+      const monthWithdrawals = allWithdrawals
+        .filter(w => {
+          const [y, m] = w.date.split('-').map(Number);
+          return y === year && m === month;
+        });
+
       return NextResponse.json({
         success: true,
         data: {
@@ -146,13 +181,21 @@ export async function GET(
           month,
           monthName: new Date(year, month - 1).toLocaleString('en-US', { month: 'long' }),
           dailyPerformance,
-          summary: monthlyTotal
+          summary: monthlyTotal,
+          withdrawals: monthWithdrawals,
         }
       });
     } else {
       // Yearly view - return monthly breakdown
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31);
+
+      const yearConditions: Parameters<typeof and>[0][] = [
+        eq(dailySummaries.userId, userId),
+        gte(dailySummaries.tradeDate, startDate),
+        lte(dailySummaries.tradeDate, endDate),
+      ];
+      if (tradingAccountId) yearConditions.push(eq(dailySummaries.tradingAccountId, tradingAccountId));
 
       const summaries = await db
         .select({
@@ -161,16 +204,11 @@ export async function GET(
           totalWins: dailySummaries.totalWins,
           totalLosses: dailySummaries.totalLosses,
           totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
+          totalCommissionUsd: dailySummaries.totalCommissionUsd,
           totalSopFollowed: dailySummaries.totalSopFollowed,
         })
         .from(dailySummaries)
-        .where(
-          and(
-            eq(dailySummaries.userId, userId),
-            gte(dailySummaries.tradeDate, startDate),
-            lte(dailySummaries.tradeDate, endDate)
-          )
-        );
+        .where(and(...yearConditions));
 
       // Group by month
       const monthlyMap = new Map<number, {
@@ -196,7 +234,7 @@ export async function GET(
           totalWins: existing.totalWins + summary.totalWins,
           totalLosses: existing.totalLosses + summary.totalLosses,
           totalSopFollowed: existing.totalSopFollowed + summary.totalSopFollowed,
-          profitLoss: existing.profitLoss + summary.totalProfitLossUsd
+          profitLoss: existing.profitLoss + summary.totalProfitLossUsd + summary.totalCommissionUsd
         });
       });
 
@@ -233,7 +271,7 @@ export async function GET(
         winRate: number;
         sopRate: number;
       } = {
-        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd, 0),
+        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd + s.totalCommissionUsd, 0),
         totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
         totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
         totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
@@ -250,6 +288,11 @@ export async function GET(
         ? (yearlyTotal.totalSopFollowed / yearlyTotal.totalTrades) * 100
         : 0;
 
+      // Fetch withdrawals and include as markers for the calendar
+      const allWithdrawals = await getWithdrawals(userId, tradingAccountId);
+      const yearWithdrawals = allWithdrawals
+        .filter(w => parseInt(w.date.split('-')[0]) === year);
+
       return NextResponse.json({
         success: true,
         data: {
@@ -257,7 +300,8 @@ export async function GET(
           view: 'year',
           year,
           monthlyPerformance,
-          summary: yearlyTotal
+          summary: yearlyTotal,
+          withdrawals: yearWithdrawals,
         }
       });
     }

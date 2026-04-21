@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
     };
 
+    if (body.accountId) filters.tradingAccountId = body.accountId;
+
     if (body.startDate) filters.startDate = new Date(body.startDate);
     if (body.endDate) filters.endDate = new Date(body.endDate);
     if (body.result) filters.result = body.result as 'WIN' | 'LOSS' | 'BE';

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { trades } = body as { trades: ImportTradeInput[] };
+    const { trades, accountId } = body as { trades: ImportTradeInput[]; accountId?: string };
 
     if (!trades || !Array.isArray(trades)) {
       return NextResponse.json(
@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
 
       return {
         userId: session.user.id,
+        tradingAccountId: accountId ?? null,
         entryType: trade.entryType,
         tradeTimestamp,
         marketSession: calculateMarketSession(tradeTimestamp),
@@ -147,20 +148,22 @@ export async function POST(request: NextRequest) {
     // Batch insert all trades
     await db.insert(individualTrades).values(tradesToInsert);
 
-    // Recalculate daily summaries for affected dates (in parallel)
+    // Recalculate daily summaries for affected dates — sequential to avoid parallel write
+    // contention with the libsql singleton connection (parallel writes can silently fail).
     const uniqueDates = [
       ...new Set(
         tradesToInsert.map(t => t.tradeTimestamp.toISOString().split('T')[0])
       ),
     ];
 
-    await Promise.all(
-      uniqueDates.map(dateStr => updateDailySummary(session.user.id, new Date(dateStr)))
-    );
+    for (const dateStr of uniqueDates) {
+      await updateDailySummary(session.user.id, new Date(dateStr), accountId ?? undefined);
+    }
 
     // Recalculate user stats from all trades (for badge evaluation)
-    // Note: initializeUserStats is automatically called in updateUserStatsFromTrades if needed
-    await updateUserStatsFromTrades(session.user.id);
+    if (accountId) {
+      await updateUserStatsFromTrades(session.user.id, accountId);
+    }
     
     // Return immediately for fast UX
     const response = NextResponse.json(
@@ -175,8 +178,10 @@ export async function POST(request: NextRequest) {
     
     // Check badges and revalidate cache asynchronously (non-blocking)
     Promise.all([
-      checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
-        .catch(error => console.error('Badge check error (non-fatal):', error)),
+      accountId
+        ? checkAndAwardBadges(session.user.id, 'TRADE_INSERT', accountId)
+            .catch(error => console.error('Badge check error (non-fatal):', error))
+        : Promise.resolve(),
       // Single revalidation of layout updates all nested routes
       Promise.resolve(revalidatePath('/', 'layout'))
     ]);
