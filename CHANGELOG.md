@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Operations — v2.0.0-alpha.3 Release Rollout (2026-04-22)
+
+- `develop` promoted to `main` via PR #28
+- Production DB repaired for existing users:
+  - Created missing default `Main Account` rows for legacy users
+  - Backfilled legacy `NULL trading_account_id` rows in user-scoped tables
+- Production schema migrated with `drizzle-kit push --force`
+- Production post-check passed:
+  - 0 users without accounts
+  - 0 users without default account
+  - 0 legacy `NULL trading_account_id` rows in checked tables
+  - Per-account indexes and `NOT NULL` constraints on gamification tables verified
+- Release tag created: `v2.0.0-alpha.3`
+
 ### Added — v2.0.0-alpha.3 Per-Account Achievements
 
 #### Per-Account Badges, Streaks & Stats
