@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { users, individualTrades, dailySummaries, sopTypes } from '@/lib/db/schema';
+import { users, individualTrades, dailySummaries, sopTypes, tradingAccounts } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc, count, sum } from 'drizzle-orm';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
@@ -12,6 +12,8 @@ export interface UserStats {
   userId: string;
   userName: string;
   userEmail: string;
+  accountId: string | null;
+  accountName: string | null;
   totalTrades: number;
   totalWins: number;
   totalLosses: number;
@@ -49,7 +51,9 @@ export interface AdminDashboardStats {
 export async function getUserStats(
   userId: string,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
+  tradingAccountId?: string,
+  accountName?: string
 ): Promise<UserStats> {
   const [user] = await db
     .select({
@@ -65,6 +69,9 @@ export async function getUserStats(
 
   // Build date filter conditions
   const conditions = [eq(individualTrades.userId, userId)];
+  if (tradingAccountId) {
+    conditions.push(eq(individualTrades.tradingAccountId, tradingAccountId));
+  }
   if (startDate) {
     conditions.push(gte(individualTrades.tradeTimestamp, startDate));
   }
@@ -164,6 +171,8 @@ export async function getUserStats(
     userId,
     userName: user.name || 'Unknown',
     userEmail: user.email,
+    accountId: tradingAccountId || null,
+    accountName: accountName || null,
     totalTrades,
     totalWins,
     totalLosses,
@@ -186,13 +195,21 @@ export async function getAllUsersStats(
   startDate?: Date,
   endDate?: Date
 ): Promise<UserStats[]> {
-  const usersList = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.role, 'USER')); // Only get regular users, not admins
+  // Iterate per trading account so each user+account combo is ranked independently
+  const accountsList = await db
+    .select({
+      accountId: tradingAccounts.id,
+      accountName: tradingAccounts.name,
+      userId: tradingAccounts.userId,
+    })
+    .from(tradingAccounts)
+    .innerJoin(users, eq(tradingAccounts.userId, users.id))
+    .where(eq(users.role, 'USER'));
 
   const usersStats = await Promise.all(
-    usersList.map(user => getUserStats(user.id, startDate, endDate))
+    accountsList.map(({ userId, accountId, accountName }) =>
+      getUserStats(userId, startDate, endDate, accountId, accountName)
+    )
   );
 
   // Calculate rankings based on win rate (primary), then SOP rate (secondary)
@@ -335,6 +352,8 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 export interface UserComparison {
   userId: string;
   userName: string;
+  accountId: string | null;
+  accountName: string | null;
   winRate: number;
   sopRate: number;
   profitLoss: number;
@@ -348,10 +367,12 @@ export async function getUsersComparison(
   const usersStats = await getAllUsersStats(startDate, endDate);
 
   return usersStats
-    .filter(u => u.totalTrades > 0) // Only include users with trades
+    .filter(u => u.totalTrades > 0) // Only include accounts with trades
     .map(u => ({
       userId: u.userId,
       userName: u.userName,
+      accountId: u.accountId,
+      accountName: u.accountName,
       winRate: u.winRate,
       sopRate: u.sopRate,
       profitLoss: u.netProfitLoss,

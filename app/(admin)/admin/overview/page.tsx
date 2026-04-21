@@ -93,7 +93,9 @@ export default function AdminDashboardPage() {
       icon: Award,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
-      subtitle: topPerformer ? topPerformer.userName : 'No data',
+      subtitle: topPerformer
+        ? `${topPerformer.userName}${topPerformer.accountName ? ' · ' + topPerformer.accountName : ''}`
+        : 'No data',
     },
     {
       title: 'Needs Attention',
@@ -192,7 +194,7 @@ export default function AdminDashboardPage() {
               <table className="min-w-full divide-y divide-red-200">
                 <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase">Trader / Account</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase">Win Rate</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase">SOP Rate</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-red-800 uppercase">P&L</th>
@@ -201,9 +203,12 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-red-100">
                   {needsAttention.map((user) => (
-                    <tr key={user.userId}>
+                    <tr key={`${user.userId}-${user.accountId}`}>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {user.userName}
+                        <div>{user.userName}</div>
+                        {user.accountName && (
+                          <div className="text-xs text-gray-500 font-normal">{user.accountName}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -233,9 +238,12 @@ export default function AdminDashboardPage() {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
               {needsAttention.map((user) => (
-                <div key={user.userId} className="bg-white rounded-lg border-2 border-red-300 p-3">
-                  <div className="font-semibold text-gray-900 mb-2">{user.userName}</div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                <div key={`${user.userId}-${user.accountId}`} className="bg-white rounded-lg border-2 border-red-300 p-3">
+                  <div className="font-semibold text-gray-900">{user.userName}</div>
+                  {user.accountName && (
+                    <div className="text-xs text-gray-500 mb-2">{user.accountName}</div>
+                  )}
+                    <div className="grid grid-cols-2 gap-2 text-xs mt-2">
                     <div>
                       <span className="text-gray-600">Win Rate:</span>
                       <div className="mt-1">
@@ -284,7 +292,7 @@ export default function AdminDashboardPage() {
                 {isLeaderboardOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Ranked by win rate (primary) and SOP compliance (secondary)
+                Ranked by win rate (primary) and SOP compliance (secondary) — per trading account
               </p>
             </div>
           </div>
@@ -301,7 +309,7 @@ export default function AdminDashboardPage() {
                 <thead>
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trader</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trader / Account</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trades</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SOP Rate</th>
@@ -317,7 +325,7 @@ export default function AdminDashboardPage() {
                     const isAboveAvgSop = user.sopRate > avgSopRate;
                     
                     return (
-                      <tr key={user.userId} className={`hover:bg-gray-50 ${
+                      <tr key={`${user.userId}-${user.accountId}`} className={`hover:bg-gray-50 ${
                         user.rank && user.rank <= 2 ? 'bg-green-50' : 
                         needsAttention.some(u => u.userId === user.userId) ? 'bg-red-50' : ''
                       }`}>
@@ -333,7 +341,10 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{user.userName}</div>
-                          <div className="text-sm text-gray-500">Best: {user.bestSession}</div>
+                          {user.accountName && (
+                            <div className="text-xs text-gray-500">{user.accountName}</div>
+                          )}
+                          <div className="text-xs text-gray-400">Best: {user.bestSession}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div>{user.totalTrades}</div>
@@ -401,17 +412,17 @@ export default function AdminDashboardPage() {
                               ⭐ Role Model
                             </span>
                           )}
-                          {highPotential.some(u => u.userId === user.userId) && user.rank && user.rank > 2 && (
+                          {highPotential.some(u => u.userId === user.userId && u.accountId === user.accountId) && user.rank && user.rank > 2 && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md bg-purple-100 text-purple-700 font-medium">
                               💎 High Potential
                             </span>
                           )}
-                          {needsAttention.some(u => u.userId === user.userId) && (
+                          {needsAttention.some(u => u.userId === user.userId && u.accountId === user.accountId) && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 text-red-700 font-medium">
                               ⚠️ Needs Help
                             </span>
                           )}
-                          {inconsistent.some(u => u.userId === user.userId) && (
+                          {inconsistent.some(u => u.userId === user.userId && u.accountId === user.accountId) && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 text-orange-700 font-medium">
                               📊 Inconsistent
                             </span>
