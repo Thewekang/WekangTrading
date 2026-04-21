@@ -45,8 +45,8 @@ export default function AdminDashboardPage() {
           setStats(data.data);
         }
         
-        // Fetch all users stats separately
-        const usersResponse = await fetch('/api/admin/users');
+        // Fetch per-account leaderboard stats (one row per trading account)
+        const usersResponse = await fetch('/api/admin/leaderboard');
         const usersData = await usersResponse.json();
         if (usersData.success) {
           setAllUsers(usersData.data);

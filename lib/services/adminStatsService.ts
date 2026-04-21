@@ -189,13 +189,39 @@ export async function getUserStats(
 }
 
 /**
- * Get all users with their statistics
+ * Get all users with their statistics (one entry per USER, no account breakdown).
+ * Used by /api/admin/users to back the admin users table.
  */
 export async function getAllUsersStats(
   startDate?: Date,
   endDate?: Date
 ): Promise<UserStats[]> {
-  // Iterate per trading account so each user+account combo is ranked independently
+  const usersList = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.role, 'USER'));
+
+  const usersStats = await Promise.all(
+    usersList.map(user => getUserStats(user.id, startDate, endDate))
+  );
+
+  // Calculate rankings
+  const sorted = [...usersStats].sort((a, b) => {
+    if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+    return b.sopRate - a.sopRate;
+  });
+  sorted.forEach((user, index) => { user.rank = index + 1; });
+  return sorted;
+}
+
+/**
+ * Get stats broken down per trading account (one entry per ACCOUNT).
+ * Used by /api/admin/leaderboard to back the overview leaderboard.
+ */
+export async function getAllAccountsStats(
+  startDate?: Date,
+  endDate?: Date
+): Promise<UserStats[]> {
   const accountsList = await db
     .select({
       accountId: tradingAccounts.id,
@@ -212,17 +238,11 @@ export async function getAllUsersStats(
     )
   );
 
-  // Calculate rankings based on win rate (primary), then SOP rate (secondary)
   const sorted = [...usersStats].sort((a, b) => {
     if (b.winRate !== a.winRate) return b.winRate - a.winRate;
     return b.sopRate - a.sopRate;
   });
-
-  // Assign ranks
-  sorted.forEach((user, index) => {
-    user.rank = index + 1;
-  });
-
+  sorted.forEach((user, index) => { user.rank = index + 1; });
   return sorted;
 }
 
@@ -364,7 +384,7 @@ export async function getUsersComparison(
   startDate?: Date,
   endDate?: Date
 ): Promise<UserComparison[]> {
-  const usersStats = await getAllUsersStats(startDate, endDate);
+  const usersStats = await getAllAccountsStats(startDate, endDate);
 
   return usersStats
     .filter(u => u.totalTrades > 0) // Only include accounts with trades
