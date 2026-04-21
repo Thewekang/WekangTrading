@@ -73,7 +73,7 @@ export async function updateDailySummary(userId: string, tradeDate: Date, accoun
               AND trading_account_id IS NULL`
   );
 
-  const trades = rawTrades.rows as Array<{
+  const trades = rawTrades.rows as unknown as Array<{
     entry_type: string;
     result: string | null;
     sop_followed: number | null;
