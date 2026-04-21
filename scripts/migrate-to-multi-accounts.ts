@@ -18,11 +18,8 @@ import { db } from '../lib/db';
 import {
   users,
   tradingAccounts,
-  individualTrades,
-  dailySummaries,
-  userTargets,
 } from '../lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { createClient } from '@libsql/client';
 
@@ -55,67 +52,72 @@ async function createMainAccounts() {
   console.log(`Found ${allUsers.length} users`);
 
   for (const user of allUsers) {
-    // Check if user already has accounts
-    const existing = await db
-      .select({ id: tradingAccounts.id })
+    const existingAccounts = await db
+      .select({ id: tradingAccounts.id, isDefault: tradingAccounts.isDefault })
       .from(tradingAccounts)
       .where(eq(tradingAccounts.userId, user.id))
-      .limit(1);
+      .orderBy(asc(tradingAccounts.createdAt));
 
-    if (existing.length > 0) {
-      console.log(`  ⏭️  ${user.name} already has accounts — skipping`);
-      continue;
+    let defaultAccountId = existingAccounts.find((account) => account.isDefault)?.id;
+
+    if (!defaultAccountId && existingAccounts.length > 0) {
+      defaultAccountId = existingAccounts[0].id;
+
+      await db
+        .update(tradingAccounts)
+        .set({ isDefault: false })
+        .where(eq(tradingAccounts.userId, user.id));
+
+      await db
+        .update(tradingAccounts)
+        .set({ isDefault: true })
+        .where(eq(tradingAccounts.id, defaultAccountId));
+
+      console.log(`  🔧 ${user.name}: assigned existing account as default (${defaultAccountId})`);
     }
 
-    const accountId = createId();
-    await db.insert(tradingAccounts).values({
-      id: accountId,
-      userId: user.id,
-      name: 'Main Account',
-      accountType: 'FUTURES',
-      currency: 'USD',
-      startingBalance: 0,
-      isDefault: true,
-      active: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    if (!defaultAccountId) {
+      defaultAccountId = createId();
+      await db.insert(tradingAccounts).values({
+        id: defaultAccountId,
+        userId: user.id,
+        name: 'Main Account',
+        accountType: 'FUTURES',
+        currency: 'USD',
+        startingBalance: 0,
+        isDefault: true,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-    // Assign to all existing rows for this user
-    const tables = [
-      { table: individualTrades, userCol: individualTrades.userId, accountCol: individualTrades.tradingAccountId },
-      { table: dailySummaries, userCol: dailySummaries.userId, accountCol: dailySummaries.tradingAccountId },
-      { table: userTargets, userCol: userTargets.userId, accountCol: userTargets.tradingAccountId },
-    ];
-
-    for (const { table, userCol, accountCol } of tables) {
-      await db.update(table)
-        .set({ [accountCol.name]: accountId } as Record<string, string>)
-        .where(eq(userCol, user.id));
+      console.log(`  ✅ ${user.name}: created "Main Account" (${defaultAccountId})`);
     }
 
-    // Handle additional tables dynamically
-    const additionalTables = [
+    const tablesToBackfill = [
+      'individual_trades',
+      'daily_summaries',
+      'user_targets',
       'user_badges',
-      'user_streaks',
+      'streaks',
       'user_stats',
       'user_rankings',
       'discipline_tracker_settings',
       'discipline_tracker_rows',
     ];
 
-    for (const tableName of additionalTables) {
+    for (const tableName of tablesToBackfill) {
       try {
         await rawClient.execute({
           sql: `UPDATE ${tableName} SET trading_account_id = ? WHERE user_id = ? AND trading_account_id IS NULL`,
-          args: [accountId, user.id],
+          args: [defaultAccountId, user.id],
         });
       } catch (e) {
         console.warn(`  ⚠️  Could not update ${tableName}: ${(e as Error).message}`);
       }
     }
 
-    console.log(`  ✅ ${user.name}: created "Main Account" (${accountId}) and assigned to all existing rows`);
+    console.log(`  ✅ ${user.name}: legacy rows mapped to default account (${defaultAccountId})`);
   }
 }
 
