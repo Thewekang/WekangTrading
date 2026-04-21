@@ -6,7 +6,7 @@ Trading Performance Tracking System for monitoring individual and team trading r
 > **App Name**: WekangTradingJournal  
 > **App Icon**: 🏍️💰 Fast motorcycle with money element
 
-**Stack**: Next.js 15 (App Router) + TypeScript + Turso (SQLite) + Prisma + NextAuth.js v5 + Tailwind CSS + shadcn/ui + Recharts
+**Stack**: Next.js 15 (App Router) + TypeScript + Turso (SQLite) + Drizzle ORM + NextAuth.js v5 + Tailwind CSS + shadcn/ui + Recharts
 
 **Deployment**: Vercel (serverless)
 
@@ -29,15 +29,32 @@ Trading Performance Tracking System for monitoring individual and team trading r
 
 ### Tables
 1. **users**: User accounts (role: USER/ADMIN)
-2. **individual_trades**: Each row is either a `TRANSACTION` (WIN/LOSS/BE trade) or a `COMMISSION` (broker fee). Market session auto-calculated from UTC timestamp.
-3. **daily_summaries**: Auto-calculated aggregates — TRANSACTION-only counts for totalTrades/totalWins/bestSession; separate `totalCommissionUsd`
-4. **user_targets**: Performance targets (targetWinRate, targetSopRate)
-5. **sessions**: NextAuth sessions
-6. **accounts**: NextAuth OAuth (future)
+2. **trading_accounts**: Each user has ≥1 trading accounts (prop firm or personal); holds drawdown rules, daily reset timezone, cycle P&L tracking
+3. **account_rules**: Per-account drawdown config (maxDailyLossUsd, maxTotalDrawdownUsd, cycleTargetProfitUsd, dailyResetTimezone, consistencyMaxDayPct)
+4. **individual_trades**: Each row is either a `TRANSACTION` (WIN/LOSS/BE trade) or a `COMMISSION` (broker fee). Always has `tradingAccountId`. Market session auto-calculated from UTC timestamp.
+5. **daily_summaries**: Auto-calculated aggregates — TRANSACTION-only counts for totalTrades/totalWins/bestSession; separate `totalCommissionUsd`. Unique index: `(userId, tradeDate, tradingAccountId)`.
+6. **user_targets**: Performance targets (targetWinRate, targetSopRate). Scoped to `tradingAccountId`.
+7. **withdrawal_events**: Records withdrawals per account (reduces `currentCyclePnl`, resets cycle).
+8. **drawdown_templates**: Reusable rule presets (FTMO, MyFundedFx, etc.) managed by admin.
+9. **user_stats**: Gamification stats per user **per account**. `UNIQUE (userId, tradingAccountId)`.
+10. **user_badges**: Earned badges per user **per account**. `UNIQUE (userId, tradingAccountId, badgeId)`.
+11. **streaks**: Win/log/SOP streaks per user **per account**. `UNIQUE (userId, tradingAccountId, streakType)`.
+12. **user_rankings**: Ranking per account.
+13. **discipline_tracker_rows**: Daily discipline grid rows. Scoped to `tradingAccountId`.
+14. **discipline_tracker_settings**: User settings for discipline tracker. Scoped to `tradingAccountId`.
+15. **sop_types**: Strategy/SOP categories.
+16. **admin_settings**: Global app settings (key-value store).
+17. **sessions**: NextAuth sessions
+18. **accounts**: NextAuth OAuth (future)
 
 ### Key Relationships
-- `users` (1) → (many) `individual_trades`
-- `users` (1) → (many) `daily_summaries`
+- `users` (1) → (many) `trading_accounts`
+- `trading_accounts` (1) → (1) `account_rules`
+- `trading_accounts` (1) → (many) `individual_trades`
+- `trading_accounts` (1) → (many) `daily_summaries`
+- `trading_accounts` (1) → (1) `user_stats`
+- `trading_accounts` (1) → (many) `user_badges`
+- `trading_accounts` (1) → (many) `streaks`
 - `individual_trades` (many) → (1) `daily_summaries` via `dailySummaryId` FK
 
 ### Enums
@@ -440,6 +457,15 @@ xl: 1280px  // Large screens
 ❌ **DON'T hardcode UTC hours** in multiple places  
 ✅ **DO use** `SESSION_HOURS` constant from `lib/constants.ts`
 
+❌ **DON'T fetch or insert gamification data (badges/streaks/stats) without accountId**  
+✅ **DO pass** `accountId` to ALL `badgeService` and `streakService` calls
+
+❌ **DON'T forget the active account context on client components**  
+✅ **DO use** `useActiveAccount()` from `@/contexts/ActiveAccountContext`; append `?accountId=${activeAccount.id}` to API calls
+
+❌ **DON'T update gamification tables without scoping to tradingAccountId**  
+✅ **DO ensure** all badge/streak/stat inserts and queries include `eq(table.tradingAccountId, accountId)`
+
 ---
 
 ## Testing Checklist (Before Deployment)
@@ -549,26 +575,30 @@ turso db list  # Command not found
 
 1. **SSOT is sacred**: Never duplicate, always reference
 2. **Market session**: Auto-calculate server-side from UTC hour
-3. **Daily summaries**: Auto-update triggers on every trade change
+3. **Daily summaries**: Auto-update triggers on every trade change; scoped to `(userId, tradeDate, tradingAccountId)`
 4. **Performance**: Use daily_summaries for dashboard, individual_trades for analysis
 5. **Mobile-first**: Real-time entry optimized for mobile
 6. **Validation**: Always both client and server
 7. **Security**: Role checks, no exposed errors, bcrypt passwords
 8. **Scale**: 5 users × 30 trades/day = designed for this load
+9. **Multi-account**: Every service, API route, and component must scope data by `tradingAccountId`
+10. **Active account**: Cookie `active_account_id`; client → `useActiveAccount()` from `@/contexts/ActiveAccountContext`
+11. **Gamification is per-account**: `badgeService`, `streakService`, `user_stats` all require `accountId` — badges earned on one account are invisible on another
 
 ---
 
-**Last Updated**: April 18, 2026  
-**Version**: 3.0 (v1.13.0 — BE + Commission entry types)
+**Last Updated**: April 22, 2026  
+**Version**: 4.0 (v2.0.0-alpha.3 — Multi-Trading Accounts + Per-Account Gamification)
 
-**Phase 3 Status**: ✅ COMPLETE
-- Dashboard & Analytics with TRANSACTION-only stats
-- BE (Break-Even) result type across all entry methods
-- Commission entry type (broker fee rows, excluded from trade stats)
-- Session, hourly, symbol analytics exclude COMMISSION rows
-- Yearly/monthly performance analytics exclude COMMISSION rows
-- Badge system stats exclude COMMISSION rows
-- Daily summaries: separate `totalCommissionUsd` column
-- Migration 0010 applied to staging and production
+**v2.0.0 Multi-Account Status**: 🔄 IN PROGRESS (Phase 6: 85% complete)
+- ✅ Schema: `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings`
+- ✅ Multi-account navigation: account picker → account landing → account dashboard
+- ✅ All services, API routes, and client components scoped by `tradingAccountId`
+- ✅ Per-account gamification: `user_stats`, `user_badges`, `streaks` all per-account
+- ✅ Per-account timezone: `dailyResetTimezone` on account rules
+- ✅ Withdrawal tracking: `withdrawal_events`, cycle P&L resets on withdrawal
+- ✅ Staging DB migration applied (Turso)
+- ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
+- ⏳ Admin UI account overview (Phase 7)
 
-**Next Phase**: Phase 4 - Rankings & Advanced Features
+**Next Phase**: Complete Phase 6 (session/hourly chart scoping), then Phase 7 (Admin UI)
