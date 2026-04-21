@@ -15,7 +15,7 @@
 
 **Project Status**: 🚀 v1.14.6 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 22, 2026 (v2.0.0-alpha.3: per-account achievements + badge fixes)  
+**Latest Development**: April 22, 2026 (v2.0.0-alpha.3 released to main + production DB repaired/migrated)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
@@ -45,6 +45,12 @@ Phase Breakdown:
 ## 1.2 Recent Release Summary
 
 ### v2.0.0 - IN PROGRESS (Multi-Trading Accounts)
+
+**Release Rollout (April 22, 2026)**:
+- ✅ PR #28 merged `develop` → `main`
+- ✅ Production DB repair applied for legacy users (default Main Account + `trading_account_id` backfill)
+- ✅ Production schema migration applied (`drizzle-kit push --force`)
+- ✅ Release tag published: `v2.0.0-alpha.3`
 
 **Branch**: `feature/multi-trading-accounts`  
 **Started**: April 19, 2026  
