@@ -17,7 +17,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const streaks = await getStreakSummary(session.user.id);
+    const accountId = request.nextUrl.searchParams.get('accountId');
+    if (!accountId) {
+      return NextResponse.json(
+        { success: false, error: { code: 'BAD_REQUEST', message: 'accountId is required' } },
+        { status: 400 }
+      );
+    }
+
+    const streaks = await getStreakSummary(session.user.id, accountId);
 
     return NextResponse.json({
       success: true,

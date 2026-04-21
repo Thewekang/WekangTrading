@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const days = parseInt(searchParams.get('days') || '30', 10);
     const userId = searchParams.get('userId') || session.user.id;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Admin can view any user's trends
     if (userId !== session.user.id && session.user.role !== 'ADMIN') {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date();
     const startDate = subDays(endDate, days);
 
-    const trends = await getDailyTrends(userId, startDate, endDate);
+    const trends = await getDailyTrends(userId, startDate, endDate, accountId);
 
     return NextResponse.json({
       success: true,

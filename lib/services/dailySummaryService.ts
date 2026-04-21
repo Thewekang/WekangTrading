@@ -5,9 +5,11 @@
  */
 
 import { db } from '../db';
-import { individualTrades, dailySummaries } from '../db/schema';
+import { dailySummaries } from '../db/schema';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { calculateMarketSession } from '../utils/marketSessions';
+import { getDayBoundariesInTimezone } from '../utils/dateUtils';
+import { getAccountRules } from './tradingAccountService';
 
 interface DailySummaryData {
   totalTrades: number;
@@ -30,34 +32,67 @@ interface DailySummaryData {
  * 
  * @param userId - User ID
  * @param tradeDate - Date to calculate summary for (YYYY-MM-DD format)
+ * @param accountId - Optional trading account ID to scope the summary
  */
-export async function updateDailySummary(userId: string, tradeDate: Date): Promise<void> {
-  // Normalize date to start of day (00:00:00)
-  const startOfDay = new Date(tradeDate);
-  startOfDay.setUTCHours(0, 0, 0, 0);
+export async function updateDailySummary(userId: string, tradeDate: Date, accountId?: string): Promise<void> {
+  // Determine day boundaries using the account's configured timezone.
+  // Falls back to UTC when no accountId or no dailyResetTimezone is set.
+  let timezone = 'UTC';
+  if (accountId) {
+    const rules = await getAccountRules(accountId);
+    if (rules?.dailyResetTimezone) {
+      timezone = rules.dailyResetTimezone;
+    }
+  }
 
-  const endOfDay = new Date(tradeDate);
-  endOfDay.setUTCHours(23, 59, 59, 999);
+  // Get the UTC start/end boundaries of the trading day in the account's timezone.
+  // Storage key (startOfDay) is always UTC midnight of the LOCAL calendar date,
+  // so summaries for "April 20 MYT" are keyed as 2026-04-20T00:00:00Z regardless of timezone.
+  const { start: startOfDay, end: endOfDay, localDateStr } = getDayBoundariesInTimezone(tradeDate, timezone);
+  // Normalize storage key to UTC midnight of local date (e.g. "2026-04-20" → 2026-04-20T00:00:00Z)
+  const summaryDateKey = new Date(localDateStr + 'T00:00:00Z');
 
-  // Fetch all trades for this user and date
-  const trades = await db
-    .select({
-      entryType: individualTrades.entryType,
-      result: individualTrades.result,
-      sopFollowed: individualTrades.sopFollowed,
-      profitLossUsd: individualTrades.profitLossUsd,
-      marketSession: individualTrades.marketSession,
-    })
-    .from(individualTrades)
-    .where(and(
-      eq(individualTrades.userId, userId),
-      gte(individualTrades.tradeTimestamp, startOfDay),
-      lte(individualTrades.tradeTimestamp, endOfDay)
-    ));
+  // Fetch trades for this user and date using raw SQL (Drizzle ORM SELECT is unreliable
+  // after multiple sequential calls in the same process via the libsql WebSocket connection).
+  const startSeconds = Math.floor(startOfDay.getTime() / 1000);
+  const endSeconds = Math.floor(endOfDay.getTime() / 1000);
+
+  const rawTrades = await db.run(
+    accountId
+      ? sql`SELECT entry_type, result, sop_followed, profit_loss_usd, market_session
+            FROM individual_trades
+            WHERE user_id = ${userId}
+              AND trade_timestamp >= ${startSeconds}
+              AND trade_timestamp <= ${endSeconds}
+              AND trading_account_id = ${accountId}`
+      : sql`SELECT entry_type, result, sop_followed, profit_loss_usd, market_session
+            FROM individual_trades
+            WHERE user_id = ${userId}
+              AND trade_timestamp >= ${startSeconds}
+              AND trade_timestamp <= ${endSeconds}
+              AND trading_account_id IS NULL`
+  );
+
+  const trades = rawTrades.rows as Array<{
+    entry_type: string;
+    result: string | null;
+    sop_followed: number | null;
+    profit_loss_usd: number;
+    market_session: string | null;
+  }>;
+
+  // Map raw rows to usable shape
+  const mappedTrades = trades.map(row => ({
+    entryType: row.entry_type as 'TRANSACTION' | 'COMMISSION',
+    result: row.result as 'WIN' | 'LOSS' | 'BE' | null,
+    sopFollowed: row.sop_followed === 1 ? true : row.sop_followed === 0 ? false : null,
+    profitLossUsd: row.profit_loss_usd,
+    marketSession: row.market_session as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP' | null,
+  }));
 
   // Split into transaction entries and commission entries
-  const transactions = trades.filter(t => t.entryType === 'TRANSACTION');
-  const commissions = trades.filter(t => t.entryType === 'COMMISSION');
+  const transactions = mappedTrades.filter(t => t.entryType === 'TRANSACTION');
+  const commissions = mappedTrades.filter(t => t.entryType === 'COMMISSION');
 
   // Calculate transaction aggregates (win/loss/SOP stats exclude commission entries)
   const totalTrades = transactions.length;
@@ -109,56 +144,58 @@ export async function updateDailySummary(userId: string, tradeDate: Date): Promi
 
   const bestSession = bestSessionData ? bestSessionData.session as 'ASIA' | 'EUROPE' | 'US' | 'ASIA_EUROPE_OVERLAP' | 'EUROPE_US_OVERLAP' : null;
 
-  // Check if summary exists
-  const [existingSummary] = await db
-    .select({
-      id: dailySummaries.id,
-    })
-    .from(dailySummaries)
-    .where(and(
-      eq(dailySummaries.userId, userId),
-      eq(dailySummaries.tradeDate, startOfDay)
-    ))
-    .limit(1);
+  // RELIABILITY NOTE: All DB writes use db.run() (raw SQL) exclusively.
+  // The Drizzle ORM singleton's db.insert() / db.update() and even db.select() silently
+  // fail or return stale results after multiple sequential calls in the same process
+  // via the libsql WebSocket connection. db.run() is always reliable.
+  const tradeDateSeconds = Math.floor(summaryDateKey.getTime() / 1000);
+  const rowId = crypto.randomUUID();
+  const nowSeconds = Math.floor(Date.now() / 1000);
 
-  const summaryData = {
-    totalTrades,
-    totalWins,
-    totalLosses,
-    totalSopFollowed,
-    totalSopNotFollowed,
-    totalProfitLossUsd,
-    totalCommissionUsd,
-    asiaSessionTrades,
-    asiaSessionWins,
-    europeSessionTrades,
-    europeSessionWins,
-    usSessionTrades,
-    usSessionWins,
-    overlapSessionTrades,
-    overlapSessionWins,
-    bestSession,
-  };
+  // Step 1: Ensure the row exists (no-op if already there)
+  await db.run(sql`
+    INSERT OR IGNORE INTO daily_summaries (
+      id, user_id, trading_account_id, trade_date,
+      total_trades, total_wins, total_losses,
+      total_sop_followed, total_sop_not_followed,
+      total_profit_loss_usd, total_commission_usd,
+      asia_session_trades, asia_session_wins,
+      europe_session_trades, europe_session_wins,
+      us_session_trades, us_session_wins,
+      overlap_session_trades, overlap_session_wins,
+      created_at, updated_at
+    ) VALUES (
+      ${rowId}, ${userId}, ${accountId ?? null}, ${tradeDateSeconds},
+      0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      ${nowSeconds}, ${nowSeconds}
+    )
+  `);
 
-  if (existingSummary) {
-    // Update existing summary
-    await db
-      .update(dailySummaries)
-      .set({
-        ...summaryData,
-        updatedAt: new Date(),
-      })
-      .where(eq(dailySummaries.id, existingSummary.id));
-  } else {
-    // Create new summary
-    await db
-      .insert(dailySummaries)
-      .values({
-        userId,
-        tradeDate: startOfDay,
-        ...summaryData,
-      });
-  }
+  // Step 2: Always overwrite with freshly-computed values
+  await db.run(
+    accountId
+      ? sql`UPDATE daily_summaries SET
+          total_trades = ${totalTrades}, total_wins = ${totalWins}, total_losses = ${totalLosses},
+          total_sop_followed = ${totalSopFollowed}, total_sop_not_followed = ${totalSopNotFollowed},
+          total_profit_loss_usd = ${totalProfitLossUsd}, total_commission_usd = ${totalCommissionUsd},
+          asia_session_trades = ${asiaSessionTrades}, asia_session_wins = ${asiaSessionWins},
+          europe_session_trades = ${europeSessionTrades}, europe_session_wins = ${europeSessionWins},
+          us_session_trades = ${usSessionTrades}, us_session_wins = ${usSessionWins},
+          overlap_session_trades = ${overlapSessionTrades}, overlap_session_wins = ${overlapSessionWins},
+          best_session = ${bestSession ?? null}, updated_at = ${nowSeconds}
+        WHERE user_id = ${userId} AND trade_date = ${tradeDateSeconds} AND trading_account_id = ${accountId}`
+      : sql`UPDATE daily_summaries SET
+          total_trades = ${totalTrades}, total_wins = ${totalWins}, total_losses = ${totalLosses},
+          total_sop_followed = ${totalSopFollowed}, total_sop_not_followed = ${totalSopNotFollowed},
+          total_profit_loss_usd = ${totalProfitLossUsd}, total_commission_usd = ${totalCommissionUsd},
+          asia_session_trades = ${asiaSessionTrades}, asia_session_wins = ${asiaSessionWins},
+          europe_session_trades = ${europeSessionTrades}, europe_session_wins = ${europeSessionWins},
+          us_session_trades = ${usSessionTrades}, us_session_wins = ${usSessionWins},
+          overlap_session_trades = ${overlapSessionTrades}, overlap_session_wins = ${overlapSessionWins},
+          best_session = ${bestSession ?? null}, updated_at = ${nowSeconds}
+        WHERE user_id = ${userId} AND trade_date = ${tradeDateSeconds} AND trading_account_id IS NULL`
+  );
 }
 
 /**
@@ -216,7 +253,7 @@ export async function getAggregatedStats(userId: string, startDate: Date, endDat
  * @param userId - User ID
  * @param date - The date to update summary for
  */
-export async function updateDailySummaryForDate(userId: string, date: Date): Promise<void> {
-  return updateDailySummary(userId, date);
+export async function updateDailySummaryForDate(userId: string, date: Date, accountId?: string): Promise<void> {
+  return updateDailySummary(userId, date, accountId);
 }
 

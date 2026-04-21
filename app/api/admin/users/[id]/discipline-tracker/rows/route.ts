@@ -18,9 +18,10 @@ export async function GET(
     if (adminError) return adminError;
 
     const { id: userId } = await params;
+    const accountId = request.nextUrl.searchParams.get('accountId') || undefined;
 
     // Fetch user's rows (all time, no filters)
-    const rows = await getUserRows(userId);
+    const rows = await getUserRows(userId, undefined, accountId);
 
     return NextResponse.json({
       success: true,

@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { users, individualTrades, dailySummaries, sopTypes } from '@/lib/db/schema';
+import { users, individualTrades, dailySummaries, sopTypes, tradingAccounts } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc, count, sum } from 'drizzle-orm';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
@@ -12,6 +12,8 @@ export interface UserStats {
   userId: string;
   userName: string;
   userEmail: string;
+  accountId: string | null;
+  accountName: string | null;
   totalTrades: number;
   totalWins: number;
   totalLosses: number;
@@ -49,7 +51,9 @@ export interface AdminDashboardStats {
 export async function getUserStats(
   userId: string,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
+  tradingAccountId?: string,
+  accountName?: string
 ): Promise<UserStats> {
   const [user] = await db
     .select({
@@ -65,6 +69,9 @@ export async function getUserStats(
 
   // Build date filter conditions
   const conditions = [eq(individualTrades.userId, userId)];
+  if (tradingAccountId) {
+    conditions.push(eq(individualTrades.tradingAccountId, tradingAccountId));
+  }
   if (startDate) {
     conditions.push(gte(individualTrades.tradeTimestamp, startDate));
   }
@@ -164,6 +171,8 @@ export async function getUserStats(
     userId,
     userName: user.name || 'Unknown',
     userEmail: user.email,
+    accountId: tradingAccountId || null,
+    accountName: accountName || null,
     totalTrades,
     totalWins,
     totalLosses,
@@ -180,7 +189,8 @@ export async function getUserStats(
 }
 
 /**
- * Get all users with their statistics
+ * Get all users with their statistics (one entry per USER, no account breakdown).
+ * Used by /api/admin/users to back the admin users table.
  */
 export async function getAllUsersStats(
   startDate?: Date,
@@ -189,23 +199,50 @@ export async function getAllUsersStats(
   const usersList = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.role, 'USER')); // Only get regular users, not admins
+    .where(eq(users.role, 'USER'));
 
   const usersStats = await Promise.all(
     usersList.map(user => getUserStats(user.id, startDate, endDate))
   );
 
-  // Calculate rankings based on win rate (primary), then SOP rate (secondary)
+  // Calculate rankings
   const sorted = [...usersStats].sort((a, b) => {
     if (b.winRate !== a.winRate) return b.winRate - a.winRate;
     return b.sopRate - a.sopRate;
   });
+  sorted.forEach((user, index) => { user.rank = index + 1; });
+  return sorted;
+}
 
-  // Assign ranks
-  sorted.forEach((user, index) => {
-    user.rank = index + 1;
+/**
+ * Get stats broken down per trading account (one entry per ACCOUNT).
+ * Used by /api/admin/leaderboard to back the overview leaderboard.
+ */
+export async function getAllAccountsStats(
+  startDate?: Date,
+  endDate?: Date
+): Promise<UserStats[]> {
+  const accountsList = await db
+    .select({
+      accountId: tradingAccounts.id,
+      accountName: tradingAccounts.name,
+      userId: tradingAccounts.userId,
+    })
+    .from(tradingAccounts)
+    .innerJoin(users, eq(tradingAccounts.userId, users.id))
+    .where(eq(users.role, 'USER'));
+
+  const usersStats = await Promise.all(
+    accountsList.map(({ userId, accountId, accountName }) =>
+      getUserStats(userId, startDate, endDate, accountId, accountName)
+    )
+  );
+
+  const sorted = [...usersStats].sort((a, b) => {
+    if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+    return b.sopRate - a.sopRate;
   });
-
+  sorted.forEach((user, index) => { user.rank = index + 1; });
   return sorted;
 }
 
@@ -335,6 +372,8 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 export interface UserComparison {
   userId: string;
   userName: string;
+  accountId: string | null;
+  accountName: string | null;
   winRate: number;
   sopRate: number;
   profitLoss: number;
@@ -345,13 +384,15 @@ export async function getUsersComparison(
   startDate?: Date,
   endDate?: Date
 ): Promise<UserComparison[]> {
-  const usersStats = await getAllUsersStats(startDate, endDate);
+  const usersStats = await getAllAccountsStats(startDate, endDate);
 
   return usersStats
-    .filter(u => u.totalTrades > 0) // Only include users with trades
+    .filter(u => u.totalTrades > 0) // Only include accounts with trades
     .map(u => ({
       userId: u.userId,
       userName: u.userName,
+      accountId: u.accountId,
+      accountName: u.accountName,
       winRate: u.winRate,
       sopRate: u.sopRate,
       profitLoss: u.netProfitLoss,

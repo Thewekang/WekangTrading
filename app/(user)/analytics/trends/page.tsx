@@ -11,6 +11,7 @@ import TrendIndicatorCard from '@/components/charts/TrendIndicatorCard';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import { calculateMovingAverages } from '@/lib/utils/trendCalculations';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 // Dynamic imports for chart components (lazy loading)
 const TrendLineChart = dynamic(() => import('@/components/charts/TrendLineChart'), {
@@ -32,6 +33,7 @@ import type { DailyTrend } from '@/lib/utils/trendCalculations';
 import type { ComparisonData, TrendIndicator } from '@/lib/services/trendAnalysisService';
 
 export default function TrendsPage() {
+  const { activeAccount } = useActiveAccount();
   const [trends, setTrends] = useState<DailyTrend[]>([]);
   const [weeklyComparison, setWeeklyComparison] = useState<ComparisonData | null>(null);
   const [monthlyComparison, setMonthlyComparison] = useState<ComparisonData | null>(null);
@@ -50,17 +52,18 @@ export default function TrendsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [selectedDays]);
+  }, [selectedDays, activeAccount?.id]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
+      const acctParam = activeAccount?.id ? `&accountId=${activeAccount.id}` : '';
       const [trendsRes, weeklyRes, monthlyRes, indicatorsRes] = await Promise.all([
-        fetch(`/api/stats/trends?days=${selectedDays}`),
-        fetch('/api/stats/comparisons?type=weekly'),
-        fetch('/api/stats/comparisons?type=monthly'),
-        fetch('/api/stats/indicators'),
+        fetch(`/api/stats/trends?days=${selectedDays}${acctParam}`),
+        fetch(`/api/stats/comparisons?type=weekly${acctParam}`),
+        fetch(`/api/stats/comparisons?type=monthly${acctParam}`),
+        fetch(`/api/stats/indicators${activeAccount?.id ? `?accountId=${activeAccount.id}` : ''}`),
       ]);
 
       const [trendsData, weeklyData, monthlyData, indicatorsData] = await Promise.all([

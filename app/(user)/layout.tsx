@@ -6,13 +6,17 @@ import { ToastContainer } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { TimezoneProvider } from '@/contexts/TimezoneContext';
 import { QuoteSystemProvider } from '@/contexts/QuoteSystemContext';
+import { ActiveAccountProvider } from '@/contexts/ActiveAccountContext';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { getUserAccounts } from '@/lib/services/tradingAccountService';
 import { DesktopNav, MobileNav } from '@/components/navigation/NavMenu';
 import { NotificationBell } from '@/components/navigation/NotificationBell';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { SignOutButton } from '@/components/auth/SignOutButton';
+import { AccountSwitcher } from '@/components/navigation/AccountSwitcher';
+import { AccountContextStrip } from '@/components/navigation/AccountContextStrip';
 
 export default async function UserLayout({ children }: { children: ReactNode }) {
   const session = await auth();
@@ -21,17 +25,21 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
     redirect('/login');
   }
 
-  // Get user's preferred timezone
-  const user = await db.select({ preferredTimezone: users.preferredTimezone })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .get();
-  
+  // Get user's preferred timezone and accounts
+  const [user, initialAccounts] = await Promise.all([
+    db.select({ preferredTimezone: users.preferredTimezone })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .get(),
+    getUserAccounts(session.user.id),
+  ]);
+
   const userTimezone = user?.preferredTimezone || 'Asia/Kuala_Lumpur';
 
   return (
     <TimezoneProvider userTimezone={userTimezone}>
       <QuoteSystemProvider>
+        <ActiveAccountProvider initialAccounts={initialAccounts}>
         <div className="min-h-screen bg-gray-50">
           <nav className="bg-white border-b">
             <div className="container mx-auto px-4">
@@ -45,6 +53,7 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
                   <DesktopNav />
                 </div>
                 <div className="flex items-center space-x-3">
+                  <AccountSwitcher />
                   <MobileNav />
                   {/* Notification Bell */}
                   <NotificationBell />
@@ -58,6 +67,10 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
               </div>
             </div>
           </nav>
+
+          {/* Active Account Context Strip */}
+          <AccountContextStrip />
+
           <main className="pb-16 lg:pb-0">
             <ErrorBoundary>
               {children}
@@ -66,6 +79,7 @@ export default async function UserLayout({ children }: { children: ReactNode }) 
           <BottomNav />
           <ToastContainer />
         </div>
+        </ActiveAccountProvider>
       </QuoteSystemProvider>
     </TimezoneProvider>
   );

@@ -85,6 +85,7 @@ export default function LoginPage() {
               autoComplete="username"
               {...register('email')}
               disabled={isLoading}
+              suppressHydrationWarning
             />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -100,6 +101,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               {...register('password')}
               disabled={isLoading}
+              suppressHydrationWarning
             />
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password.message}</p>
@@ -107,7 +109,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading} suppressHydrationWarning>
             {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
           <p className="text-sm text-center text-muted-foreground">

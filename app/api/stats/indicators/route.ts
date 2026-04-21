@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId') || session.user.id;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Admin can view any user's indicators
     if (userId !== session.user.id && session.user.role !== 'ADMIN') {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const indicators = await getTrendIndicators(userId);
+    const indicators = await getTrendIndicators(userId, accountId);
 
     return NextResponse.json({
       success: true,

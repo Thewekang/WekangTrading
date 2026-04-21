@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, tradingAccounts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { validateInviteCode, useInviteCode } from '@/lib/services/inviteCodeService';
 
@@ -81,6 +81,17 @@ export async function POST(request: Request) {
 
     // Mark invite code as used
     await useInviteCode(validatedData.inviteCode);
+
+    // Create default trading account for the new user
+    await db.insert(tradingAccounts).values({
+      userId: user.id,
+      name: 'Main Account',
+      accountType: 'FUTURES',
+      currency: 'USD',
+      startingBalance: 0,
+      isDefault: true,
+      active: true,
+    });
 
     return NextResponse.json(
       {

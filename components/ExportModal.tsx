@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProps) {
+  const { activeAccount } = useActiveAccount();
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv');
   const [useCurrentFilters, setUseCurrentFilters] = useState(true);
@@ -55,6 +57,7 @@ export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProp
         if (filters.sopFollowed) params.append('sopFollowed', filters.sopFollowed);
         if (filters.minProfitLoss) params.append('minProfitLoss', filters.minProfitLoss);
         if (filters.maxProfitLoss) params.append('maxProfitLoss', filters.maxProfitLoss);
+        if (activeAccount?.id) params.append('accountId', activeAccount.id);
 
         const response = await fetch(`/api/export/csv?${params.toString()}`);
         
@@ -80,7 +83,7 @@ export function ExportModal({ isOpen, onClose, currentFilters }: ExportModalProp
         const response = await fetch('/api/export/pdf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(filters),
+          body: JSON.stringify({ ...filters, ...(activeAccount?.id ? { accountId: activeAccount.id } : {}) }),
         });
 
         const data = await response.json();

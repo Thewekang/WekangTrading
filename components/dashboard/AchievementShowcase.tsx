@@ -11,16 +11,17 @@ import Link from 'next/link';
 
 interface AchievementShowcaseProps {
   limit?: number;
+  accountId: string;
 }
 
-export const AchievementShowcase = memo(({ limit = 4 }: AchievementShowcaseProps) => {
+export const AchievementShowcase = memo(({ limit = 4, accountId }: AchievementShowcaseProps) => {
   const [recentBadges, setRecentBadges] = useState<Array<{ badge: Badge; userBadge: UserBadge }>>([]);
   const [totalBadges, setTotalBadges] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchRecentBadges = useCallback(async () => {
     try {
-      const response = await fetch('/api/badges/user');
+      const response = await fetch(`/api/badges/user?accountId=${accountId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -35,7 +36,7 @@ export const AchievementShowcase = memo(({ limit = 4 }: AchievementShowcaseProps
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, accountId]);
 
   useEffect(() => {
     fetchRecentBadges();

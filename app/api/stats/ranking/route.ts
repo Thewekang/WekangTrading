@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const ranking = await getUserRanking(session.user.id);
+    const accountId = request.nextUrl.searchParams.get('accountId') || undefined;
+    const ranking = await getUserRanking(session.user.id, accountId);
 
     return NextResponse.json({ success: true, data: ranking });
   } catch (error) {
@@ -44,8 +45,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const accountId = request.nextUrl.searchParams.get('accountId') || undefined;
     await invalidateUserRanking(session.user.id);
-    const ranking = await getUserRanking(session.user.id);
+    const ranking = await getUserRanking(session.user.id, accountId);
 
     return NextResponse.json({ success: true, data: ranking });
   } catch (error) {

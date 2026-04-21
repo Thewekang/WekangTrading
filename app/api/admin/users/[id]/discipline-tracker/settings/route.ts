@@ -18,9 +18,10 @@ export async function GET(
     if (adminError) return adminError;
 
     const { id: userId } = await params;
+    const accountId = request.nextUrl.searchParams.get('accountId') || undefined;
 
     // Fetch user's settings
-    const settings = await getUserSettings(userId);
+    const settings = await getUserSettings(userId, accountId);
 
     return NextResponse.json({
       success: true,

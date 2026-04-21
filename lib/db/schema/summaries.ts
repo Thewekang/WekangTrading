@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { tradingAccounts } from './tradingAccounts';
 
 // ============================================
 // DAILY SUMMARY MODEL (Auto-calculated)
@@ -6,6 +7,7 @@ import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-or
 export const dailySummaries = sqliteTable('daily_summaries', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull(),
+  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
   tradeDate: integer('trade_date', { mode: 'timestamp' }).notNull(),
   totalTrades: integer('total_trades').notNull().default(0),
   totalWins: integer('total_wins').notNull().default(0),
@@ -27,12 +29,16 @@ export const dailySummaries = sqliteTable('daily_summaries', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({
-  userDateUnique: uniqueIndex('daily_summaries_user_date_unique').on(table.userId, table.tradeDate),
+  // Multi-account: unique on (user_id, trade_date, trading_account_id)
+  // Replaces old (user_id, trade_date) unique that would block multiple accounts per day
+  userAccountDateUnique: uniqueIndex('daily_summaries_user_account_date_unique').on(table.userId, table.tradeDate, table.tradingAccountId),
   userDateIdx: index('daily_summaries_user_date_idx').on(table.userId, table.tradeDate),
   tradeDateIdx: index('daily_summaries_trade_date_idx').on(table.tradeDate),
   
   // Phase 2: Enhanced index for date range queries
   userDateRangeIdx: index('idx_summary_user_date').on(table.userId, table.tradeDate),
+  // v2.0.0: account-scoped index
+  accountIdIdx: index('daily_summaries_account_id_idx').on(table.tradingAccountId),
 }));
 
 // Export types
