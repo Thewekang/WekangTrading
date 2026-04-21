@@ -58,14 +58,31 @@ interface ActiveAccountProviderProps {
 
 export function ActiveAccountProvider({ children, initialAccounts = [] }: ActiveAccountProviderProps) {
   const [accounts, setAccounts] = useState<TradingAccountSummary[]>(initialAccounts);
-  const [activeAccountId, setActiveAccountId] = useState<string | null>(() => {
-    // Initialize from cookie or default account
-    const fromCookie = getCookie(COOKIE_NAME);
-    if (fromCookie) return fromCookie;
-    const def = initialAccounts.find((a) => a.isDefault) ?? initialAccounts[0];
-    return def?.id ?? null;
-  });
+
+  // Initialize from initialAccounts only — NOT from cookie — so the server and
+  // client agree on the first render and hydration never mismatches.
+  // The cookie is reconciled in a useEffect after hydration (client-only).
+  const defaultAccount = initialAccounts.find((a) => a.isDefault) ?? initialAccounts[0];
+  const [activeAccountId, setActiveAccountId] = useState<string | null>(defaultAccount?.id ?? null);
+
   const [isLoading, setIsLoading] = useState(initialAccounts.length === 0);
+
+  // After hydration: read the cookie and apply it if it points to a valid account.
+  // This runs client-side only, so it never causes a server/client mismatch.
+  useEffect(() => {
+    const fromCookie = getCookie(COOKIE_NAME);
+    if (fromCookie) {
+      // Only accept the cookie value if the account still exists
+      setActiveAccountId((prev) => {
+        const valid = accounts.find((a) => a.id === fromCookie);
+        return valid ? fromCookie : prev;
+      });
+    } else if (defaultAccount?.id) {
+      // No cookie yet — persist the default so subsequent loads use it
+      setCookie(COOKIE_NAME, defaultAccount.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs once on mount only
 
   const refreshAccounts = useCallback(async () => {
     try {
