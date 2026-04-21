@@ -110,18 +110,15 @@ export async function createTrade(input: CreateTradeInput) {
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
-  await updateUserStatsFromTrades(input.userId);
+  if (input.tradingAccountId) {
+    await updateUserStatsFromTrades(input.userId, input.tradingAccountId);
+  }
 
   // Invalidate ranking cache so next fetch recalculates
   await invalidateUserRanking(input.userId);
 
   return trade;
 }
-
-/**
- * Bulk create trades (for end-of-day entry)
- * More efficient than creating one by one
- */
 export async function createTradesBulk(trades: CreateTradeInput[]) {
   // Validate bulk size
   if (trades.length > PAGINATION.MAX_BULK_INSERT) {
@@ -168,17 +165,15 @@ export async function createTradesBulk(trades: CreateTradeInput[]) {
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
-  await updateUserStatsFromTrades(userId);
+  if (accountId) {
+    await updateUserStatsFromTrades(userId, accountId);
+  }
 
   // Invalidate ranking cache so next fetch recalculates
   await invalidateUserRanking(userId);
 
   return { count: trades.length };
 }
-
-/**
- * Get trades with filters and pagination
- */
 export async function getTrades(filters: GetTradesFilters) {
   const {
     userId,
@@ -423,18 +418,15 @@ export async function updateTrade(id: string, userId: string, input: UpdateTrade
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
-  await updateUserStatsFromTrades(userId);
+  if (accountId) {
+    await updateUserStatsFromTrades(userId, accountId);
+  }
 
   // Invalidate ranking cache so next fetch recalculates
   await invalidateUserRanking(userId);
 
   return updatedTrade;
 }
-
-/**
- * Delete a trade
- * Users can only delete trades created within 24 hours
- */
 export async function deleteTrade(id: string, userId: string, isAdmin: boolean = false) {
   // Check trade exists and belongs to user
   const trade = await getTradeById(id, userId);
@@ -458,7 +450,10 @@ export async function deleteTrade(id: string, userId: string, isAdmin: boolean =
   
   // Update user stats (for badge progress calculation)
   // This recalculates ALL streaks (win, log, SOP) from all trades
-  await updateUserStatsFromTrades(userId);
+  const deleteAccountId = trade.tradingAccountId ?? undefined;
+  if (deleteAccountId) {
+    await updateUserStatsFromTrades(userId, deleteAccountId);
+  }
 
   // Invalidate ranking cache so next fetch recalculates
   await invalidateUserRanking(userId);

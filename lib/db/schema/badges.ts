@@ -29,13 +29,13 @@ export const badges = sqliteTable('badges', {
 export const userBadges = sqliteTable('user_badges', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
+  tradingAccountId: text('trading_account_id').notNull().references(() => tradingAccounts.id, { onDelete: 'cascade' }),
   badgeId: text('badge_id').notNull().references(() => badges.id, { onDelete: 'cascade' }),
   earnedAt: text('earned_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   progress: integer('progress').default(0), // Current progress to next tier (if applicable)
   notified: integer('notified', { mode: 'boolean' }).notNull().default(false), // Has user been notified?
 }, (table) => ({
-  userBadgeIdx: uniqueIndex('user_badge_idx').on(table.userId, table.badgeId),
+  userBadgeIdx: uniqueIndex('user_badge_idx').on(table.userId, table.tradingAccountId, table.badgeId),
   userIdIdx: index('user_badges_user_id_idx').on(table.userId),
   earnedAtIdx: index('user_badges_earned_at_idx').on(table.earnedAt),
   

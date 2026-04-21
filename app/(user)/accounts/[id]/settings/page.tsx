@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
 import { getAccount, getAccountRules } from '@/lib/services/tradingAccountService';
 import { getWithdrawalHistory } from '@/lib/services/accountRulesService';
+import { getTemplatesForAccountType } from '@/lib/services/drawdownTemplateService';
 import { AccountSettingsForm } from '@/components/forms/AccountSettingsForm';
 
 type Props = { params: Promise<{ id: string }> };
@@ -19,6 +20,10 @@ export default async function AccountSettingsPage({ params }: Props) {
 
   if (!account) notFound();
 
+  const templates = await getTemplatesForAccountType(
+    account.accountType as 'PROP_FIRM' | 'FUTURES' | 'CFD' | 'FOREX' | 'SHARE' | 'DEMO'
+  ).catch(() => []);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">{account.name}</h1>
@@ -27,6 +32,7 @@ export default async function AccountSettingsPage({ params }: Props) {
         account={account}
         initialRules={rules}
         withdrawalHistory={withdrawalHistory}
+        templates={templates}
       />
     </div>
   );

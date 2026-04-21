@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { users } from './users';
 import { tradingAccounts } from './tradingAccounts';
@@ -9,8 +9,8 @@ import { tradingAccounts } from './tradingAccounts';
  */
 export const userStats = sqliteTable('user_stats', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
-  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tradingAccountId: text('trading_account_id').notNull().references(() => tradingAccounts.id, { onDelete: 'cascade' }),
   
   // Trading Volume Stats
   totalTrades: integer('total_trades').notNull().default(0),
@@ -58,7 +58,9 @@ export const userStats = sqliteTable('user_stats', {
   maxTradesInDay: integer('max_trades_in_day').notNull().default(0), // Highest trades in single day
   
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-});
+}, (table) => ({
+  userAccountIdx: uniqueIndex('user_stats_user_account_idx').on(table.userId, table.tradingAccountId),
+}));
 
 // Type inference
 export type UserStats = typeof userStats.$inferSelect;

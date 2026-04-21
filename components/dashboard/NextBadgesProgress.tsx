@@ -16,13 +16,13 @@ interface BadgeProgress {
   targetValue: number;
 }
 
-export const NextBadgesProgress = memo(({ limit = 3 }: { limit?: number }) => {
+export const NextBadgesProgress = memo(({ limit = 3, accountId }: { limit?: number; accountId: string }) => {
   const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBadgeProgress = useCallback(async () => {
     try {
-      const response = await fetch('/api/badges/progress');
+      const response = await fetch(`/api/badges/progress?accountId=${accountId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -35,7 +35,7 @@ export const NextBadgesProgress = memo(({ limit = 3 }: { limit?: number }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [accountId]);
 
   useEffect(() => {
     fetchBadgeProgress();
@@ -141,7 +141,15 @@ function formatProgress(current: number, target: number, badge: Badge): string {
       return `${current} / ${target} trades/day`;
     case 'TOTAL_LOGGING_DAYS':
       return `${current} / ${target} logging days`;
+    case 'TARGET_COMPLETED':
+      return current >= 1 ? 'Target completed ✓' : 'Complete a target';
+    case 'PERFECT_MONTH':
+      return 'Win every trading day in a month';
+    case 'COMEBACK':
+      return 'Win the day after 3 consecutive losing days';
+    case 'EARLY_ADOPTER':
+      return 'Early platform member';
     default:
-      return `${current} / ${target}`;
+      return target > 0 ? `${current} / ${target}` : 'Special achievement';
   }
 }

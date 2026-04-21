@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — v2.0.0-alpha.3 Per-Account Achievements
+
+#### Per-Account Badges, Streaks & Stats
+All gamification data (`user_stats`, `user_badges`, `streaks`) is now fully scoped to a `tradingAccountId`. Each account tracks its own badges, streaks, and stats independently.
+
+- **Schema** — `user_stats.tradingAccountId`: changed from nullable+optional to `NOT NULL` with cascade delete; unique index changed from `(userId)` → `(userId, tradingAccountId)`. Same for `user_badges` (unique: `userId + tradingAccountId + badgeId`) and `streaks` (unique: `userId + tradingAccountId + streakType`)
+- **`streakService.ts`** — all functions now require `accountId: string` and filter/insert by `tradingAccountId`
+- **`badgeService.ts`** — all functions now require `accountId: string` (getUserBadges, hasUserBadge, awardBadge, checkAndAwardBadges, initializeUserStats, updateUserStatsFromTrades, getBadgeProgress, getUserBadgeStats)
+- **`individualTradeService.ts`** — all 4 call sites (createTrade, createTradesBulk, updateTrade, deleteTrade) guard on `accountId` before calling `updateUserStatsFromTrades`
+- **API routes** — `GET /api/badges/user`, `GET /api/badges/progress`, `POST /api/badges/recalculate`, `GET /api/streaks` all require `?accountId=` (400 if missing); trade routes guard badge/stat calls on `accountId`
+- **`CollapsibleAchievementsSection`** — accepts `{ accountId: string }` prop and passes it down to all three widgets
+- **`AchievementShowcase`**, **`ActiveStreaksWidget`**, **`NextBadgesProgress`** — each accepts `accountId: string` and includes it in fetch URLs
+- **`/accounts/[id]/dashboard`** — passes route `id` as `accountId` to `CollapsibleAchievementsSection`
+- **`/dashboard/achievements`** — uses `useActiveAccount()` hook; shows "No account selected" guard; all fetches include `?accountId=`
+- **`scripts/clear-gamification-tables.ts`** (new) — one-time cleanup script to empty `user_stats`, `user_badges`, `streaks` before schema migration
+- **Staging DB migration applied** — `drizzle push --force` on `wekangtrading-staging`
+
+#### Badge Error Fixes
+- **`achievements/page.tsx`** — fix `undefined.toLocaleString()` crash for special badges (COMEBACK, PERFECT_MONTH, EARLY_ADOPTER) that have no `value` in requirement JSON; use `?? 0` guard; filter null badge entries; clamp progress `0–100`; modal shows "Special achievement — no numeric target" instead of "0 / 0"
+- **`BadgeCard.tsx`** — clamp progress bar width `Math.max(0, ...)` to prevent negative CSS width when P&L is negative
+- **`badgeService.ts`** — clamp `progressPercent` to `0–100` in `getBadgeProgress`
+- **`NextBadgesProgress.tsx`** — add `formatProgress` cases for TARGET_COMPLETED, PERFECT_MONTH, COMEBACK, EARLY_ADOPTER with descriptive text
+- **`api/badges/user/route.ts`** — filter null badge entries (defensive against deleted badges)
+- **`achievements/page.tsx` `formatRequirement`** — fix PERFECT_MONTH (shows minTrades), COMEBACK (shows losingDays), EARLY_ADOPTER; remove duplicate case
+
 ### Added — v2.0.0-alpha.2 Per-Account Timezone + Withdrawal Tracking
 
 #### Per-Account Daily Reset Timezone
@@ -62,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dailyLossService`** — `checkDailyLosses`, `getTodayTradeResults` accept optional `accountId`
 - **`disciplineTrackerService`** — `getUserSettings`, `updateUserSettings`, `getRowById` accept optional `accountId`; default settings INSERT includes `tradingAccountId`
 - **`rankingService`** — `getUserRanking` accepts optional `accountId`; `getUserRows` already had it
-- **Badges & streaks kept user-global** — `badgeService` and `streakService` intentionally not scoped (user achievements span all accounts)
+- **Badges & streaks kept user-global** ~~`badgeService` and `streakService` intentionally not scoped~~
+  > **Superseded in alpha.3**: badges and streaks are now fully per-account. See alpha.3 above.
 
 #### Full Account Isolation — API Routes (user)
 All routes now read `accountId` from query params (GET/DELETE) or request body (POST/PATCH) and pass it to their service calls:

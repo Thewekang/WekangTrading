@@ -162,7 +162,8 @@ export default async function AccountDashboardPage({
         {cycleStatus &&
           (cycleStatus.dailyDrawdownUsedPct !== null ||
             cycleStatus.totalDrawdownUsedPct !== null ||
-            cycleStatus.cycleTargetProfitUsd !== null) && (
+            cycleStatus.cycleTargetProfitUsd !== null ||
+            cycleStatus.consistencyTargetPct !== null) && (
             <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 mb-6">
               <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
               {cycleStatus.cycleTargetProfitUsd && (
@@ -197,7 +198,7 @@ export default async function AccountDashboardPage({
         </div>
 
         {/* Achievements */}
-        <CollapsibleAchievementsSection />
+        <CollapsibleAchievementsSection accountId={id} />
 
         {/* Economic News */}
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2 mb-6">

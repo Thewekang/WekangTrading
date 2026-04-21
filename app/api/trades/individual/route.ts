@@ -134,8 +134,10 @@ export async function POST(request: NextRequest) {
     );
     
     // Check badges asynchronously (non-blocking)
-    checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
-      .catch(error => console.error('Badge check error (non-fatal):', error));
+    if (accountId) {
+      checkAndAwardBadges(session.user.id, 'TRADE_INSERT', accountId)
+        .catch(error => console.error('Badge check error (non-fatal):', error));
+    }
     
     return response;
   } catch (error) {

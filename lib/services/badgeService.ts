@@ -36,30 +36,32 @@ export async function getAllBadges(): Promise<Badge[]> {
 }
 
 /**
- * Get user's earned badges
+ * Get user's earned badges (scoped to trading account)
  */
-export async function getUserBadges(userId: string): Promise<UserBadge[]> {
+export async function getUserBadges(userId: string, accountId: string): Promise<UserBadge[]> {
   // Returns all fields - needed for badge display
-  return db.select().from(userBadges).where(eq(userBadges.userId, userId)).orderBy(desc(userBadges.earnedAt));
+  return db.select().from(userBadges)
+    .where(and(eq(userBadges.userId, userId), eq(userBadges.tradingAccountId, accountId)))
+    .orderBy(desc(userBadges.earnedAt));
 }
 
 /**
- * Check if user already has a badge
+ * Check if user already has a badge (scoped to trading account)
  */
-export async function hasUserBadge(userId: string, badgeId: string): Promise<boolean> {
+export async function hasUserBadge(userId: string, badgeId: string, accountId: string): Promise<boolean> {
   const result = await db
     .select({ id: userBadges.id })
     .from(userBadges)
-    .where(and(eq(userBadges.userId, userId), eq(userBadges.badgeId, badgeId)))
+    .where(and(eq(userBadges.userId, userId), eq(userBadges.tradingAccountId, accountId), eq(userBadges.badgeId, badgeId)))
     .limit(1);
   
   return result.length > 0;
 }
 
 /**
- * Award badge to user
+ * Award badge to user (scoped to trading account)
  */
-export async function awardBadge(userId: string, badgeId: string): Promise<UserBadge> {
+export async function awardBadge(userId: string, badgeId: string, accountId: string): Promise<UserBadge> {
   // Get badge details
   const badge = await db.select().from(badges).where(eq(badges.id, badgeId)).limit(1);
   
@@ -70,21 +72,22 @@ export async function awardBadge(userId: string, badgeId: string): Promise<UserB
   // Insert user badge
   const [userBadge] = await db.insert(userBadges).values({
     userId,
+    tradingAccountId: accountId,
     badgeId,
     notified: false,
   }).returning();
 
-  // Calculate total badges and points properly
+  // Calculate total badges and points for this account
   const earnedBadges = await db
     .select({ badge: badges })
     .from(userBadges)
     .innerJoin(badges, eq(userBadges.badgeId, badges.id))
-    .where(eq(userBadges.userId, userId));
+    .where(and(eq(userBadges.userId, userId), eq(userBadges.tradingAccountId, accountId)));
 
   const totalBadges = earnedBadges.length;
   const totalPoints = earnedBadges.reduce((sum, { badge }) => sum + badge.points, 0);
 
-  // Update user stats
+  // Update user stats for this account
   await db
     .update(userStats)
     .set({
@@ -92,7 +95,7 @@ export async function awardBadge(userId: string, badgeId: string): Promise<UserB
       totalPoints: totalPoints,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(userStats.userId, userId));
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
 
   // Send achievement notification
   await sendAchievementNotification(userId, badge[0]);
@@ -162,15 +165,17 @@ export function evaluateBadgeRequirement(badge: Badge, stats: UserStats): boolea
 }
 
 /**
- * Check and award badges for a user based on trigger
+ * Check and award badges for a user based on trigger (scoped to trading account)
  */
-export async function checkAndAwardBadges(userId: string, trigger: BadgeTrigger): Promise<Badge[]> {
-  // Get user stats
-  const stats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+export async function checkAndAwardBadges(userId: string, trigger: BadgeTrigger, accountId: string): Promise<Badge[]> {
+  // Get user stats for this account
+  const stats = await db.select().from(userStats)
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)))
+    .limit(1);
   
   if (stats.length === 0) {
-    // User stats don't exist yet, create them
-    await initializeUserStats(userId);
+    // User stats don't exist yet for this account
+    await initializeUserStats(userId, accountId);
     return [];
   }
 
@@ -185,8 +190,8 @@ export async function checkAndAwardBadges(userId: string, trigger: BadgeTrigger)
   const earnedBadges: Badge[] = [];
   
   for (const badge of eligibleBadges) {
-    // Check if already earned
-    const alreadyEarned = await hasUserBadge(userId, badge.id);
+    // Check if already earned for this account
+    const alreadyEarned = await hasUserBadge(userId, badge.id, accountId);
     if (alreadyEarned) {
       continue;
     }
@@ -196,7 +201,7 @@ export async function checkAndAwardBadges(userId: string, trigger: BadgeTrigger)
     
     if (meetsRequirement) {
       try {
-        await awardBadge(userId, badge.id);
+        await awardBadge(userId, badge.id, accountId);
         earnedBadges.push(badge);
       } catch (error) {
         console.error(`Failed to award badge ${badge.id} to user ${userId}:`, error);
@@ -217,10 +222,13 @@ function filterBadgesByTrigger(badges: Badge[], trigger: BadgeTrigger): Badge[] 
 }
 
 /**
- * Initialize user stats (called when user first creates trade)
+ * Initialize user stats for a trading account (called when account first creates trade)
  */
-export async function initializeUserStats(userId: string): Promise<void> {
-  const existing = await db.select({ id: userStats.id }).from(userStats).where(eq(userStats.userId, userId)).limit(1);
+export async function initializeUserStats(userId: string, accountId: string): Promise<void> {
+  const existing = await db.select({ id: userStats.id })
+    .from(userStats)
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)))
+    .limit(1);
   
   if (existing.length > 0) {
     return; // Already initialized
@@ -228,6 +236,7 @@ export async function initializeUserStats(userId: string): Promise<void> {
 
   await db.insert(userStats).values({
     userId,
+    tradingAccountId: accountId,
     firstTradeDate: new Date().toISOString().split('T')[0],
     totalTrades: 0,
     totalWins: 0,
@@ -254,13 +263,13 @@ export async function initializeUserStats(userId: string): Promise<void> {
 }
 
 /**
- * Update user stats from all trades (recalculation)
+ * Update user stats from all trades for a specific account (recalculation)
  */
-export async function updateUserStatsFromTrades(userId: string): Promise<void> {
+export async function updateUserStatsFromTrades(userId: string, accountId: string): Promise<void> {
   const { individualTrades } = await import('../db/schema');
   const { updateWinStreak, updateLogStreak, recalculateSopStreakFromTrades } = await import('./streakService');
   
-  // Get all trades (include entryType to separate TRANSACTION from COMMISSION)
+  // Get all trades for this account
   const trades = await db
     .select({
       result: individualTrades.result,
@@ -271,7 +280,7 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
       entryType: individualTrades.entryType,
     })
     .from(individualTrades)
-    .where(eq(individualTrades.userId, userId))
+    .where(and(eq(individualTrades.userId, userId), eq(individualTrades.tradingAccountId, accountId)))
     .orderBy(individualTrades.tradeTimestamp);
 
   if (trades.length === 0) return;
@@ -279,20 +288,19 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   // Separate TRANSACTION trades (exclude COMMISSION for stats/streaks)
   const transactionTrades = trades.filter(t => t.entryType === 'TRANSACTION');
   
-  // Update WIN and LOG streaks for all unique trading dates (MUST be sorted chronologically)
-  // LOG streak counts any day with at least one TRANSACTION trade
+  // Update WIN and LOG streaks for all unique trading dates (account-scoped)
   const uniqueDates = Array.from(new Set(transactionTrades.map(t => new Date(t.tradeTimestamp).toISOString().split('T')[0]))).sort();
   for (const dateStr of uniqueDates) {
-    const date = new Date(dateStr + 'T00:00:00.000Z'); // Parse as UTC
-    await updateWinStreak(userId, date);
-    await updateLogStreak(userId, date);
+    const date = new Date(dateStr + 'T00:00:00.000Z');
+    await updateWinStreak(userId, date, accountId);
+    await updateLogStreak(userId, date, accountId);
   }
   
-  // Recalculate SOP streak from TRANSACTION trades only (COMMISSION has no sopFollowed)
+  // Recalculate SOP streak from TRANSACTION trades only
   await recalculateSopStreakFromTrades(userId, transactionTrades.map(t => ({
     sopFollowed: t.sopFollowed ?? false,
     tradeTimestamp: new Date(t.tradeTimestamp)
-  })));
+  })), accountId);
 
   // Calculate stats — TRANSACTION trades only (exclude COMMISSION from counts/rates)
   const totalTrades = transactionTrades.length;
@@ -318,15 +326,16 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
   const maxTradesInDay = Math.max(...Object.values(tradesByDay), 0);
   const totalLoggingDays = Object.keys(tradesByDay).length;
 
-  // Get streak data (now populated from above)
+  // Get streak data for this account (now populated from above)
   const { streaks } = await import('../db/schema');
-  const userStreaks = await db.select().from(streaks).where(eq(streaks.userId, userId));
+  const userStreaks = await db.select().from(streaks)
+    .where(and(eq(streaks.userId, userId), eq(streaks.tradingAccountId, accountId)));
   
   const winStreak = userStreaks.find(s => s.streakType === 'WIN_STREAK');
   const logStreak = userStreaks.find(s => s.streakType === 'LOG_STREAK');
   const sopStreak = userStreaks.find(s => s.streakType === 'SOP_STREAK');
 
-  // Update user stats
+  // Update user stats for this account
   await db
     .update(userStats)
     .set({
@@ -350,7 +359,7 @@ export async function updateUserStatsFromTrades(userId: string): Promise<void> {
       firstTradeDate: new Date(trades[0].tradeTimestamp).toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(userStats.userId, userId));
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
 }
 
 /**
@@ -362,28 +371,32 @@ async function sendAchievementNotification(userId: string, badge: Badge): Promis
 }
 
 /**
- * Get badge progress for user (next badges to earn)
+ * Get badge progress for user (next badges to earn) — scoped to trading account
  */
-export async function getBadgeProgress(userId: string): Promise<Array<{
+export async function getBadgeProgress(userId: string, accountId: string): Promise<Array<{
   badge: Badge;
   progress: number;
   currentValue: number;
   targetValue: number;
 }>> {
-  // Get or create user stats
-  let stats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+  // Get or create user stats for this account
+  let stats = await db.select().from(userStats)
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)))
+    .limit(1);
   
   if (stats.length === 0) {
     // Initialize with defaults
-    await initializeUserStats(userId);
+    await initializeUserStats(userId, accountId);
     // Recalculate from trades
-    await updateUserStatsFromTrades(userId);
-    stats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+    await updateUserStatsFromTrades(userId, accountId);
+    stats = await db.select().from(userStats)
+      .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)))
+      .limit(1);
   }
 
   const userStat = stats[0];
   const allBadges = await getAllBadges();
-  const earnedBadgeIds = (await getUserBadges(userId)).map(ub => ub.badgeId);
+  const earnedBadgeIds = (await getUserBadges(userId, accountId)).map(ub => ub.badgeId);
   
   // Get unearned badges
   const unearnedBadges = allBadges.filter(b => !earnedBadgeIds.includes(b.id));
@@ -431,7 +444,8 @@ export async function getBadgeProgress(userId: string): Promise<Array<{
         break;
     }
     
-    const progressPercent = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+    // Clamp 0-100: prevents negative width CSS for PROFIT_TOTAL when P&L is negative
+    const progressPercent = target > 0 ? Math.max(0, Math.min((current / target) * 100, 100)) : 0;
     
     return {
       badge,
@@ -447,8 +461,10 @@ export async function getBadgeProgress(userId: string): Promise<Array<{
 
 /**
  * Get user's total badge count and points
+/**
+ * Get badge stats for user (scoped to trading account)
  */
-export async function getUserBadgeStats(userId: string): Promise<{
+export async function getUserBadgeStats(userId: string, accountId: string): Promise<{
   totalBadges: number;
   totalPoints: number;
   badgesByTier: Record<string, number>;
@@ -457,7 +473,7 @@ export async function getUserBadgeStats(userId: string): Promise<{
     .select({ badge: badges })
     .from(userBadges)
     .innerJoin(badges, eq(userBadges.badgeId, badges.id))
-    .where(eq(userBadges.userId, userId));
+    .where(and(eq(userBadges.userId, userId), eq(userBadges.tradingAccountId, accountId)));
 
   const totalBadges = earnedBadges.length;
   const totalPoints = earnedBadges.reduce((sum, { badge }) => sum + badge.points, 0);

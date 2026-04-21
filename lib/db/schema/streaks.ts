@@ -9,7 +9,7 @@ import { tradingAccounts } from './tradingAccounts';
 export const streaks = sqliteTable('streaks', {
   id: text('id').primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tradingAccountId: text('trading_account_id').references(() => tradingAccounts.id, { onDelete: 'set null' }),
+  tradingAccountId: text('trading_account_id').notNull().references(() => tradingAccounts.id, { onDelete: 'cascade' }),
   streakType: text('streak_type').notNull(), // 'WIN_STREAK', 'LOG_STREAK', 'SOP_STREAK'
   currentStreak: integer('current_streak').notNull().default(0), // Current consecutive streak count
   longestStreak: integer('longest_streak').notNull().default(0), // All-time longest streak
@@ -17,7 +17,7 @@ export const streaks = sqliteTable('streaks', {
   startDate: text('start_date'), // When current streak started
   updatedAt: text('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
-  userTypeIdx: uniqueIndex('user_streak_type_idx').on(table.userId, table.streakType),
+  userTypeIdx: uniqueIndex('user_streak_type_idx').on(table.userId, table.tradingAccountId, table.streakType),
 }));
 
 // Type inference

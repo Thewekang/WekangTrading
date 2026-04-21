@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.9
+- **Version**: 3.10
 - **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
-- **Last Updated**: April 20, 2026
+- **Last Updated**: April 22, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -15,7 +15,7 @@
 
 **Project Status**: 🚀 v1.14.6 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 20, 2026 (v2.0.0-alpha.2: per-account timezone + withdrawal tracking)  
+**Latest Development**: April 22, 2026 (v2.0.0-alpha.3: per-account achievements + badge fixes)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
@@ -71,28 +71,31 @@ Phase 2: Services Layer          [100%] ██████████ ✅
 Phase 3: Validation              [100%] ██████████ ✅
 Phase 4: API Routes              [100%] ██████████ ✅
 Phase 5: Active Account Context  [100%] ██████████ ✅
-Phase 6: Pages & Components      [70%]  ███████░░░ 🔄 IN PROGRESS
+Phase 6: Pages & Components      [85%]  █████████░ 🔄 IN PROGRESS
 Phase 7: Admin UI                [0%]   ░░░░░░░░░░
 ```
 
-**Completed in Phase 6 (this session)**:
+**Completed in Phase 6**:
 - ✅ `/dashboard` → account picker (select/add/delete accounts)
 - ✅ `/accounts/[id]` → account landing page (quick-action tiles, drawdown cards, rules hint)
 - ✅ `/accounts/[id]/dashboard` → full rich dashboard (news, ranking, stats, charts, targets)
 - ✅ Account context strip (indigo bar in layout) with Dashboard / Trades / Discipline / Performance links
 - ✅ `EnterAccountButton` component (sets cookie + navigates)
 - ✅ `AccountSwitcher` navigates to `/accounts/[id]` on switch
-- ✅ Per-account stat scoping: `getPersonalStats`, `getSymbolStats`, `getBestSopType`, `getSopPerformanceStats` all accept optional `accountId`
-- ✅ Nav restructure: Trades, Discipline, Performance removed from top-level nav; accessible via account context strip
+- ✅ Per-account stat scoping: `getPersonalStats`, `getSymbolStats`, `getBestSopType`, `getSopPerformanceStats`
+- ✅ Nav restructure: Trades, Discipline, Performance removed from top-level nav
+- ✅ Per-account timezone (alpha.2): `getDayBoundariesInTimezone`, `account_rules.dailyResetTimezone`, timezone dropdown in Account Settings Form
+- ✅ Withdrawal tracking (alpha.2): `withdrawal_events`, `getCycleStatus` deducts withdrawals, calendar + landing page withdrawal display
+- ✅ Per-account achievements (alpha.3): `user_stats`, `user_badges`, `streaks` all `NOT NULL tradingAccountId`; `badgeService` + `streakService` fully per-account; `AchievementShowcase`, `ActiveStreaksWidget`, `NextBadgesProgress` per-account; `/dashboard/achievements` account-aware
+- ✅ Badge error fixes (alpha.3): special badge crash, negative progress bars, null badge entries
 
 **Remaining in Phase 6**:
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
-- ⏳ Admin UI account overview (Phase 7)
 
 **Next Steps**:
 1. Deploy to staging (Vercel preview) and smoke-test end-to-end
 2. Account-scope `/api/stats/by-session` and `/api/stats/by-hour` (add `accountId` query param)
-3. Admin UI: account list per user, cross-account leaderboard
+3. Admin UI: account list per user, cross-account leaderboard (Phase 7)
 4. End-to-end testing checklist (see docs/10-TESTING-GUIDE.md)
 5. Production deploy
 

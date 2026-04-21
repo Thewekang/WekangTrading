@@ -76,7 +76,7 @@ export const BadgeCard = memo(({
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div
               className={cn('h-1.5 rounded-full transition-all', tierColors.border.replace('border', 'bg'))}
-              style={{ width: `${Math.min(progress, 100)}%` }}
+              style={{ width: `${Math.max(0, Math.min(progress, 100))}%` }}
             />
           </div>
           <div className="text-xs text-center mt-0.5 text-gray-600">

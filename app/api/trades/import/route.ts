@@ -161,8 +161,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Recalculate user stats from all trades (for badge evaluation)
-    // Note: initializeUserStats is automatically called in updateUserStatsFromTrades if needed
-    await updateUserStatsFromTrades(session.user.id);
+    if (accountId) {
+      await updateUserStatsFromTrades(session.user.id, accountId);
+    }
     
     // Return immediately for fast UX
     const response = NextResponse.json(
@@ -177,8 +178,10 @@ export async function POST(request: NextRequest) {
     
     // Check badges and revalidate cache asynchronously (non-blocking)
     Promise.all([
-      checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
-        .catch(error => console.error('Badge check error (non-fatal):', error)),
+      accountId
+        ? checkAndAwardBadges(session.user.id, 'TRADE_INSERT', accountId)
+            .catch(error => console.error('Badge check error (non-fatal):', error))
+        : Promise.resolve(),
       // Single revalidation of layout updates all nested routes
       Promise.resolve(revalidatePath('/', 'layout'))
     ]);

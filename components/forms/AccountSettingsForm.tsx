@@ -21,6 +21,18 @@ type AccountData = {
   active: boolean;
 };
 
+type DrawdownTemplate = {
+  id: string;
+  name: string;
+  accountType?: string | null;
+  dailyDrawdownPct?: number | null;
+  totalDrawdownPct?: number | null;
+  consistencyTargetPct?: number | null;
+  targetGainPct?: number | null;
+  dailyResetTimezone?: string | null;
+  isDefault: boolean;
+};
+
 type Rules = {
   dailyDrawdownPct: number | null;
   totalDrawdownPct: number | null;
@@ -158,9 +170,20 @@ function AccountInfoSection({ account }: { account: AccountData }) {
 // Rules Section
 // ------------------------------------------------
 
-function RulesSection({ accountId, initialRules }: { accountId: string; initialRules: Rules }) {
+function RulesSection({
+  accountId,
+  initialRules,
+  templates,
+  startingBalance,
+}: {
+  accountId: string;
+  initialRules: Rules;
+  templates: DrawdownTemplate[];
+  startingBalance: number | null;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
   const form = useForm<RulesValues>({
     resolver: zodResolver(accountRulesSchema),
@@ -172,6 +195,21 @@ function RulesSection({ accountId, initialRules }: { accountId: string; initialR
       dailyResetTimezone: initialRules?.dailyResetTimezone ?? 'UTC',
     },
   });
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    const t = templates.find((t) => t.id === templateId);
+    if (!t) return;
+    if (t.dailyDrawdownPct != null) form.setValue('dailyDrawdownPct', t.dailyDrawdownPct);
+    if (t.totalDrawdownPct != null) form.setValue('totalDrawdownPct', t.totalDrawdownPct);
+    if (t.consistencyTargetPct != null) form.setValue('consistencyTargetPct', t.consistencyTargetPct);
+    if (t.dailyResetTimezone) form.setValue('dailyResetTimezone', t.dailyResetTimezone);
+    // Convert targetGainPct to USD using starting balance
+    if (t.targetGainPct != null && startingBalance) {
+      form.setValue('cycleTargetProfitUsd', parseFloat(((t.targetGainPct / 100) * startingBalance).toFixed(2)));
+    }
+  };
 
   const onSubmit = async (data: RulesValues) => {
     setError(null);
@@ -192,6 +230,24 @@ function RulesSection({ accountId, initialRules }: { accountId: string; initialR
     <section className="bg-white rounded-lg border p-6 space-y-4">
       <h2 className="text-lg font-semibold text-gray-900">Risk Rules</h2>
       <p className="text-sm text-gray-500">Leave fields blank to disable that rule.</p>
+      {templates.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Apply Template</label>
+          <select
+            value={selectedTemplateId}
+            onChange={(e) => handleTemplateChange(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-blue-50"
+          >
+            <option value="">— Select a template to auto-fill fields —</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}{t.isDefault ? ' ★' : ''}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-0.5">Selecting a template fills in the fields below. You can still adjust values before saving.</p>
+        </div>
+      )}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -318,13 +374,19 @@ interface AccountSettingsFormProps {
   account: AccountData;
   initialRules: Rules;
   withdrawalHistory: WithdrawalHistoryItem[];
+  templates?: DrawdownTemplate[];
 }
 
-export function AccountSettingsForm({ account, initialRules, withdrawalHistory }: AccountSettingsFormProps) {
+export function AccountSettingsForm({ account, initialRules, withdrawalHistory, templates = [] }: AccountSettingsFormProps) {
   return (
     <div className="space-y-6">
       <AccountInfoSection account={account} />
-      <RulesSection accountId={account.id} initialRules={initialRules} />
+      <RulesSection
+        accountId={account.id}
+        initialRules={initialRules}
+        templates={templates}
+        startingBalance={account.startingBalance}
+      />
       <WithdrawalSection accountId={account.id} history={withdrawalHistory} />
     </div>
   );

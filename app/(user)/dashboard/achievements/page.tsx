@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 import { BadgeCard } from '@/components/badges/BadgeCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,7 @@ interface BadgeStats {
 }
 
 export default function AchievementsPage() {
+  const { activeAccount } = useActiveAccount();
   const [badges, setBadges] = useState<BadgeWithProgress[]>([]);
   const [stats, setStats] = useState<BadgeStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,7 @@ export default function AchievementsPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
+    if (!activeAccount?.id) return;
     fetchBadges();
 
     // Refresh when page becomes visible (user returns from adding trades)
@@ -81,9 +84,11 @@ export default function AchievementsPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [activeAccount?.id]);
 
   const fetchBadges = async (isRefresh = false) => {
+    const accountId = activeAccount?.id;
+    if (!accountId) return;
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -91,8 +96,8 @@ export default function AchievementsPage() {
         setLoading(true);
       }
       const [earnedRes, progressRes, statsRes] = await Promise.all([
-        fetch('/api/badges/user'),
-        fetch('/api/badges/progress'),
+        fetch(`/api/badges/user?accountId=${accountId}`),
+        fetch(`/api/badges/progress?accountId=${accountId}`),
         fetch('/api/users/me'),
       ]);
 
@@ -104,25 +109,30 @@ export default function AchievementsPage() {
       const progressData = await progressRes.json();
       const statsData = await statsRes.json();
 
-      // Build earned badges with 100% progress
-      const earnedBadges: BadgeWithProgress[] = earnedData.data.badges.map((item: any) => ({
-        badge: item.badge,
-        earned: true,
-        earnedAt: new Date(item.userBadge.earnedAt),
-        progress: 100,
-        currentValue: item.badge.requirement ? JSON.parse(item.badge.requirement).value : 0,
-        targetValue: item.badge.requirement ? JSON.parse(item.badge.requirement).value : 0,
-      }));
+      // Build earned badges with 100% progress (filter null badge entries defensively)
+      const earnedBadges: BadgeWithProgress[] = earnedData.data.badges
+        .filter((item: any) => item.badge != null)
+        .map((item: any) => ({
+          badge: item.badge,
+          earned: true,
+          earnedAt: new Date(item.userBadge.earnedAt),
+          progress: 100,
+          // Use ?? 0 to handle badges with no 'value' in requirement (COMEBACK, PERFECT_MONTH, EARLY_ADOPTER)
+          currentValue: item.badge.requirement ? (JSON.parse(item.badge.requirement).value ?? 0) : 0,
+          targetValue: item.badge.requirement ? (JSON.parse(item.badge.requirement).value ?? 0) : 0,
+        }));
       
-      // Build unearned badges with progress
-      const unearnedBadges: BadgeWithProgress[] = progressData.data.map((item: any) => ({
-        badge: item.badge,
-        earned: false,
-        earnedAt: undefined,
-        progress: item.progress,
-        currentValue: item.currentValue,
-        targetValue: item.targetValue,
-      }));
+      // Build unearned badges with progress (clamp progress 0-100 to prevent negative CSS width)
+      const unearnedBadges: BadgeWithProgress[] = progressData.data
+        .filter((item: any) => item.badge != null)
+        .map((item: any) => ({
+          badge: item.badge,
+          earned: false,
+          earnedAt: undefined,
+          progress: Math.max(0, Math.min(item.progress, 100)),
+          currentValue: item.currentValue ?? 0,
+          targetValue: item.targetValue ?? 0,
+        }));
       
       // Combine all badges
       const allBadges = [...earnedBadges, ...unearnedBadges];
@@ -241,17 +251,17 @@ export default function AchievementsPage() {
         case 'SESSION_TRADES':
           return `Complete ${value} trades in ${req.sessionType} session`;
         case 'PERFECT_MONTH':
-          return 'Win every day in a calendar month';
+          return `100% win rate in a calendar month (min ${req.minTrades || 20} trades)`;
         case 'COMEBACK':
-          return 'Turn a losing day into a winning day';
+          return `Profitable day after ${req.losingDays || 3} consecutive losing days`;
+        case 'EARLY_ADOPTER':
+          return 'Joined the platform during the early access period';
         case 'MAX_TRADES_DAY':
           return `Complete ${value} trades in a single day`;
         case 'TOTAL_LOGGING_DAYS':
           return `Log trades on ${value} total days`;
         case 'TARGET_COMPLETED':
           return 'Complete a performance target';
-        case 'EARLY_ADOPTER':
-          return 'Join during beta period';
         default:
           return 'Complete special requirement';
       }
@@ -259,6 +269,20 @@ export default function AchievementsPage() {
       return 'Special achievement';
     }
   };
+
+  if (!activeAccount) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center text-muted-foreground">
+            <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-lg font-medium">No account selected</p>
+            <p className="text-sm">Select a trading account to view achievements.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -514,11 +538,13 @@ export default function AchievementsPage() {
                       <div className="w-full bg-gray-300 rounded-full h-2.5 mb-2">
                         <div
                           className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all"
-                          style={{ width: `${Math.min(selectedBadge.progress, 100)}%` }}
+                          style={{ width: `${Math.max(0, Math.min(selectedBadge.progress, 100))}%` }}
                         />
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {selectedBadge.currentValue.toLocaleString()} / {selectedBadge.targetValue.toLocaleString()}
+                        {selectedBadge.targetValue > 0
+                          ? `${selectedBadge.currentValue.toLocaleString()} / ${selectedBadge.targetValue.toLocaleString()}`
+                          : 'Special achievement — no numeric target'}
                       </div>
                     </div>
 

@@ -18,14 +18,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const body = await request.json().catch(() => ({}));
+    const accountId: string | undefined = typeof body.accountId === 'string' ? body.accountId : undefined;
+
+    if (!accountId) {
+      return NextResponse.json(
+        { success: false, error: { code: 'BAD_REQUEST', message: 'accountId is required' } },
+        { status: 400 }
+      );
+    }
+
     // Initialize user stats if not exists
-    await initializeUserStats(session.user.id);
+    await initializeUserStats(session.user.id, accountId);
 
     // Recalculate stats from all trades
-    await updateUserStatsFromTrades(session.user.id);
+    await updateUserStatsFromTrades(session.user.id, accountId);
 
     // Check and award all eligible badges
-    const newBadges = await checkAndAwardBadges(session.user.id, 'MANUAL');
+    const newBadges = await checkAndAwardBadges(session.user.id, 'MANUAL', accountId);
 
     return NextResponse.json({
       success: true,

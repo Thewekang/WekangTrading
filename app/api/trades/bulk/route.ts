@@ -75,8 +75,10 @@ export async function POST(request: NextRequest) {
     
     // Check badges and revalidate cache asynchronously (non-blocking)
     Promise.all([
-      checkAndAwardBadges(session.user.id, 'TRADE_INSERT')
-        .catch(error => console.error('Badge check error (non-fatal):', error)),
+      accountId
+        ? checkAndAwardBadges(session.user.id, 'TRADE_INSERT', accountId)
+            .catch(error => console.error('Badge check error (non-fatal):', error))
+        : Promise.resolve(),
       // Single revalidation of layout updates all nested routes
       Promise.resolve(revalidatePath('/', 'layout'))
     ]);
