@@ -37,12 +37,19 @@ interface PerformanceSummary {
   sopRate: number;
 }
 
+interface WithdrawalEntry {
+  date: string;   // YYYY-MM-DD
+  amount: number;
+}
+
 interface Props {
   userId: string;
   userName: string;
+  accountId?: string;
+  accountName?: string;
 }
 
-export default function UserPerformanceCalendar({ userId, userName }: Props) {
+export default function UserPerformanceCalendar({ userId, userName, accountId, accountName }: Props) {
   const [view, setView] = useState<'month' | 'year'>('year');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -51,6 +58,10 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
   const [monthlyPerformance, setMonthlyPerformance] = useState<MonthlyPerformance[]>([]);
   const [scale, setScale] = useState(1);
   const [lastDistance, setLastDistance] = useState(0);
+  // withdrawal markers: day number → total amount (month view), month number → total (year view)
+  const [withdrawalsByDay, setWithdrawalsByDay] = useState<Map<number, number>>(new Map());
+  const [withdrawalsByMonth, setWithdrawalsByMonth] = useState<Map<number, number>>(new Map());
+  const [totalWithdrawals, setTotalWithdrawals] = useState(0);
   const [summary, setSummary] = useState<PerformanceSummary>({
     profitLoss: 0,
     totalTrades: 0,
@@ -70,25 +81,47 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
 
   useEffect(() => {
     fetchPerformanceData();
-  }, [userId, year, month, view]);
+  }, [userId, accountId, year, month, view]);
 
   const fetchPerformanceData = async () => {
     setLoading(true);
     try {
+      const accountParam = accountId ? `&tradingAccountId=${accountId}` : '';
       const url = view === 'month'
-        ? `/api/admin/users/${userId}/performance?year=${year}&month=${month}`
-        : `/api/admin/users/${userId}/performance?year=${year}`;
+        ? `/api/admin/users/${userId}/performance?year=${year}&month=${month}${accountParam}`
+        : `/api/admin/users/${userId}/performance?year=${year}${accountParam}`;
 
       const response = await fetch(url);
       const result = await response.json();
 
       if (result.success) {
         setSummary(result.data.summary);
+
+        // Parse withdrawal markers
+        const rawWithdrawals: WithdrawalEntry[] = result.data.withdrawals ?? [];
+        let totalWd = 0;
         if (view === 'month') {
+          const byDay = new Map<number, number>();
+          rawWithdrawals.forEach(w => {
+            const day = parseInt(w.date.split('-')[2]);
+            byDay.set(day, (byDay.get(day) ?? 0) + w.amount);
+            totalWd += w.amount;
+          });
+          setWithdrawalsByDay(byDay);
+          setWithdrawalsByMonth(new Map());
           setDailyPerformance(result.data.dailyPerformance);
         } else {
+          const byMonth = new Map<number, number>();
+          rawWithdrawals.forEach(w => {
+            const m = parseInt(w.date.split('-')[1]);
+            byMonth.set(m, (byMonth.get(m) ?? 0) + w.amount);
+            totalWd += w.amount;
+          });
+          setWithdrawalsByMonth(byMonth);
+          setWithdrawalsByDay(new Map());
           setMonthlyPerformance(result.data.monthlyPerformance);
         }
+        setTotalWithdrawals(totalWd);
       }
     } catch (error) {
       console.error('Error fetching performance data:', error);
@@ -187,6 +220,10 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-100 border border-orange-300 rounded"></div>
             <span className="text-gray-700">P/L (USD)</span>
           </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-purple-100 border border-purple-300 rounded"></div>
+            <span className="text-gray-700">Withdrawal</span>
+          </div>
         </div>
 
         {/* Calendar header */}
@@ -245,6 +282,15 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
                       ) : (
                         <div className="text-[8px] sm:text-xs text-gray-400 text-center mt-1 sm:mt-4">No</div>
                       )}
+                      {/* Withdrawal badge */}
+                      {withdrawalsByDay.has(day.date) && (
+                        <div className="flex items-center justify-between bg-purple-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-purple-300 mt-0.5">
+                          <span className="text-[7px] sm:text-xs text-purple-600 font-medium">W/D</span>
+                          <span className="text-[7px] sm:text-xs font-bold text-purple-700">
+                            −{withdrawalsByDay.get(day.date)!.toFixed(0)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -272,6 +318,10 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded"></div>
             <span className="text-sm text-gray-700">P/L (USD)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
+            <span className="text-sm text-gray-700">Withdrawal</span>
           </div>
         </div>
 
@@ -309,8 +359,28 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
                   </>
                 ) : (
                   <>
-                    <div className="text-sm text-gray-400 text-center py-4">No trades</div>
+                    {withdrawalsByMonth.has(monthData.month) ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-purple-50 px-2 py-1.5 rounded border border-purple-300">
+                          <span className="text-xs text-purple-600 font-medium">Withdrawal:</span>
+                          <span className="text-sm font-bold text-purple-700">
+                            −{formatCurrency(withdrawalsByMonth.get(monthData.month)!)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 text-center py-4">No trades</div>
+                    )}
                   </>
+                )}
+                {/* Withdrawal row when there ARE trades */}
+                {monthData.totalTrades > 0 && withdrawalsByMonth.has(monthData.month) && (
+                  <div className="flex items-center justify-between bg-purple-50 px-2 py-1.5 rounded border border-purple-300">
+                    <span className="text-xs text-purple-600 font-medium">Withdrawal:</span>
+                    <span className="text-sm font-bold text-purple-700">
+                      −{formatCurrency(withdrawalsByMonth.get(monthData.month)!)}
+                    </span>
+                  </div>
                 )}
               </div>
             </Card>
@@ -424,6 +494,15 @@ export default function UserPerformanceCalendar({ userId, userName }: Props) {
             W:{summary.totalWins} L:{summary.totalLosses}
           </div>
         </Card>
+        {totalWithdrawals > 0 && (
+          <Card className="p-4 bg-gradient-to-br from-purple-100 to-purple-200 border-2 border-purple-400">
+            <div className="text-sm text-gray-600 mb-1">Total Withdrawals</div>
+            <div className="text-2xl font-bold text-purple-800">
+              −${formatCurrency(totalWithdrawals)}
+            </div>
+            <div className="text-xs text-purple-600 mt-1">Reduces retained P&amp;L</div>
+          </Card>
+        )}
       </div>
 
       {/* Calendar/Grid view */}

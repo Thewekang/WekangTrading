@@ -4,8 +4,13 @@
  */
 
 import { db } from '@/lib/db';
-import { users, individualTrades, dailySummaries, userTargets, sessions, accounts } from '@/lib/db/schema';
-import { eq, and, count, sum, ne } from 'drizzle-orm';
+import {
+  users, individualTrades, dailySummaries, userTargets, sessions, accounts,
+  tradingAccounts, accountRules, withdrawalEvents,
+  userBadges, streaks, userStats, motivationalMessages,
+  disciplineTrackerRows, disciplineTrackerSettings, userPinnedSops, userRankings,
+} from '@/lib/db/schema';
+import { eq, and, count, sum, ne, inArray } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -123,34 +128,42 @@ export async function deleteUserByAdmin(userId: string, currentAdminId: string) 
     }
   }
 
-  // Manual cascade deletion (SQLite doesn't have foreign key constraints defined)
+  // Manual cascade deletion (PRAGMA foreign_keys is OFF in libsql by default — all FK cascades are inactive)
 
-  // 1. Delete individual trades
-  const tradesResult = await db
-    .delete(individualTrades)
-    .where(eq(individualTrades.userId, userId));
+  // 1. Collect all trading account IDs for this user (needed for account-scoped tables)
+  const userAccountRows = await db
+    .select({ id: tradingAccounts.id })
+    .from(tradingAccounts)
+    .where(eq(tradingAccounts.userId, userId));
+  const accountIds = userAccountRows.map((a) => a.id);
 
-  // 2. Delete daily summaries
-  const summariesResult = await db
-    .delete(dailySummaries)
-    .where(eq(dailySummaries.userId, userId));
+  // 2. Delete account-scoped data (must go before deleting trading_accounts)
+  if (accountIds.length > 0) {
+    await db.delete(accountRules).where(inArray(accountRules.tradingAccountId, accountIds));
+    await db.delete(withdrawalEvents).where(inArray(withdrawalEvents.tradingAccountId, accountIds));
+  }
 
-  // 3. Delete user targets
-  const targetsResult = await db
-    .delete(userTargets)
-    .where(eq(userTargets.userId, userId));
+  // 3. Delete user-scoped data (indexed by userId)
+  await db.delete(individualTrades).where(eq(individualTrades.userId, userId));
+  await db.delete(dailySummaries).where(eq(dailySummaries.userId, userId));
+  await db.delete(userTargets).where(eq(userTargets.userId, userId));
+  await db.delete(userBadges).where(eq(userBadges.userId, userId));
+  await db.delete(streaks).where(eq(streaks.userId, userId));
+  await db.delete(userStats).where(eq(userStats.userId, userId));
+  await db.delete(motivationalMessages).where(eq(motivationalMessages.userId, userId));
+  await db.delete(disciplineTrackerRows).where(eq(disciplineTrackerRows.userId, userId));
+  await db.delete(disciplineTrackerSettings).where(eq(disciplineTrackerSettings.userId, userId));
+  await db.delete(userPinnedSops).where(eq(userPinnedSops.userId, userId));
+  await db.delete(userRankings).where(eq(userRankings.userId, userId));
 
-  // 4. Delete user sessions
-  const sessionsResult = await db
-    .delete(sessions)
-    .where(eq(sessions.userId, userId));
+  // 4. Delete trading accounts
+  await db.delete(tradingAccounts).where(eq(tradingAccounts.userId, userId));
 
-  // 5. Delete OAuth accounts (future-proofing for when OAuth is implemented)
-  const accountsResult = await db
-    .delete(accounts)
-    .where(eq(accounts.userId, userId));
+  // 5. Delete auth rows
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+  await db.delete(accounts).where(eq(accounts.userId, userId));
 
-  // 6. Delete user account
+  // 6. Delete the user row itself
   await db.delete(users).where(eq(users.id, userId));
 }
 
