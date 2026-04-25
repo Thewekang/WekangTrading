@@ -16,7 +16,7 @@ import { db } from '../db';
 import { individualTrades, withdrawalEvents, accountRules } from '../db/schema';
 import { eq, and, gte, lte, sum, max, desc } from 'drizzle-orm';
 import { getAccountRules } from './tradingAccountService';
-import { startOfDay, endOfDay, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
 // ============================================
 // TYPES
@@ -152,20 +152,32 @@ async function sumWithdrawals(tradingAccountId: string): Promise<number> {
   return Number(result?.total ?? 0);
 }
 
-/** Returns today's net P&L for an account (all entry types). */
-async function getTodayPnl(tradingAccountId: string): Promise<number> {
+/**
+ * Returns today's net P&L for an account (all entry types).
+ * "Today" is defined by the account's dailyResetTimezone (falls back to UTC).
+ * Uses the same Intl.DateTimeFormat 'en-CA' pattern as getBestDayCyclePnl to determine the local day.
+ */
+async function getTodayPnl(tradingAccountId: string, timezone: string = 'UTC'): Promise<number> {
   const now = new Date();
-  const [result] = await db
-    .select({ total: sum(individualTrades.profitLossUsd) })
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now); // YYYY-MM-DD
+  const dayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone });
+
+  // Fetch a 48-hour UTC window to ensure we capture the full local day regardless of offset
+  const windowStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+  const trades = await db
+    .select({ timestamp: individualTrades.tradeTimestamp, pnl: individualTrades.profitLossUsd })
     .from(individualTrades)
     .where(
       and(
         eq(individualTrades.tradingAccountId, tradingAccountId),
-        gte(individualTrades.tradeTimestamp, startOfDay(now)),
-        lte(individualTrades.tradeTimestamp, endOfDay(now))
+        gte(individualTrades.tradeTimestamp, windowStart)
       )
     );
-  return Number(result?.total ?? 0);
+
+  // Sum only trades whose local date matches today in the account's timezone
+  return trades
+    .filter((t) => dayFormatter.format(t.timestamp) === todayStr)
+    .reduce((sum, t) => sum + t.pnl, 0);
 }
 
 // ============================================
@@ -194,7 +206,7 @@ export async function getCycleStatus(tradingAccountId: string): Promise<CycleSta
   const [currentCyclePnl, grossCumulativePnl, todayPnl, bestDayCyclePnl, totalWithdrawn] = await Promise.all([
     sumPnl(tradingAccountId, cycleStartDate),
     sumPnl(tradingAccountId, null),
-    getTodayPnl(tradingAccountId),
+    getTodayPnl(tradingAccountId, timezone),
     getBestDayCyclePnl(tradingAccountId, cycleStartDate, timezone),
     sumWithdrawals(tradingAccountId),
   ]);
