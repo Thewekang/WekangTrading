@@ -128,6 +128,49 @@ function computeInsights(
     }
   }
 
+  // ── Suggested minimum target when no explicit target is set ──
+  if ((!cycleTargetProfitUsd || cycleTargetProfitUsd <= 0) && consistencyTargetPct != null && consistencyTargetPct > 0 && bestDayCyclePnl > 0) {
+    const targetRatio = consistencyTargetPct / 100;
+    const minTargetRequired = bestDayCyclePnl / targetRatio;
+    const stillNeeded = Math.max(0, minTargetRequired - currentCyclePnl);
+    const pctOfMin =
+      currentCyclePnl > 0 ? Math.min(100, (currentCyclePnl / minTargetRequired) * 100) : 0;
+
+    const sugLines: string[] = [
+      `Your best day is ${fmtUsdAbs(bestDayCyclePnl, currency)}. With the ${consistencyTargetPct}% rule, cycle total must reach at least ${fmtUsdAbs(minTargetRequired, currency)}.`,
+    ];
+    if (stillNeeded > 0) {
+      sugLines.push(
+        `You are ${fmtUsdAbs(stillNeeded, currency)} away from this minimum (${pctOfMin.toFixed(0)}% there).`,
+      );
+      if (avgDailyPnl && avgDailyPnl > 0) {
+        const daysToMin = Math.ceil(stillNeeded / avgDailyPnl);
+        sugLines.push(
+          `At your current pace (${fmtUsdAbs(avgDailyPnl, currency)}/day) you'd hit it in ≈${daysToMin} day${daysToMin !== 1 ? 's' : ''}.`,
+        );
+      }
+    } else {
+      sugLines.push(`You have already surpassed this minimum — consistency rule is satisfied.`);
+    }
+    sugLines.push('Consider setting this as your profit target in account rules.');
+
+    insights.push({
+      type: stillNeeded <= 0 ? 'success' : 'info',
+      icon:
+        stillNeeded <= 0 ? (
+          <ShieldCheck className="h-4 w-4" />
+        ) : (
+          <Target className="h-4 w-4" />
+        ),
+      title: 'Suggested Profit Target',
+      keyFigure: {
+        label: 'Min target for consistency',
+        value: fmtUsdAbs(minTargetRequired, currency),
+      },
+      lines: sugLines,
+    });
+  }
+
   // ── Target profit insights ──
   if (cycleTargetProfitUsd && cycleTargetProfitUsd > 0) {
     const remaining = cycleTargetProfitUsd - currentCyclePnl;
