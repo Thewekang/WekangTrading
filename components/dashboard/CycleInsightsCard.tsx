@@ -1,7 +1,7 @@
 'use client';
 
 import type { CycleStatus } from '@/lib/services/accountRulesService';
-import { Lightbulb, Target, TrendingUp, AlertTriangle, CheckCircle, PartyPopper, Info } from 'lucide-react';
+import { Lightbulb, Target, TrendingUp, AlertTriangle, PartyPopper, Info, ShieldCheck } from 'lucide-react';
 
 interface CycleInsightsCardProps {
   status: CycleStatus;
@@ -24,15 +24,23 @@ function fmtUsdAbs(val: number, currency: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Insight computation (pure math — no API)
+// Insight model
 // ─────────────────────────────────────────────────────────────────────────────
 
+type InsightType = 'warning' | 'tip' | 'info' | 'success';
+
 interface Insight {
-  type: 'warning' | 'tip' | 'info' | 'success';
+  type: InsightType;
   icon: React.ReactNode;
   title: string;
+  /** The single most actionable number/range shown prominently */
+  keyFigure?: { label: string; value: string };
   lines: string[];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Insight computation (pure math — no API)
+// ─────────────────────────────────────────────────────────────────────────────
 
 function computeInsights(
   status: CycleStatus,
@@ -63,65 +71,58 @@ function computeInsights(
   // ── Consistency insights ──
   if (consistencyTargetPct != null && consistencyTargetPct > 0 && currentCyclePnl > 0) {
     const targetRatio = consistencyTargetPct / 100;
-
-    // Minimum cycle total required for consistency to pass (given current bestDay)
     const requiredTotal = bestDayCyclePnl / targetRatio;
     const additionalNeeded = Math.max(0, requiredTotal - currentCyclePnl);
-
-    // Maximum you can earn on ONE day and still pass consistency (that day becomes new best day)
-    // Derivation: X / (T + X) ≤ target → X ≤ target / (1−target) × T
-    const maxSafeNewBestDay =
-      currentCyclePnl > 0 ? (targetRatio / (1 - targetRatio)) * currentCyclePnl : 0;
+    // Max earn on ONE day without failing: X/(T+X) ≤ target → X ≤ target/(1−target) × T
+    const maxSafeNewBestDay = (targetRatio / (1 - targetRatio)) * currentCyclePnl;
 
     if (consistencyStatus === 'FAIL') {
-      // ── One-session fix ──
-      // Earn between additionalNeeded (keep old best) and maxSafeNewBestDay (new best, still passes)
+      // Single-session fix
       if (additionalNeeded > 0 && maxSafeNewBestDay >= additionalNeeded) {
-        const lo = additionalNeeded;
-        const hi = maxSafeNewBestDay;
         insights.push({
           type: 'warning',
           icon: <AlertTriangle className="h-4 w-4" />,
-          title: 'Fix Consistency — Single Session',
+          title: 'Fix Consistency — Today',
+          keyFigure: {
+            label: 'Safe earn range',
+            value: `${additionalNeeded.toFixed(2)} – ${maxSafeNewBestDay.toFixed(2)} ${currency}`,
+          },
           lines: [
-            `Earn between ${fmtUsdAbs(lo, currency)} and ${fmtUsdAbs(hi, currency)} today to resolve the violation in one session.`,
-            `This grows your cycle total past the ${consistencyTargetPct}% rule without creating a new worst day.`,
+            `Earning within this range today resolves the ${consistencyTargetPct}% rule in one session, without creating a new peak day.`,
           ],
         });
       }
 
-      // ── Multi-day fix ──
+      // Multi-day fix
       if (additionalNeeded > 0) {
-        const cappedDailyForFix = Math.min(avgDailyPnl ?? bestDayCyclePnl, bestDayCyclePnl);
-        const daysToFix =
-          cappedDailyForFix > 0 ? Math.ceil(additionalNeeded / cappedDailyForFix) : null;
-        const lines: string[] = [
-          `You need ${fmtUsdAbs(additionalNeeded, currency)} more cycle profit to pass the ${consistencyTargetPct}% consistency rule.`,
-        ];
-        if (daysToFix) {
-          lines.push(
-            `At your current pace, that takes ≈${daysToFix} trading day${daysToFix !== 1 ? 's' : ''} — spread gains evenly to avoid creating a new bigger best day.`,
-          );
-        }
-        lines.push(
-          `Keep each day under ${fmtUsdAbs(bestDayCyclePnl, currency)} (your current best day) while the total grows.`,
-        );
+        const cappedDaily = Math.min(avgDailyPnl ?? bestDayCyclePnl, bestDayCyclePnl);
+        const daysToFix = cappedDaily > 0 ? Math.ceil(additionalNeeded / cappedDaily) : null;
         insights.push({
           type: 'tip',
           icon: <TrendingUp className="h-4 w-4" />,
-          title: 'Fix Consistency — Multi-Day Path',
-          lines,
+          title: 'Fix Consistency — Multi-Day',
+          keyFigure: daysToFix
+            ? { label: 'Est. days needed', value: `≈${daysToFix} day${daysToFix !== 1 ? 's' : ''}` }
+            : undefined,
+          lines: [
+            `Need ${fmtUsdAbs(additionalNeeded, currency)} more in cycle P&L. Spread it evenly across sessions.`,
+            `Keep each day under ${fmtUsdAbs(bestDayCyclePnl, currency)} (your current best day) so no new peak is created.`,
+          ],
         });
       }
     } else if (consistencyStatus === 'PASS' && maxSafeNewBestDay > 0) {
-      // ── Daily cap to stay compliant ──
+      // Daily cap to stay compliant
       insights.push({
         type: 'info',
-        icon: <Info className="h-4 w-4" />,
-        title: `Daily Cap to Stay Consistent`,
+        icon: <ShieldCheck className="h-4 w-4" />,
+        title: 'Daily Cap — Stay Consistent',
+        keyFigure: {
+          label: 'Max safe day',
+          value: fmtUsdAbs(maxSafeNewBestDay, currency),
+        },
         lines: [
-          `Keep each trading day under ${fmtUsdAbs(maxSafeNewBestDay, currency)} to maintain the ${consistencyTargetPct}% rule.`,
-          `Your current best day is ${fmtUsdAbs(bestDayCyclePnl, currency)}.`,
+          `Earning more than this in a single session would break the ${consistencyTargetPct}% rule.`,
+          `Current best day: ${fmtUsdAbs(bestDayCyclePnl, currency)}.`,
         ],
       });
     }
@@ -135,47 +136,39 @@ function computeInsights(
       insights.push({
         type: 'success',
         icon: <PartyPopper className="h-4 w-4" />,
-        title: 'Profit Target Reached!',
+        title: '🎉 Profit Target Reached!',
+        keyFigure: { label: 'Cycle earned', value: fmtUsd(currentCyclePnl, currency) },
         lines: [
-          `You've hit your ${fmtUsdAbs(cycleTargetProfitUsd, currency)} cycle target. Consider recording a withdrawal to start a fresh cycle.`,
+          `You've hit the ${fmtUsdAbs(cycleTargetProfitUsd, currency)} goal. Consider recording a withdrawal to start a fresh cycle.`,
         ],
       });
     } else {
-      const lines: string[] = [
-        `${fmtUsdAbs(remaining, currency)} remaining to reach your ${fmtUsdAbs(cycleTargetProfitUsd, currency)} target.`,
-      ];
+      const daysToTarget =
+        avgDailyPnl && avgDailyPnl > 0 ? Math.ceil(remaining / avgDailyPnl) : null;
+      const lines: string[] = [];
 
       if (avgDailyPnl && avgDailyPnl > 0) {
-        const daysToTarget = Math.ceil(remaining / avgDailyPnl);
-        lines.push(
-          `At your cycle average of ${fmtUsdAbs(avgDailyPnl, currency)}/day, you should hit it in ≈${daysToTarget} more trading day${daysToTarget !== 1 ? 's' : ''}.`,
-        );
-
-        // Warn if daily DD cap is less than needed avg daily to hit target
+        lines.push(`Averaging ${fmtUsdAbs(avgDailyPnl, currency)}/day this cycle.`);
         if (dailyDrawdownLimitUsd && avgDailyPnl > dailyDrawdownLimitUsd) {
           lines.push(
-            `⚠️ Your daily drawdown limit (${fmtUsdAbs(dailyDrawdownLimitUsd, currency)}) is smaller than your average daily P&L pace — stay disciplined.`,
+            `Your daily DD limit (${fmtUsdAbs(dailyDrawdownLimitUsd, currency)}) is tight vs your pace — trade carefully.`,
           );
         }
-      } else if (currentCyclePnl <= 0) {
-        lines.push(`Start building cycle profit to track your pace toward this goal.`);
+      } else {
+        lines.push('Build consistent cycle profit to project your target pace.');
       }
 
-      // Cross-check: if consistency is failing AND target not reached, show priority note
-      if (
-        consistencyTargetPct != null &&
-        consistencyStatus === 'FAIL' &&
-        remaining > 0
-      ) {
-        lines.push(
-          `Fix the consistency rule first — a large single-day profit to "rush" the target will deepen the violation.`,
-        );
+      if (consistencyTargetPct != null && consistencyStatus === 'FAIL') {
+        lines.push(`Prioritise fixing the consistency rule — rushing with one big day will deepen the violation.`);
       }
 
       insights.push({
         type: 'info',
         icon: <Target className="h-4 w-4" />,
         title: 'Days to Profit Target',
+        keyFigure: daysToTarget
+          ? { label: 'Est. days remaining', value: `≈${daysToTarget} day${daysToTarget !== 1 ? 's' : ''}` }
+          : { label: 'Still needed', value: fmtUsdAbs(remaining, currency) },
         lines,
       });
     }
@@ -185,38 +178,105 @@ function computeInsights(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Insight pill styles
+// Style maps
 // ─────────────────────────────────────────────────────────────────────────────
 
-const INSIGHT_STYLES = {
+const TYPE_STYLES: Record<InsightType, {
+  border: string;
+  headerBg: string;
+  iconColor: string;
+  titleColor: string;
+  bodyBg: string;
+  bodyText: string;
+  figureText: string;
+  figureBg: string;
+}> = {
   warning: {
-    bg: 'bg-red-50 border-red-200',
-    icon: 'text-red-500',
-    title: 'text-red-800',
-    text: 'text-red-700',
+    border: 'border-l-4 border-l-red-500',
+    headerBg: 'bg-red-50',
+    iconColor: 'text-red-500',
+    titleColor: 'text-red-800',
+    bodyBg: 'bg-white',
+    bodyText: 'text-gray-600',
+    figureText: 'text-red-700',
+    figureBg: 'bg-red-50',
   },
   tip: {
-    bg: 'bg-amber-50 border-amber-200',
-    icon: 'text-amber-500',
-    title: 'text-amber-800',
-    text: 'text-amber-700',
+    border: 'border-l-4 border-l-amber-500',
+    headerBg: 'bg-amber-50',
+    iconColor: 'text-amber-500',
+    titleColor: 'text-amber-800',
+    bodyBg: 'bg-white',
+    bodyText: 'text-gray-600',
+    figureText: 'text-amber-700',
+    figureBg: 'bg-amber-50',
   },
   info: {
-    bg: 'bg-blue-50 border-blue-200',
-    icon: 'text-blue-500',
-    title: 'text-blue-800',
-    text: 'text-blue-700',
+    border: 'border-l-4 border-l-blue-500',
+    headerBg: 'bg-blue-50',
+    iconColor: 'text-blue-500',
+    titleColor: 'text-blue-800',
+    bodyBg: 'bg-white',
+    bodyText: 'text-gray-600',
+    figureText: 'text-blue-700',
+    figureBg: 'bg-blue-50',
   },
   success: {
-    bg: 'bg-green-50 border-green-200',
-    icon: 'text-green-500',
-    title: 'text-green-800',
-    text: 'text-green-700',
+    border: 'border-l-4 border-l-green-500',
+    headerBg: 'bg-green-50',
+    iconColor: 'text-green-500',
+    titleColor: 'text-green-800',
+    bodyBg: 'bg-white',
+    bodyText: 'text-gray-600',
+    figureText: 'text-green-700',
+    figureBg: 'bg-green-50',
   },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Component
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+
+function InsightCard({ insight }: { insight: Insight }) {
+  const s = TYPE_STYLES[insight.type];
+  return (
+    <div className={`rounded-lg border border-gray-200 overflow-hidden shadow-sm ${insight.type === 'warning' ? 'ring-1 ring-red-200' : ''}`}>
+      {/* Header strip */}
+      <div className={`flex items-center gap-2 px-4 py-2.5 ${s.headerBg} ${s.border}`}>
+        <span className={s.iconColor}>{insight.icon}</span>
+        <span className={`text-xs font-bold tracking-wide ${s.titleColor}`}>{insight.title}</span>
+      </div>
+
+      {/* Body */}
+      <div className={`px-4 py-3 space-y-2.5 ${s.bodyBg}`}>
+        {/* Key figure */}
+        {insight.keyFigure && (
+          <div className={`inline-flex items-baseline gap-2 rounded-md px-3 py-1.5 ${s.figureBg}`}>
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+              {insight.keyFigure.label}
+            </span>
+            <span className={`text-base font-bold ${s.figureText}`}>
+              {insight.keyFigure.value}
+            </span>
+          </div>
+        )}
+
+        {/* Explanation lines */}
+        <ul className="space-y-1">
+          {insight.lines.map((line, j) => (
+            <li key={j} className={`flex items-start gap-1.5 text-xs leading-relaxed ${s.bodyText}`}>
+              <span className="mt-0.5 shrink-0 text-gray-300">•</span>
+              {line}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main card
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function CycleInsightsCard({
@@ -227,82 +287,102 @@ export function CycleInsightsCard({
 }: CycleInsightsCardProps) {
   const insights = computeInsights(status, currency, cycleStartFallback);
 
-  // Compute progress bar values (same as old CycleProfitTargetCard)
   const hasTarget = status.cycleTargetProfitUsd != null && status.cycleTargetProfitUsd > 0;
   const progress = Math.min(status.cycleProgressPct ?? 0, 100);
   const isReached = status.targetReached;
+  const remaining = hasTarget ? Math.max(0, status.cycleTargetProfitUsd! - status.currentCyclePnl) : null;
 
-  // If no consistency rule AND no target AND no insights → nothing to show
   if (insights.length === 0 && !hasTarget) return null;
 
   return (
-    <div className="rounded-lg border bg-white p-5 space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Lightbulb className="h-5 w-5 text-amber-500 shrink-0" />
-        <h3 className="font-semibold text-gray-900">Cycle Insights</h3>
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* Card header */}
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white">
+        <div className="p-1.5 bg-amber-100 rounded-lg">
+          <Lightbulb className="h-4 w-4 text-amber-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 text-sm">Cycle Insights</h3>
+          <p className="text-xs text-gray-400">Smart guidance based on your current cycle data</p>
+        </div>
       </div>
 
-      {/* Progress bar (if target set) */}
-      {hasTarget && (
-        <div className={`rounded-md border p-3 space-y-2 ${isReached ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-gray-700">Cycle Profit Target</span>
-            <span className={`font-semibold ${isReached ? 'text-green-700' : 'text-blue-700'}`}>
-              {progress.toFixed(1)}%
-            </span>
-          </div>
-          <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${isReached ? 'bg-green-500' : 'bg-blue-500'}`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>{fmtUsd(status.currentCyclePnl, currency)} earned</span>
-            <span>Target: {fmtUsdAbs(status.cycleTargetProfitUsd!, currency)}</span>
-          </div>
-          {isReached && onRecordWithdrawal && (
-            <button
-              onClick={onRecordWithdrawal}
-              className="text-green-700 underline underline-offset-2 hover:text-green-900 text-xs"
-            >
-              Record withdrawal →
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Insight cards */}
-      {insights.length > 0 && (
-        <div className="space-y-3">
-          {insights.map((insight, i) => {
-            const s = INSIGHT_STYLES[insight.type];
-            return (
-              <div key={i} className={`rounded-md border p-3 ${s.bg}`}>
-                <div className={`flex items-start gap-2 ${s.icon} mb-1`}>
-                  {insight.icon}
-                  <span className={`text-xs font-semibold ${s.title}`}>{insight.title}</span>
-                </div>
-                <ul className="space-y-0.5 pl-6">
-                  {insight.lines.map((line, j) => (
-                    <li key={j} className={`text-xs ${s.text}`}>
-                      {line}
-                    </li>
-                  ))}
-                </ul>
+      <div className="p-5 space-y-4">
+        {/* ── Progress section ── */}
+        {hasTarget && (
+          <div className={`rounded-lg p-4 space-y-3 ${isReached ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isReached
+                  ? <PartyPopper className="h-4 w-4 text-green-600" />
+                  : <Target className="h-4 w-4 text-blue-600" />}
+                <span className="text-sm font-semibold text-gray-800">Cycle Profit Target</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <span className={`text-lg font-bold ${isReached ? 'text-green-700' : 'text-blue-700'}`}>
+                {progress.toFixed(1)}%
+              </span>
+            </div>
 
-      {/* No insights yet */}
-      {insights.length === 0 && hasTarget && (
-        <p className="text-xs text-gray-400 text-center">
-          Trade a few sessions to generate personalized insights.
-        </p>
-      )}
+            {/* Progress bar with gradient fill */}
+            <div className="relative">
+              <div className="w-full h-3 bg-white/70 rounded-full overflow-hidden shadow-inner">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${isReached
+                    ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                    : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Earned</p>
+                <p className={`text-sm font-bold ${status.currentCyclePnl >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                  {fmtUsd(status.currentCyclePnl, currency)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Remaining</p>
+                <p className="text-sm font-bold text-gray-700">
+                  {remaining != null ? fmtUsdAbs(remaining, currency) : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Target</p>
+                <p className="text-sm font-bold text-gray-700">
+                  {fmtUsdAbs(status.cycleTargetProfitUsd!, currency)}
+                </p>
+              </div>
+            </div>
+
+            {isReached && onRecordWithdrawal && (
+              <button
+                onClick={onRecordWithdrawal}
+                className="w-full text-center text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 transition-colors rounded-md py-1.5"
+              >
+                Record withdrawal to start new cycle →
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Insight cards ── */}
+        {insights.length > 0 && (
+          <div className="space-y-3">
+            {insights.map((insight, i) => (
+              <InsightCard key={i} insight={insight} />
+            ))}
+          </div>
+        )}
+
+        {insights.length === 0 && hasTarget && (
+          <p className="text-xs text-gray-400 text-center py-2">
+            Trade a few sessions to unlock personalised insights.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
