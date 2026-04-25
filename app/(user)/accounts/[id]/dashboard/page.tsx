@@ -9,6 +9,7 @@ import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import { DrawdownStatusCard } from '@/components/dashboard/DrawdownStatusCard';
+import { CycleInsightsCard } from '@/components/dashboard/CycleInsightsCard';
 import { CycleProfitTargetCard } from '@/components/dashboard/CycleProfitTargetCard';
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
 import { SymbolStatsCard } from '@/components/dashboard/SymbolStatsCard';
@@ -164,14 +165,19 @@ export default async function AccountDashboardPage({
             cycleStatus.totalDrawdownUsedPct !== null ||
             cycleStatus.cycleTargetProfitUsd !== null ||
             cycleStatus.consistencyTargetPct !== null) && (
-            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 mb-6">
-              <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
-              {cycleStatus.cycleTargetProfitUsd && (
-                <CycleProfitTargetCard
-                  status={cycleStatus}
-                  currency={account.currency ?? 'USD'}
-                />
-              )}
+            <div className="space-y-4 sm:space-y-5 mb-6">
+              {/* Account Health + Cycle Target side-by-side when target is set */}
+              <div className={cycleStatus.cycleTargetProfitUsd ? 'grid gap-4 sm:grid-cols-2' : ''}>
+                <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
+                {cycleStatus.cycleTargetProfitUsd && (
+                  <CycleProfitTargetCard status={cycleStatus} currency={account.currency ?? 'USD'} />
+                )}
+              </div>
+              <CycleInsightsCard
+                status={cycleStatus}
+                currency={account.currency ?? 'USD'}
+                cycleStartFallback={account.createdAt}
+              />
             </div>
           )}
 

@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.10
+- **Version**: 3.11
 - **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
-- **Last Updated**: April 22, 2026
+- **Last Updated**: April 25, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -15,7 +15,7 @@
 
 **Project Status**: 🚀 v1.14.6 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 22, 2026 (v2.0.0-alpha.3 released to main + production DB repaired/migrated)  
+**Latest Development**: April 25, 2026 (v2.0.0-alpha.4: CycleInsightsCard, timezone bug fix, layout improvements)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
@@ -52,6 +52,11 @@ Phase Breakdown:
 - ✅ Production schema migration applied (`drizzle-kit push --force`)
 - ✅ Release tag published: `v2.0.0-alpha.3`
 
+**alpha.4 Release (April 25, 2026)**:
+- ✅ PR merged `develop` → `main`
+- ✅ Release tag published: `v2.0.0-alpha.4`
+- ✅ No DB schema changes — no migration required
+
 **Branch**: `feature/multi-trading-accounts`  
 **Started**: April 19, 2026  
 **Base**: v1.14.6  
@@ -77,7 +82,7 @@ Phase 2: Services Layer          [100%] ██████████ ✅
 Phase 3: Validation              [100%] ██████████ ✅
 Phase 4: API Routes              [100%] ██████████ ✅
 Phase 5: Active Account Context  [100%] ██████████ ✅
-Phase 6: Pages & Components      [85%]  █████████░ 🔄 IN PROGRESS
+Phase 6: Pages & Components      [90%]  █████████░ 🔄 IN PROGRESS
 Phase 7: Admin UI                [0%]   ░░░░░░░░░░
 ```
 
@@ -94,6 +99,10 @@ Phase 7: Admin UI                [0%]   ░░░░░░░░░░
 - ✅ Withdrawal tracking (alpha.2): `withdrawal_events`, `getCycleStatus` deducts withdrawals, calendar + landing page withdrawal display
 - ✅ Per-account achievements (alpha.3): `user_stats`, `user_badges`, `streaks` all `NOT NULL tradingAccountId`; `badgeService` + `streakService` fully per-account; `AchievementShowcase`, `ActiveStreaksWidget`, `NextBadgesProgress` per-account; `/dashboard/achievements` account-aware
 - ✅ Badge error fixes (alpha.3): special badge crash, negative progress bars, null badge entries
+- ✅ **Daily drawdown timezone fix** (alpha.4): `getTodayPnl` now uses account `dailyResetTimezone` via `Intl.DateTimeFormat` pattern
+- ✅ **CycleInsightsCard** (alpha.4): replaces static consistency display with math-based actionable insights (single-session fix range, multi-day fix path, daily cap, days-to-target, suggested minimum target when no target set); collapsible by default
+- ✅ **CycleProfitTargetCard UI refresh** (alpha.4): gradient progress bar, 3-stat row, matches new design language
+- ✅ **Dashboard layout** (alpha.4): target card + health card side-by-side when target is set; insights card full-width below
 
 **Remaining in Phase 6**:
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
