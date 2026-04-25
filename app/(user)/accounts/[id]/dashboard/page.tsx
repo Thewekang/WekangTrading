@@ -164,7 +164,7 @@ export default async function AccountDashboardPage({
             cycleStatus.totalDrawdownUsedPct !== null ||
             cycleStatus.cycleTargetProfitUsd !== null ||
             cycleStatus.consistencyTargetPct !== null) && (
-            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 mb-6">
+            <div className="space-y-4 sm:space-y-5 mb-6">
               <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
               <CycleInsightsCard
                 status={cycleStatus}
