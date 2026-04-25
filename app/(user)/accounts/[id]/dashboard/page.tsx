@@ -9,7 +9,7 @@ import { getActiveTargetsWithProgress } from '@/lib/services/targetService';
 import { getBestSopType } from '@/lib/services/sopTypeService';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
 import { DrawdownStatusCard } from '@/components/dashboard/DrawdownStatusCard';
-import { CycleProfitTargetCard } from '@/components/dashboard/CycleProfitTargetCard';
+import { CycleInsightsCard } from '@/components/dashboard/CycleInsightsCard';
 import { BestSopCard } from '@/components/dashboard/BestSopCard';
 import { SymbolStatsCard } from '@/components/dashboard/SymbolStatsCard';
 import { NoTradesEmptyState } from '@/components/ui/empty-state';
@@ -166,12 +166,11 @@ export default async function AccountDashboardPage({
             cycleStatus.consistencyTargetPct !== null) && (
             <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 mb-6">
               <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
-              {cycleStatus.cycleTargetProfitUsd && (
-                <CycleProfitTargetCard
-                  status={cycleStatus}
-                  currency={account.currency ?? 'USD'}
-                />
-              )}
+              <CycleInsightsCard
+                status={cycleStatus}
+                currency={account.currency ?? 'USD'}
+                cycleStartFallback={account.createdAt}
+              />
             </div>
           )}
 

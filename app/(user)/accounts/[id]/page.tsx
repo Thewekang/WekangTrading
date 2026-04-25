@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getAccount, getAccountRules } from '@/lib/services/tradingAccountService';
 import { getCycleStatus } from '@/lib/services/accountRulesService';
 import { DrawdownStatusCard } from '@/components/dashboard/DrawdownStatusCard';
-import { CycleProfitTargetCard } from '@/components/dashboard/CycleProfitTargetCard';
+import { CycleInsightsCard } from '@/components/dashboard/CycleInsightsCard';
 import {
   ArrowLeft,
   LayoutDashboard,
@@ -162,9 +162,11 @@ export default async function AccountLandingPage({
           cycleStatus.cycleTargetProfitUsd !== null) && (
           <div className="grid gap-4 sm:grid-cols-2 mb-6">
             <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
-            {cycleStatus.cycleTargetProfitUsd && (
-              <CycleProfitTargetCard status={cycleStatus} currency={account.currency ?? 'USD'} />
-            )}
+            <CycleInsightsCard
+              status={cycleStatus}
+              currency={account.currency ?? 'USD'}
+              cycleStartFallback={account.createdAt}
+            />
           </div>
         )}
 
