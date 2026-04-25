@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import type { CycleStatus } from '@/lib/services/accountRulesService';
-import { Lightbulb, Target, TrendingUp, AlertTriangle, PartyPopper, Info, ShieldCheck } from 'lucide-react';
+import { Lightbulb, Target, TrendingUp, AlertTriangle, PartyPopper, Info, ShieldCheck, ChevronDown } from 'lucide-react';
 
 interface CycleInsightsCardProps {
   status: CycleStatus;
@@ -338,19 +339,65 @@ export function CycleInsightsCard({
   if (insights.length === 0 && !hasTarget) return null;
 
   return (
+    <CollapsibleInsightsCard
+      insights={insights}
+      status={status}
+      currency={currency}
+      hasTarget={hasTarget}
+      progress={progress}
+      isReached={isReached}
+      remaining={remaining}
+      onRecordWithdrawal={onRecordWithdrawal}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collapsible wrapper (collapsed by default)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CollapsibleInsightsCard({
+  insights,
+  status,
+  currency,
+  hasTarget,
+  progress,
+  isReached,
+  remaining,
+  onRecordWithdrawal,
+}: {
+  insights: Insight[];
+  status: CycleStatus;
+  currency: string;
+  hasTarget: boolean;
+  progress: number;
+  isReached: boolean | undefined;
+  remaining: number | null;
+  onRecordWithdrawal?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       {/* Card header */}
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2.5 px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white hover:from-amber-100 transition-colors text-left"
+      >
         <div className="p-1.5 bg-amber-100 rounded-lg">
           <Lightbulb className="h-4 w-4 text-amber-600" />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-sm">Cycle Insights</h3>
           <p className="text-xs text-gray-400">Smart guidance based on your current cycle data</p>
         </div>
-      </div>
+        <ChevronDown
+          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-      <div className="p-5 space-y-4">
+      {open && <div className="p-5 space-y-4">
         {/* ── Progress section ── */}
         {hasTarget && (
           <div className={`rounded-lg p-4 space-y-3 ${isReached ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'}`}>
@@ -425,7 +472,7 @@ export function CycleInsightsCard({
             Trade a few sessions to unlock personalised insights.
           </p>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
