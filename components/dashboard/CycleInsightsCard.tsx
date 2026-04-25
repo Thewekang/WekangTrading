@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import type { CycleStatus } from '@/lib/services/accountRulesService';
-import { Lightbulb, Target, TrendingUp, AlertTriangle, PartyPopper, Info, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Lightbulb, Target, TrendingUp, AlertTriangle, PartyPopper, ShieldCheck, ChevronDown } from 'lucide-react';
 
 interface CycleInsightsCardProps {
   status: CycleStatus;
   currency?: string;
   /** Fallback start date (account.createdAt) when no withdrawal exists */
   cycleStartFallback?: Date;
-  onRecordWithdrawal?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -327,27 +326,14 @@ export function CycleInsightsCard({
   status,
   currency = 'USD',
   cycleStartFallback,
-  onRecordWithdrawal,
 }: CycleInsightsCardProps) {
   const insights = computeInsights(status, currency, cycleStartFallback);
 
-  const hasTarget = status.cycleTargetProfitUsd != null && status.cycleTargetProfitUsd > 0;
-  const progress = Math.min(status.cycleProgressPct ?? 0, 100);
-  const isReached = status.targetReached;
-  const remaining = hasTarget ? Math.max(0, status.cycleTargetProfitUsd! - status.currentCyclePnl) : null;
-
-  if (insights.length === 0 && !hasTarget) return null;
+  if (insights.length === 0) return null;
 
   return (
     <CollapsibleInsightsCard
       insights={insights}
-      status={status}
-      currency={currency}
-      hasTarget={hasTarget}
-      progress={progress}
-      isReached={isReached}
-      remaining={remaining}
-      onRecordWithdrawal={onRecordWithdrawal}
     />
   );
 }
@@ -358,22 +344,8 @@ export function CycleInsightsCard({
 
 function CollapsibleInsightsCard({
   insights,
-  status,
-  currency,
-  hasTarget,
-  progress,
-  isReached,
-  remaining,
-  onRecordWithdrawal,
 }: {
   insights: Insight[];
-  status: CycleStatus;
-  currency: string;
-  hasTarget: boolean;
-  progress: number;
-  isReached: boolean | undefined;
-  remaining: number | null;
-  onRecordWithdrawal?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -397,82 +369,13 @@ function CollapsibleInsightsCard({
         />
       </button>
 
-      {open && <div className="p-5 space-y-4">
-        {/* ── Progress section ── */}
-        {hasTarget && (
-          <div className={`rounded-lg p-4 space-y-3 ${isReached ? 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {isReached
-                  ? <PartyPopper className="h-4 w-4 text-green-600" />
-                  : <Target className="h-4 w-4 text-blue-600" />}
-                <span className="text-sm font-semibold text-gray-800">Cycle Profit Target</span>
-              </div>
-              <span className={`text-lg font-bold ${isReached ? 'text-green-700' : 'text-blue-700'}`}>
-                {progress.toFixed(1)}%
-              </span>
-            </div>
-
-            {/* Progress bar with gradient fill */}
-            <div className="relative">
-              <div className="w-full h-3 bg-white/70 rounded-full overflow-hidden shadow-inner">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${isReached
-                    ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                    : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Earned</p>
-                <p className={`text-sm font-bold ${status.currentCyclePnl >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                  {fmtUsd(status.currentCyclePnl, currency)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Remaining</p>
-                <p className="text-sm font-bold text-gray-700">
-                  {remaining != null ? fmtUsdAbs(remaining, currency) : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Target</p>
-                <p className="text-sm font-bold text-gray-700">
-                  {fmtUsdAbs(status.cycleTargetProfitUsd!, currency)}
-                </p>
-              </div>
-            </div>
-
-            {isReached && onRecordWithdrawal && (
-              <button
-                onClick={onRecordWithdrawal}
-                className="w-full text-center text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 transition-colors rounded-md py-1.5"
-              >
-                Record withdrawal to start new cycle →
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Insight cards ── */}
-        {insights.length > 0 && (
-          <div className="space-y-3">
-            {insights.map((insight, i) => (
-              <InsightCard key={i} insight={insight} />
-            ))}
-          </div>
-        )}
-
-        {insights.length === 0 && hasTarget && (
-          <p className="text-xs text-gray-400 text-center py-2">
-            Trade a few sessions to unlock personalised insights.
-          </p>
-        )}
-      </div>}
+      {open && (
+        <div className="p-5 space-y-3">
+          {insights.map((insight, i) => (
+            <InsightCard key={i} insight={insight} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

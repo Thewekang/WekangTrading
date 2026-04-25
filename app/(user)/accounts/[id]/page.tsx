@@ -5,6 +5,7 @@ import { getAccount, getAccountRules } from '@/lib/services/tradingAccountServic
 import { getCycleStatus } from '@/lib/services/accountRulesService';
 import { DrawdownStatusCard } from '@/components/dashboard/DrawdownStatusCard';
 import { CycleInsightsCard } from '@/components/dashboard/CycleInsightsCard';
+import { CycleProfitTargetCard } from '@/components/dashboard/CycleProfitTargetCard';
 import {
   ArrowLeft,
   LayoutDashboard,
@@ -161,7 +162,13 @@ export default async function AccountLandingPage({
           cycleStatus.totalDrawdownUsedPct !== null ||
           cycleStatus.cycleTargetProfitUsd !== null) && (
           <div className="space-y-4 mb-6">
-            <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
+            {/* Account Health + Cycle Target side-by-side when target is set */}
+            <div className={cycleStatus.cycleTargetProfitUsd ? 'grid gap-4 sm:grid-cols-2' : ''}>
+              <DrawdownStatusCard status={cycleStatus} currency={account.currency ?? 'USD'} />
+              {cycleStatus.cycleTargetProfitUsd && (
+                <CycleProfitTargetCard status={cycleStatus} currency={account.currency ?? 'USD'} />
+              )}
+            </div>
             <CycleInsightsCard
               status={cycleStatus}
               currency={account.currency ?? 'USD'}
