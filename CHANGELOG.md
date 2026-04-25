@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v2.0.0-alpha.4] — 2026-04-25
+
+### Fixed
+- **`accountRulesService.ts` — `getTodayPnl` timezone bug**: daily drawdown was computed using UTC `startOfDay` / `endOfDay` instead of the account's `dailyResetTimezone`. Rewrote using the same `Intl.DateTimeFormat('en-CA', { timeZone })` + 48-hour fetch-window + JS filter pattern already used by `getBestDayCyclePnl`. Accounts with non-UTC reset zones (e.g. FTMO `Europe/Prague`) now show the correct daily P&L.
+
+### Added
+- **`CycleInsightsCard`** (new component, replaces `CycleProfitTargetCard` inline progress in previous alpha): math-based actionable guidance card scoped to a cycle. Insights emitted:
+  - `warning` — consistency FAIL: single-session fix range (earn X–Y today to resolve in one go)
+  - `tip` — consistency FAIL: multi-day fix path (days needed, capped daily pace)
+  - `info` — consistency PASS: daily cap to stay compliant (`maxSafeNewBestDay`)
+  - `info` — days to profit target at current average daily pace
+  - `success` — profit target reached
+  - `info` — **suggested minimum profit target** (when no target is configured): `minTarget = bestDayCyclePnl / (consistencyTargetPct / 100)`; shows % progress toward that minimum and days to reach it
+- **`CycleInsightsCard` — collapsible**: card is collapsed by default; clicking the header toggles open/closed with an animated chevron.
+
+### Changed
+- **`CycleProfitTargetCard`** — refreshed UI to match the new card design language: header strip with gradient background, gradient progress bar (blue→indigo / green→emerald), 3-stat row (Earned / Remaining / Target), 🎉 message when target reached.
+- **Account landing page + account dashboard page — layout**:
+  - When a **profit target is set**: `DrawdownStatusCard` (left) + `CycleProfitTargetCard` (right) in a responsive 2-column grid, then `CycleInsightsCard` full-width below.
+  - When **no profit target**: `DrawdownStatusCard` full-width, then `CycleInsightsCard` full-width below.
+  - Previously both pages used a stacked layout with no separate target card.
+
+### Operations — v2.0.0-alpha.4 Release Rollout (2026-04-25)
+
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.4`
+- No DB schema changes in this release — no migration required
+
+---
+
 ### Operations — v2.0.0-alpha.3 Release Rollout (2026-04-22)
 
 - `develop` promoted to `main` via PR #28
