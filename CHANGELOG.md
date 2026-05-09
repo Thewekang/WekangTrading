@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Timezone label in admin performance calendar** (`UserPerformanceCalendar`): the calendar header now shows "Daily reset timezone: Asia/Kuala_Lumpur" (or whichever timezone is resolved for that account), matching the setting visibility in the user-facing performance calendar.
+- **Stats bar on admin trades page** (`/admin/trades`): 4 summary stat cards (Total Trades, Win Rate, SOP Rate, Net P/L) rendered above the trades table. Stats are computed server-side across the full filtered result set (not just the current page) — TRANSACTION rows for trade counts/rates, all rows for net P/L. A context banner shows "Showing X of Y trades" with page context. Matches the user-facing trades summary style.
+
+### Operations — v2.0.0-alpha.5 Release Rollout (2026-05-09)
+
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.5`
+- No DB schema changes in this release — no migration required
 
 ---
 
