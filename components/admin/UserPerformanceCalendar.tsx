@@ -62,6 +62,7 @@ export default function UserPerformanceCalendar({ userId, userName, accountId, a
   const [withdrawalsByDay, setWithdrawalsByDay] = useState<Map<number, number>>(new Map());
   const [withdrawalsByMonth, setWithdrawalsByMonth] = useState<Map<number, number>>(new Map());
   const [totalWithdrawals, setTotalWithdrawals] = useState(0);
+  const [timezone, setTimezone] = useState<string>('');
   const [summary, setSummary] = useState<PerformanceSummary>({
     profitLoss: 0,
     totalTrades: 0,
@@ -96,6 +97,7 @@ export default function UserPerformanceCalendar({ userId, userName, accountId, a
 
       if (result.success) {
         setSummary(result.data.summary);
+        if (result.data.timezone) setTimezone(result.data.timezone);
 
         // Parse withdrawal markers
         const rawWithdrawals: WithdrawalEntry[] = result.data.withdrawals ?? [];
@@ -401,6 +403,11 @@ export default function UserPerformanceCalendar({ userId, userName, accountId, a
               ? `${monthNames[month - 1]} ${year}`
               : `${year} Overview`}
           </p>
+          {timezone && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              Daily reset timezone: <span className="font-medium text-gray-600">{timezone}</span>
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
