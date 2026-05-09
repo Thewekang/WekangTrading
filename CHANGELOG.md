@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.5] — 2026-05-09
+
+### Fixed
+- **Admin performance calendar timezone blindness**: `/api/admin/users/[id]/performance` was querying `daily_summaries` using raw UTC `Date.getDate()` / `Date.getMonth()`, causing trades to land in the wrong calendar cell for non-UTC timezones (e.g. a trade at 11 PM `Asia/KL` would appear on the next UTC day). The route now delegates to the same `getYearlyPerformance` / `getMonthlyPerformance` from `performanceAnalyticsService` that the user-facing `/api/analytics/performance` uses — full `Intl.DateTimeFormat` timezone-aware grouping via `individualTrades`.
+- **Admin performance calendar missing trades**: the old `daily_summaries` query did not account for all edge cases of account-scoped data, causing trades visible in `/admin/trades` to not appear in the user performance calendar under `/admin/users`. Now queries `individualTrades` directly (same as user calendar).
+- **Admin performance calendar timezone resolution**: the API now fetches `user.preferredTimezone` and, when an account is selected, overrides with the account's `dailyResetTimezone` from `account_rules` — identical logic to `/api/analytics/performance`.
+
+### Added
+- **Timezone label in admin performance calendar** (`UserPerformanceCalendar`): the calendar header now shows "Daily reset timezone: Asia/Kuala_Lumpur" (or whichever timezone is resolved for that account), matching the setting visibility in the user-facing performance calendar.
+- **Stats bar on admin trades page** (`/admin/trades`): 4 summary stat cards (Total Trades, Win Rate, SOP Rate, Net P/L) rendered above the trades table. Stats are computed server-side across the full filtered result set (not just the current page) — TRANSACTION rows for trade counts/rates, all rows for net P/L. A context banner shows "Showing X of Y trades" with page context. Matches the user-facing trades summary style.
+
+### Operations — v2.0.0-alpha.5 Release Rollout (2026-05-09)
+
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.5`
+- No DB schema changes in this release — no migration required
+
+---
+
 ## [v2.0.0-alpha.4] — 2026-04-25
 
 ### Fixed

@@ -30,6 +30,15 @@ interface PaginationMeta {
   totalPages: number;
 }
 
+interface FilteredStats {
+  totalTrades: number;
+  totalWins: number;
+  totalSopFollowed: number;
+  winRate: number;
+  sopRate: number;
+  netPnl: number;
+}
+
 // Helper function to get initial page size from localStorage
 const getInitialPageSize = () => {
   if (typeof window !== 'undefined') {
@@ -68,6 +77,7 @@ export default function AdminTradesPage() {
   // Delete confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [filteredStats, setFilteredStats] = useState<FilteredStats | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -162,6 +172,7 @@ export default function AdminTradesPage() {
       
       setTrades(transformedTrades);
       setPagination(data.data.pagination);
+      if (data.data.stats) setFilteredStats(data.data.stats);
     } catch (error) {
       console.error('Error fetching trades:', error);
       showToast('Failed to load trades', 'error');
@@ -329,6 +340,50 @@ export default function AdminTradesPage() {
 
         <Button onClick={resetFilters} variant="outline" size="sm">Reset Filters</Button>
       </Card>
+
+      {/* Stats summary for filtered results */}
+      {filteredStats && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">Total Trades</div>
+              <div className="text-2xl font-bold text-gray-900">{filteredStats.totalTrades}</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">Win Rate</div>
+              <div className={`text-2xl font-bold ${filteredStats.winRate >= 50 ? 'text-green-600' : 'text-red-600'}`}>
+                {filteredStats.winRate.toFixed(1)}%
+              </div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">SOP Rate</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {filteredStats.sopRate.toFixed(1)}%
+              </div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">Net P/L</div>
+              <div className={`text-2xl font-bold ${filteredStats.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {filteredStats.netPnl >= 0 ? '+' : ''}${filteredStats.netPnl.toFixed(2)}
+              </div>
+            </Card>
+          </div>
+
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border mb-4 text-sm font-medium ${
+            pagination.total <= pagination.pageSize
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-white text-xs ${
+              pagination.total <= pagination.pageSize ? 'bg-green-500' : 'bg-blue-500'
+            }`}>✓</span>
+            <span>Showing {trades.length} of {pagination.total} trade{pagination.total !== 1 ? 's' : ''}</span>
+            <span className="text-xs font-normal opacity-70">
+              {pagination.total <= pagination.pageSize ? '— displaying all filtered results' : `— page ${pagination.page} of ${pagination.totalPages}`}
+            </span>
+          </div>
+        </>
+      )}
 
       {/* Trades Table */}
       {loading ? (

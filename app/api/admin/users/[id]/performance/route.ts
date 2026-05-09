@@ -1,32 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { users, dailySummaries, withdrawalEvents, tradingAccounts } from '@/lib/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
-
-/**
- * Fetch withdrawal events for a given user, optionally scoped to a trading account.
- * tradingAccountId comes from the `tradingAccountId` query param passed by the admin calendar.
- */
-async function getWithdrawals(
-  userId: string,
-  tradingAccountId?: string,
-): Promise<{ date: string; amount: number }[]> {
-  if (tradingAccountId) {
-    const rows = await db
-      .select({ date: withdrawalEvents.withdrawalDate, amount: withdrawalEvents.withdrawalAmount })
-      .from(withdrawalEvents)
-      .where(eq(withdrawalEvents.tradingAccountId, tradingAccountId));
-    return rows;
-  }
-  // All accounts for this user
-  const rows = await db
-    .select({ date: withdrawalEvents.withdrawalDate, amount: withdrawalEvents.withdrawalAmount })
-    .from(withdrawalEvents)
-    .innerJoin(tradingAccounts, eq(withdrawalEvents.tradingAccountId, tradingAccounts.id))
-    .where(eq(tradingAccounts.userId, userId));
-  return rows;
-}
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getYearlyPerformance, getMonthlyPerformance } from '@/lib/services/performanceAnalyticsService';
+import { getAccountRules } from '@/lib/services/tradingAccountService';
 
 /**
  * GET /api/admin/users/[id]/performance?year=2025&month=1
@@ -59,9 +37,9 @@ export async function GET(
     const monthParam = searchParams.get('month');
     const tradingAccountId = searchParams.get('tradingAccountId') || undefined;
 
-    // Check if user exists
+    // Check if user exists and get their preferred timezone
     const [user] = await db
-      .select({ id: users.id, name: users.name, email: users.email })
+      .select({ id: users.id, name: users.name, email: users.email, preferredTimezone: users.preferredTimezone })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -73,104 +51,53 @@ export async function GET(
       );
     }
 
+    // Resolve timezone: prefer account's dailyResetTimezone (broker day boundary),
+    // fall back to user's preferredTimezone. This mirrors /api/analytics/performance.
+    let timezone = user.preferredTimezone || 'Asia/Kuala_Lumpur';
+    if (tradingAccountId) {
+      const rules = await getAccountRules(tradingAccountId);
+      if (rules?.dailyResetTimezone) {
+        timezone = rules.dailyResetTimezone;
+      }
+    }
+
     if (monthParam) {
-      // Monthly view - return daily breakdown
       const month = parseInt(monthParam);
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0); // Last day of month
 
-      const monthConditions: any[] = [
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDate),
-        lte(dailySummaries.tradeDate, endDate),
-      ];
-      if (tradingAccountId) monthConditions.push(eq(dailySummaries.tradingAccountId, tradingAccountId));
+      // Use the same service as /api/analytics/performance — timezone-aware, queries individualTrades
+      const monthlyData = await getMonthlyPerformance(userId, year, month, timezone, tradingAccountId);
 
-      const summaries = await db
-        .select({
-          tradeDate: dailySummaries.tradeDate,
-          totalTrades: dailySummaries.totalTrades,
-          totalWins: dailySummaries.totalWins,
-          totalLosses: dailySummaries.totalLosses,
-          totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
-          totalCommissionUsd: dailySummaries.totalCommissionUsd,
-          totalSopFollowed: dailySummaries.totalSopFollowed,
-        })
-        .from(dailySummaries)
-        .where(and(...monthConditions))
-        .orderBy(dailySummaries.tradeDate);
-
-      // Create a map for quick lookup
-      const performanceMap = new Map(
-        summaries.map(summary => [
-          summary.tradeDate.getDate(),
-          {
-            date: summary.tradeDate.getDate(),
-            totalTrades: summary.totalTrades,
-            totalWins: summary.totalWins,
-            totalLosses: summary.totalLosses,
-            totalSopFollowed: summary.totalSopFollowed,
-            profitLoss: summary.totalProfitLossUsd + summary.totalCommissionUsd,
-            winRate: summary.totalTrades > 0 
-              ? (summary.totalWins / summary.totalTrades) * 100 
-              : 0,
-            sopRate: summary.totalTrades > 0
-              ? (summary.totalSopFollowed / summary.totalTrades) * 100
-              : 0
-          }
-        ])
+      // Map service's dailyBreakdown (sparse) to full-month array expected by UserPerformanceCalendar
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const dayMap = new Map(
+        monthlyData.dailyBreakdown.map(d => [new Date(d.date).getDate(), d])
       );
 
-      // Fill in all days of the month
-      const daysInMonth = endDate.getDate();
       const dailyPerformance = Array.from({ length: daysInMonth }, (_, i) => {
         const day = i + 1;
-        return performanceMap.get(day) || {
+        const d = dayMap.get(day);
+        return {
           date: day,
-          totalTrades: 0,
-          totalWins: 0,
-          totalLosses: 0,
-          totalSopFollowed: 0,
-          profitLoss: 0,
-          winRate: 0,
-          sopRate: 0
+          totalTrades: d?.trades ?? 0,
+          totalWins: d?.wins ?? 0,
+          totalLosses: d?.losses ?? 0,
+          totalSopFollowed: d ? Math.round((d.sopRate / 100) * d.trades) : 0,
+          profitLoss: d?.pnl ?? 0,
+          winRate: d?.winRate ?? 0,
+          sopRate: d?.sopRate ?? 0,
         };
       });
 
-      // Calculate monthly totals
-      const monthlyTotal: {
-        profitLoss: number;
-        totalTrades: number;
-        totalWins: number;
-        totalLosses: number;
-        totalSopFollowed: number;
-        winRate: number;
-        sopRate: number;
-      } = {
-        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd + s.totalCommissionUsd, 0),
-        totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
-        totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
-        totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
-        totalSopFollowed: summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0),
-        winRate: 0,
-        sopRate: 0
+      const ov = monthlyData.overview;
+      const summary = {
+        profitLoss: ov.totalPnl,
+        totalTrades: ov.totalTrades,
+        totalWins: ov.totalWins,
+        totalLosses: ov.totalLosses,
+        totalSopFollowed: ov.totalTrades > 0 ? Math.round((ov.sopRate / 100) * ov.totalTrades) : 0,
+        winRate: ov.winRate,
+        sopRate: ov.sopRate,
       };
-
-      monthlyTotal.winRate = monthlyTotal.totalTrades > 0
-        ? (monthlyTotal.totalWins / monthlyTotal.totalTrades) * 100
-        : 0;
-      
-      monthlyTotal.sopRate = monthlyTotal.totalTrades > 0
-        ? (monthlyTotal.totalSopFollowed / monthlyTotal.totalTrades) * 100
-        : 0;
-
-      // Fetch withdrawals and include as markers for the calendar
-      const allWithdrawals = await getWithdrawals(userId, tradingAccountId);
-      const monthWithdrawals = allWithdrawals
-        .filter(w => {
-          const [y, m] = w.date.split('-').map(Number);
-          return y === year && m === month;
-        });
 
       return NextResponse.json({
         success: true,
@@ -180,118 +107,39 @@ export async function GET(
           year,
           month,
           monthName: new Date(year, month - 1).toLocaleString('en-US', { month: 'long' }),
+          timezone,
           dailyPerformance,
-          summary: monthlyTotal,
-          withdrawals: monthWithdrawals,
+          summary,
+          withdrawals: monthlyData.withdrawals,
         }
       });
     } else {
-      // Yearly view - return monthly breakdown
-      const startDate = new Date(year, 0, 1);
-      const endDate = new Date(year, 11, 31);
+      // Use the same service as /api/analytics/performance — timezone-aware, queries individualTrades
+      const yearlyData = await getYearlyPerformance(userId, year, timezone, tradingAccountId);
 
-      const yearConditions: Parameters<typeof and>[0][] = [
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, startDate),
-        lte(dailySummaries.tradeDate, endDate),
-      ];
-      if (tradingAccountId) yearConditions.push(eq(dailySummaries.tradingAccountId, tradingAccountId));
+      // Map service's monthlyBreakdown to the format expected by UserPerformanceCalendar
+      const monthlyPerformance = yearlyData.monthlyBreakdown.map(m => ({
+        month: m.monthNumber,
+        monthName: m.month,
+        totalTrades: m.trades,
+        totalWins: m.wins,
+        totalLosses: m.losses,
+        totalSopFollowed: m.trades > 0 ? Math.round((m.sopRate / 100) * m.trades) : 0,
+        profitLoss: m.pnl,
+        winRate: m.winRate,
+        sopRate: m.sopRate,
+      }));
 
-      const summaries = await db
-        .select({
-          tradeDate: dailySummaries.tradeDate,
-          totalTrades: dailySummaries.totalTrades,
-          totalWins: dailySummaries.totalWins,
-          totalLosses: dailySummaries.totalLosses,
-          totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
-          totalCommissionUsd: dailySummaries.totalCommissionUsd,
-          totalSopFollowed: dailySummaries.totalSopFollowed,
-        })
-        .from(dailySummaries)
-        .where(and(...yearConditions));
-
-      // Group by month
-      const monthlyMap = new Map<number, {
-        totalTrades: number;
-        totalWins: number;
-        totalLosses: number;
-        totalSopFollowed: number;
-        profitLoss: number;
-      }>();
-
-      summaries.forEach(summary => {
-        const month = summary.tradeDate.getMonth(); // 0-11
-        const existing = monthlyMap.get(month) || {
-          totalTrades: 0,
-          totalWins: 0,
-          totalLosses: 0,
-          totalSopFollowed: 0,
-          profitLoss: 0
-        };
-
-        monthlyMap.set(month, {
-          totalTrades: existing.totalTrades + summary.totalTrades,
-          totalWins: existing.totalWins + summary.totalWins,
-          totalLosses: existing.totalLosses + summary.totalLosses,
-          totalSopFollowed: existing.totalSopFollowed + summary.totalSopFollowed,
-          profitLoss: existing.profitLoss + summary.totalProfitLossUsd + summary.totalCommissionUsd
-        });
-      });
-
-      // Create monthly performance array
-      const monthlyPerformance = Array.from({ length: 12 }, (_, i) => {
-        const data = monthlyMap.get(i) || {
-          totalTrades: 0,
-          totalWins: 0,
-          totalLosses: 0,
-          totalSopFollowed: 0,
-          profitLoss: 0
-        };
-
-        return {
-          month: i + 1,
-          monthName: new Date(year, i).toLocaleString('en-US', { month: 'short' }),
-          totalTrades: data.totalTrades,
-          totalWins: data.totalWins,
-          totalLosses: data.totalLosses,
-          totalSopFollowed: data.totalSopFollowed,
-          profitLoss: data.profitLoss,
-          winRate: data.totalTrades > 0 ? (data.totalWins / data.totalTrades) * 100 : 0,
-          sopRate: data.totalTrades > 0 ? (data.totalSopFollowed / data.totalTrades) * 100 : 0
-        };
-      });
-
-      // Calculate yearly totals
-      const yearlyTotal: {
-        profitLoss: number;
-        totalTrades: number;
-        totalWins: number;
-        totalLosses: number;
-        totalSopFollowed: number;
-        winRate: number;
-        sopRate: number;
-      } = {
-        profitLoss: summaries.reduce((sum, s) => sum + s.totalProfitLossUsd + s.totalCommissionUsd, 0),
-        totalTrades: summaries.reduce((sum, s) => sum + s.totalTrades, 0),
-        totalWins: summaries.reduce((sum, s) => sum + s.totalWins, 0),
-        totalLosses: summaries.reduce((sum, s) => sum + s.totalLosses, 0),
-        totalSopFollowed: summaries.reduce((sum, s) => sum + s.totalSopFollowed, 0),
-        winRate: 0,
-        sopRate: 0
+      const ov = yearlyData.overview;
+      const summary = {
+        profitLoss: ov.totalPnl,
+        totalTrades: ov.totalTrades,
+        totalWins: ov.totalWins,
+        totalLosses: ov.totalLosses,
+        totalSopFollowed: ov.totalTrades > 0 ? Math.round((ov.sopRate / 100) * ov.totalTrades) : 0,
+        winRate: ov.winRate,
+        sopRate: ov.sopRate,
       };
-
-      yearlyTotal.winRate = yearlyTotal.totalTrades > 0
-        ? (yearlyTotal.totalWins / yearlyTotal.totalTrades) * 100
-        : 0;
-      
-      yearlyTotal.sopRate = yearlyTotal.totalTrades > 0
-        ? (yearlyTotal.totalSopFollowed / yearlyTotal.totalTrades) * 100
-        : 0;
-
-      // Fetch withdrawals and include as markers for the calendar
-      const allWithdrawals = await getWithdrawals(userId, tradingAccountId);
-      const yearWithdrawals = allWithdrawals
-        .filter(w => parseInt(w.date.split('-')[0]) === year);
 
       return NextResponse.json({
         success: true,
@@ -299,9 +147,10 @@ export async function GET(
           user,
           view: 'year',
           year,
+          timezone,
           monthlyPerformance,
-          summary: yearlyTotal,
-          withdrawals: yearWithdrawals,
+          summary,
+          withdrawals: yearlyData.withdrawals,
         }
       });
     }
