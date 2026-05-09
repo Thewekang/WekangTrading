@@ -265,3 +265,56 @@ export type AccountRulesInput = z.infer<typeof accountRulesSchema>;
 export type WithdrawalEventInput = z.infer<typeof withdrawalEventSchema>;
 export type DrawdownTemplateInput = z.infer<typeof drawdownTemplateSchema>;
 export type AdminSettingInput = z.infer<typeof adminSettingSchema>;
+
+// ============================================
+// STRATEGY PLAYBOOK VALIDATION SCHEMAS
+// ============================================
+
+const instrumentTypeEnum = z.enum(['FOREX', 'COMMODITY', 'INDEX', 'CRYPTO', 'FUTURES']);
+
+export const createStrategySchema = z.object({
+  symbol: z
+    .string()
+    .min(2, 'Symbol must be at least 2 characters')
+    .max(20, 'Symbol must be less than 20 characters')
+    .transform((v) => v.toUpperCase().trim()),
+  instrumentType: instrumentTypeEnum,
+  defaultLotSize: z.number().positive('Lot size must be positive').optional().nullable(),
+  stopLossPoints: z.number().positive('SL must be positive').optional().nullable(),
+  tp1Points: z.number().positive('TP1 must be positive').optional().nullable(),
+  tp2Points: z.number().positive('TP2 must be positive').optional().nullable(),
+  riskPercentPerTrade: z
+    .number()
+    .min(0.01, 'Risk % must be at least 0.01')
+    .max(100, 'Risk % cannot exceed 100')
+    .default(1.0),
+  maxTradesPerDay: z
+    .number()
+    .int('Max trades must be a whole number')
+    .positive('Max trades must be positive')
+    .optional()
+    .nullable(),
+  tickSize: z.number().positive('Tick size must be positive').optional().nullable(),
+  tickValue: z.number().positive('Tick value must be positive').optional().nullable(),
+  pipValue: z.number().positive('Pip value must be positive').optional().nullable(),
+  bestSessions: z.array(z.string()).optional().nullable(),
+  entryNotes: z.string().max(1000, 'Notes must be less than 1000 characters').optional().nullable(),
+  sortOrder: z.number().int().default(0),
+});
+
+export const updateStrategySchema = createStrategySchema.partial();
+
+// Extend trading account update to include calculator settings
+export const calculatorSettingsSchema = z.object({
+  accountBalance: z.number().positive('Balance must be positive').optional().nullable(),
+  calculatorLeverage: z
+    .number()
+    .int()
+    .positive('Leverage must be positive')
+    .optional()
+    .nullable(),
+});
+
+export type CreateStrategyInput = z.infer<typeof createStrategySchema>;
+export type UpdateStrategyInput = z.infer<typeof updateStrategySchema>;
+export type CalculatorSettingsInput = z.infer<typeof calculatorSettingsSchema>;

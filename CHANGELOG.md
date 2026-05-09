@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.6] — 2026-05-09
+
+### Added
+- **Strategy Playbook** (`/accounts/[id]/strategies`): per-account symbol rules with a built-in position sizing calculator.
+  - **`account_strategies` table** (migration `0014`): stores symbol, instrumentType, defaultLotSize, stopLossPoints, tp1Points, tp2Points, riskPercentPerTrade, maxTradesPerDay, tickSize/tickValue (futures) or pipValue (forex/CFD), bestSessions (JSON), entryNotes, sortOrder.
+  - **`accountBalance` + `calculatorLeverage`** columns added to `trading_accounts` for the position calculator.
+  - **INSTRUMENT_DEFAULTS** presets for 19 instruments: MNQ, NQ, MGC, GC, MBT, BTC, MES, ES, MCL, EURUSD, GBPUSD, USDJPY, AUDUSD, GBPJPY, XAUUSD, XAGUSD, NAS100, US30, SPX500 — auto-fills tick/pip values + default lot size when symbol is typed.
+  - **PositionCalculator modal**: real-time risk sizing with two math paths — futures (tick-based: `riskUsd / (slPoints/tickSize × tickValue)`) and forex/CFD (pip-based: `riskUsd / (slPips × pipValue)`). Shows max contracts/lots, TP1 & TP2 profit, and R:R ratios.
+  - **StrategyFormDialog**: create/edit strategy with symbol auto-fill, session multi-select toggles, conditional tick vs pip fields.
+  - **StrategyCard**: displays position grid (lot/risk/SL/TP1/TP2/R:R), session chips, entry notes, and a "Calculate Position" button.
+  - **AccountSettingsForm — Calculator Settings section**: balance (USD) and leverage inputs saved via PATCH to `/api/trading-accounts/[id]`.
+  - **Strategy Playbook quick action** on the account landing page (`/accounts/[id]`).
+  - **Full CRUD API**: `GET/POST /api/trading-accounts/[id]/strategies`, `GET/PATCH/DELETE /api/trading-accounts/[id]/strategies/[strategyId]`.
+
+### Operations — v2.0.0-alpha.6 Release Rollout (2026-05-09)
+
+- Feature branch `feature/strategy-playbook` merged into `develop`
+- DB schema change: Drizzle migration `0014_fat_kang.sql` applied to staging
+- Production migration required before deploy: `account_strategies` table + `account_balance`/`calculator_leverage` columns on `trading_accounts`
+
+---
+
 ## [v2.0.0-alpha.5] — 2026-05-09
 
 ### Fixed

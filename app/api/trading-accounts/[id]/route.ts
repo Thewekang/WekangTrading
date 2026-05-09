@@ -6,8 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getAccount, updateAccount, hardDeleteAccount, setDefaultAccount } from '@/lib/services/tradingAccountService';
-import { updateTradingAccountSchema } from '@/lib/validations';
+import { getAccount, updateAccount, hardDeleteAccount, setDefaultAccount, updateCalculatorSettings } from '@/lib/services/tradingAccountService';
+import { updateTradingAccountSchema, calculatorSettingsSchema } from '@/lib/validations';
 import { ZodError } from 'zod';
 
 type Params = { params: Promise<{ id: string }> };
@@ -51,6 +51,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     // Special action: set as default
     if (body.setDefault === true) {
       const updated = await setDefaultAccount(id, session.user.id);
+      return NextResponse.json({ success: true, data: updated });
+    }
+
+    // Special action: update calculator settings (balance + leverage)
+    if ('accountBalance' in body || 'calculatorLeverage' in body) {
+      const input = calculatorSettingsSchema.parse(body);
+      const updated = await updateCalculatorSettings(id, session.user.id, input);
       return NextResponse.json({ success: true, data: updated });
     }
 

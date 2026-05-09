@@ -17,6 +17,7 @@ import {
   Settings,
   Wallet,
   Trophy,
+  BookOpen,
 } from 'lucide-react';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -103,6 +104,13 @@ export default async function AccountLandingPage({
       icon: Settings,
       label: 'Account Settings',
       description: 'Rules & withdrawals',
+      color: 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200',
+    },
+    {
+      href: `/accounts/${id}/strategies`,
+      icon: BookOpen,
+      label: 'Strategy Playbook',
+      description: 'Symbol rules & calculator',
       color: 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200',
     },
     {
