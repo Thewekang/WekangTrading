@@ -121,6 +121,29 @@ export async function updateAccount(accountId: string, input: UpdateAccountInput
   return updated ?? null;
 }
 
+/** Updates calculator settings (balance + leverage) for the position calculator. */
+export async function updateCalculatorSettings(
+  accountId: string,
+  userId: string,
+  input: { accountBalance?: number | null; calculatorLeverage?: number | null },
+) {
+  // Verify ownership
+  const account = await getAccount(accountId, userId);
+  if (!account) return null;
+
+  const [updated] = await db
+    .update(tradingAccounts)
+    .set({
+      ...(input.accountBalance !== undefined && { accountBalance: input.accountBalance }),
+      ...(input.calculatorLeverage !== undefined && {
+        calculatorLeverage: input.calculatorLeverage,
+      }),
+    })
+    .where(eq(tradingAccounts.id, accountId))
+    .returning();
+  return updated ?? null;
+}
+
 /** Soft-deletes an account (sets active=false). Cannot delete the default account. */
 export async function deactivateAccount(accountId: string, userId: string) {
   const account = await getAccount(accountId, userId);

@@ -371,10 +371,101 @@ function WithdrawalSection({ accountId, history }: { accountId: string; history:
 // ------------------------------------------------
 
 interface AccountSettingsFormProps {
-  account: AccountData;
+  account: AccountData & { accountBalance?: number | null; calculatorLeverage?: number | null };
   initialRules: Rules;
   withdrawalHistory: WithdrawalHistoryItem[];
   templates?: DrawdownTemplate[];
+}
+
+// ------------------------------------------------
+// Calculator Settings Section
+// ------------------------------------------------
+
+function CalculatorSettingsSection({
+  accountId,
+  defaultBalance,
+  defaultLeverage,
+}: {
+  accountId: string;
+  defaultBalance?: number | null;
+  defaultLeverage?: number | null;
+}) {
+  const [balance, setBalance] = useState(defaultBalance?.toString() ?? '');
+  const [leverage, setLeverage] = useState(defaultLeverage?.toString() ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const res = await fetch(`/api/trading-accounts/${accountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountBalance: balance ? parseFloat(balance) : null,
+          calculatorLeverage: leverage ? parseInt(leverage, 10) : null,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error?.message ?? 'Save failed');
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-gray-900">Calculator Settings</h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Used by the Position Calculator in your Strategy Playbook.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Account Balance (USD)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="50000"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-gray-400 mt-0.5">Update manually when your balance changes</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Leverage (e.g. 10 = 1:10)</label>
+          <input
+            type="number"
+            step="1"
+            min="1"
+            placeholder="10"
+            value={leverage}
+            onChange={(e) => setLeverage(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {success && <p className="text-green-600 text-sm">Saved!</p>}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-md px-4 py-2 text-sm font-medium transition-colors"
+      >
+        {saving ? 'Saving…' : 'Save Calculator Settings'}
+      </button>
+    </section>
+  );
 }
 
 export function AccountSettingsForm({ account, initialRules, withdrawalHistory, templates = [] }: AccountSettingsFormProps) {
@@ -386,6 +477,11 @@ export function AccountSettingsForm({ account, initialRules, withdrawalHistory, 
         initialRules={initialRules}
         templates={templates}
         startingBalance={account.startingBalance}
+      />
+      <CalculatorSettingsSection
+        accountId={account.id}
+        defaultBalance={account.accountBalance}
+        defaultLeverage={account.calculatorLeverage}
       />
       <WithdrawalSection accountId={account.id} history={withdrawalHistory} />
     </div>

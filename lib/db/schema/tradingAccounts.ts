@@ -21,6 +21,11 @@ export const tradingAccounts = sqliteTable('trading_accounts', {
   startingBalance: real('starting_balance').notNull().default(0),
   isDefault: integer('is_default', { mode: 'boolean' }).notNull().default(false),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  // Calculator settings — used by the Position Calculator in the Strategy Playbook
+  // accountBalance: current account balance in USD (user-updated manually)
+  // calculatorLeverage: e.g. 10 for 1:10 leverage (used for forex margin display)
+  accountBalance: real('account_balance'),
+  calculatorLeverage: integer('calculator_leverage'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()).$onUpdate(() => new Date()),
 }, (table) => ({
