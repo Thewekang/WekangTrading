@@ -1,10 +1,10 @@
 # Implementation Milestones & Roadmap
 
 ## Document Control
-- **Version**: 3.3
-- **Last Updated**: May 9, 2026
-- **Current Progress**: ✅ v2.0.0-alpha.6 Strategy Playbook Complete
-- **Next Version**: v2.0.0-alpha.7 (TBD)
+- **Version**: 3.4
+- **Last Updated**: May 10, 2026
+- **Current Progress**: ✅ v2.0.0-alpha.7 Trading Day Checklist + CandleCloseHUD Complete
+- **Next Version**: v2.0.0-alpha.8 (TBD)
 
 ---
 
@@ -26,6 +26,7 @@
 - ✅ **Cron Monitoring** (2 features)
 
 **Recent Releases**:
+- v2.0.0-alpha.7 (May 10, 2026) - Trading Day Checklist + CandleCloseHUD
 - v2.0.0-alpha.6 (May 9, 2026) - Strategy Playbook with Position Calculator
 - v2.0.0-alpha.5 (May 9, 2026) - Admin performance calendar + stats bar
 - v2.0.0-alpha.4 (April 25, 2026) - CycleInsightsCard + drawdown timezone fix

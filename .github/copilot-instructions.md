@@ -587,10 +587,10 @@ turso db list  # Command not found
 
 ---
 
-**Last Updated**: May 9, 2026  
-**Version**: 4.1 (v2.0.0-alpha.6 — Strategy Playbook + Position Calculator)
+**Last Updated**: May 10, 2026  
+**Version**: 4.2 (v2.0.0-alpha.7 — Trading Day Checklist + CandleCloseHUD)
 
-**v2.0.0 Multi-Account Status**: 🔄 IN PROGRESS (Phase 6: 95% complete)
+**v2.0.0 Multi-Account Status**: 🔄 IN PROGRESS (Phase 6: 98% complete)
 - ✅ Schema: `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings`
 - ✅ Multi-account navigation: account picker → account landing → account dashboard
 - ✅ All services, API routes, and client components scoped by `tradingAccountId`
@@ -599,6 +599,7 @@ turso db list  # Command not found
 - ✅ Withdrawal tracking: `withdrawal_events`, cycle P&L resets on withdrawal
 - ✅ Staging DB migration applied (Turso)
 - ✅ Strategy Playbook: `account_strategies` table, position calculator, INSTRUMENT_DEFAULTS
+- ✅ Trading Day Checklist: `trading_day_checklists` table, 4-phase/22-item checklist, smart toasts, CandleCloseHUD
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
 - ⏳ Admin UI account overview (Phase 7)
 

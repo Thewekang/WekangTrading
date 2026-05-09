@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.11
+- **Version**: 3.12
 - **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
-- **Last Updated**: April 25, 2026
+- **Last Updated**: May 10, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,9 +13,9 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v1.14.6 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
+**Project Status**: 🚀 v2.0.0-alpha.7 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: April 25, 2026 (v2.0.0-alpha.4: CycleInsightsCard, timezone bug fix, layout improvements)  
+**Latest Development**: May 10, 2026 (v2.0.0-alpha.7: Trading Day Checklist, CandleCloseHUD, migration 0015)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
