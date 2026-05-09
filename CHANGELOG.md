@@ -11,6 +11,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.7] — 2026-05-10
+
+### Added
+- **Trading Day Checklist** (`/accounts/[id]/checklist`): interactive per-account daily checklist with 4 phases and 22 discipline items.
+  - **`trading_day_checklists` table** (migration `0015`): stores `itemStates` as JSON (checked flag + per-item remark), unique index on `(userId, tradingAccountId, tradeDate)`.
+  - **4 phases, 22 items**: Pre-Market (9 items — news check, session confirm, HTF analysis, bias, plan, risk, mental check, no-news window), Trade Setup (5 items — SOP match, position sizing, SL before entry, TP levels, firm decision), Trade Management (4 items — partial close at TP1, SL to BE, no revenge trading, max trades respected), End of Day (4 items — trades logged, daily loss respected, lessons noted, no overtrading).
+  - **Smart contextual toasts** (sonner): phase completion toasts, mental-check order enforcement, news proximity alert (fires ≤15 min before/after HIGH-impact economic event), trades-logged encouragement, all-22-done celebration.
+  - **Per-item remarks**: collapsible textarea (300 char limit) attached to each checklist item, auto-saved alongside state.
+  - **Auto-save**: debounced PATCH 600 ms after any state change; saving indicator in header.
+  - **Reset**: AlertDialog confirmation → DELETE resets all 22 items to unchecked; toast confirmation.
+  - **Past-date read-only mode**: past dates display checklist in read-only mode (no interaction); only today shows reset button.
+  - **High-impact news integration**: `getTodayHighImpactNews` queries `economicEvents` and injects news list inline under `news_check` item.
+  - **Current market session badge**: displayed under `session_confirm` item based on server-calculated UTC hour.
+  - **Full CRUD API**: `GET/PATCH/DELETE /api/trading-accounts/[id]/checklist?date=YYYY-MM-DD`.
+  - **Checklist quick link** in `AccountContextStrip` navigation bar.
+- **CandleCloseHUD** (floating widget): real-time countdown to next 1m / 15m / 1h / 4h candle close, fixed bottom-right, collapsible to a Timer pill with state persisted in `localStorage`.
+- **`components/ui/progress.tsx`**: native `<div>`-based progress bar (no `@radix-ui/react-progress` dependency); role/aria attributes included.
+
+### Operations — v2.0.0-alpha.7 Release Rollout (2026-05-10)
+
+- Feature branch `feature/trading-day-checklist` merged into `develop`
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.7`
+- DB schema change: Drizzle migration `0015_bizarre_quentin_quire.sql` applied to staging
+- Production migration required before deploy: `trading_day_checklists` table + unique index
+
+---
+
+## [v2.0.0-alpha.6] — 2026-05-09
+
+### Added
+- **Strategy Playbook** (`/accounts/[id]/strategies`): per-account symbol rules with a built-in position sizing calculator.
+  - **`account_strategies` table** (migration `0014`): stores symbol, instrumentType, defaultLotSize, stopLossPoints, tp1Points, tp2Points, riskPercentPerTrade, maxTradesPerDay, tickSize/tickValue (futures) or pipValue (forex/CFD), bestSessions (JSON), entryNotes, sortOrder.
+  - **`accountBalance` + `calculatorLeverage`** columns added to `trading_accounts` for the position calculator.
+  - **INSTRUMENT_DEFAULTS** presets for 19 instruments: MNQ, NQ, MGC, GC, MBT, BTC, MES, ES, MCL, EURUSD, GBPUSD, USDJPY, AUDUSD, GBPJPY, XAUUSD, XAGUSD, NAS100, US30, SPX500 — auto-fills tick/pip values + default lot size when symbol is typed.
+  - **PositionCalculator modal**: real-time risk sizing with two math paths — futures (tick-based: `riskUsd / (slPoints/tickSize × tickValue)`) and forex/CFD (pip-based: `riskUsd / (slPips × pipValue)`). Shows max contracts/lots, TP1 & TP2 profit, and R:R ratios.
+  - **StrategyFormDialog**: create/edit strategy with symbol auto-fill, session multi-select toggles, conditional tick vs pip fields.
+  - **StrategyCard**: displays position grid (lot/risk/SL/TP1/TP2/R:R), session chips, entry notes, and a "Calculate Position" button.
+  - **AccountSettingsForm — Calculator Settings section**: balance (USD) and leverage inputs saved via PATCH to `/api/trading-accounts/[id]`.
+  - **Strategy Playbook quick action** on the account landing page (`/accounts/[id]`).
+  - **Full CRUD API**: `GET/POST /api/trading-accounts/[id]/strategies`, `GET/PATCH/DELETE /api/trading-accounts/[id]/strategies/[strategyId]`.
+
+### Operations — v2.0.0-alpha.6 Release Rollout (2026-05-09)
+
+- Feature branch `feature/strategy-playbook` merged into `develop`
+- DB schema change: Drizzle migration `0014_fat_kang.sql` applied to staging
+- Production migration required before deploy: `account_strategies` table + `account_balance`/`calculator_leverage` columns on `trading_accounts`
+
+---
+
 ## [v2.0.0-alpha.5] — 2026-05-09
 
 ### Fixed

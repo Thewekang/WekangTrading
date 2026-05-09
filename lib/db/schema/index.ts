@@ -19,3 +19,5 @@ export * from './cronLogs';
 export * from './rankings';
 export * from './disciplineTracker';
 export * from './tradingQuotes';
+export * from './strategies';
+export * from './checklist';
