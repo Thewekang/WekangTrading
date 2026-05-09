@@ -1,10 +1,10 @@
 # Implementation Milestones & Roadmap
 
 ## Document Control
-- **Version**: 3.2
-- **Last Updated**: January 21, 2026
-- **Current Progress**: ✅ v1.2.1 Performance Optimization Complete
-- **Next Version**: v1.3.0 Advanced Features
+- **Version**: 3.3
+- **Last Updated**: May 9, 2026
+- **Current Progress**: ✅ v2.0.0-alpha.6 Strategy Playbook Complete
+- **Next Version**: v2.0.0-alpha.7 (TBD)
 
 ---
 
@@ -26,6 +26,9 @@
 - ✅ **Cron Monitoring** (2 features)
 
 **Recent Releases**:
+- v2.0.0-alpha.6 (May 9, 2026) - Strategy Playbook with Position Calculator
+- v2.0.0-alpha.5 (May 9, 2026) - Admin performance calendar + stats bar
+- v2.0.0-alpha.4 (April 25, 2026) - CycleInsightsCard + drawdown timezone fix
 - v1.0.0 (January 12, 2026) - Initial production release
 - v1.1.0 (January 15, 2026) - Gamification system
 - v1.2.0 (January 17, 2026) - Economic calendar & admin enhancements

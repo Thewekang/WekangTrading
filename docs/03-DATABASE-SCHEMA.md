@@ -1,12 +1,12 @@
 # Database Schema Design
 
 ## Document Control
-- **Version**: 4.2
-- **Last Updated**: April 18, 2026
-- **Implementation Status**: ✅ CURRENT (v1.14.6)
+- **Version**: 4.3
+- **Last Updated**: May 9, 2026
+- **Implementation Status**: ✅ CURRENT (v2.0.0-alpha.6)
 - **Database**: Turso (LibSQL - SQLite for edge)
 - **ORM**: Drizzle ORM (migrated from Prisma, January 11, 2026)
-- **Migration**: 100% Complete (Migration 0011: result CHECK constraint fix)
+- **Migration**: 100% Complete (Migration 0014: account_strategies + calculator columns)
 
 ---
 
@@ -30,11 +30,13 @@
 | `invite_codes` | Registration invite codes | Referenced by: users |
 | `sessions` | Authentication sessions | Belongs to: user |
 | `accounts` | OAuth accounts (future use) | Belongs to: user |
+| `account_strategies` | Per-account symbol rules + position calculator presets | Belongs to: trading_account, user |
 
-**Total Tables**: 15  
+**Total Tables**: 16  
 **Core Trading Tables**: 5 (users, individual_trades, daily_summaries, user_targets, sop_types)  
 **Gamification Tables**: 5 (badges, user_badges, streaks, user_stats, motivational_messages)  
-**System Tables**: 5 (economic_events, cron_logs, invite_codes, sessions, accounts)
+**System Tables**: 5 (economic_events, cron_logs, invite_codes, sessions, accounts)  
+**Strategy Tables**: 1 (account_strategies)
 
 ### 1.2 Entity Relationship Diagram (ERD)
 
