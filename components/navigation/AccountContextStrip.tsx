@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Wallet, LayoutDashboard, TrendingUp, Shield, BarChart2 } from 'lucide-react';
+import { Wallet, LayoutDashboard, TrendingUp, Shield, BarChart2, BookOpen } from 'lucide-react';
 import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -63,6 +63,13 @@ export function AccountContextStrip() {
             >
               <BarChart2 className="h-3 w-3" />
               Performance
+            </Link>
+            <Link
+              href={`/accounts/${activeAccount.id}/strategies`}
+              className="flex items-center gap-1 text-xs text-indigo-200 hover:text-white transition-colors shrink-0"
+            >
+              <BookOpen className="h-3 w-3" />
+              Playbook
             </Link>
           </div>
         </div>
