@@ -318,3 +318,20 @@ export const calculatorSettingsSchema = z.object({
 export type CreateStrategyInput = z.infer<typeof createStrategySchema>;
 export type UpdateStrategyInput = z.infer<typeof updateStrategySchema>;
 export type CalculatorSettingsInput = z.infer<typeof calculatorSettingsSchema>;
+
+// ============================================
+// TRADING DAY CHECKLIST VALIDATION SCHEMAS
+// ============================================
+
+export const itemStateSchema = z.object({
+  checked: z.boolean(),
+  remark: z.string().max(300, 'Remark must be less than 300 characters').optional(),
+});
+
+export const updateChecklistSchema = z.object({
+  itemStates: z.record(z.string(), itemStateSchema),
+});
+
+export type ItemState = z.infer<typeof itemStateSchema>;
+export type ItemStates = Record<string, ItemState>;
+export type UpdateChecklistInput = z.infer<typeof updateChecklistSchema>;
