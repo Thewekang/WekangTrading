@@ -6,6 +6,7 @@
 
 import { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 interface HourlyData {
   hour: number;
@@ -48,6 +49,7 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'all' }: Hourl
   const [timezone, setTimezone] = useState<string>('0');
   const [data, setData] = useState<HourlyData[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
+  const { activeAccount } = useActiveAccount();
 
   // Load timezone preference from localStorage
   useEffect(() => {
@@ -65,7 +67,9 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'all' }: Hourl
   const fetchData = useCallback(async (tz: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/stats/by-hour?period=${period}&timezone=${tz}`);
+      const params = new URLSearchParams({ period, timezone: tz });
+      if (activeAccount?.id) params.set('accountId', activeAccount.id);
+      const response = await fetch(`/api/stats/by-hour?${params.toString()}`);
       const result = await response.json();
       if (result.success) {
         setData(result.data.hours || []);
@@ -75,7 +79,7 @@ const HourlyHeatmap = memo(({ data: initialData, userId, period = 'all' }: Hourl
     } finally {
       setIsLoading(false);
     }
-  }, [period]);
+  }, [period, activeAccount?.id]);
 
   // Handle timezone change
   const handleTimezoneChange = useCallback((newTimezone: string) => {

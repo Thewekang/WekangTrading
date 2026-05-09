@@ -41,7 +41,8 @@ export async function createTarget(
     startDate: Date;
     endDate: Date;
     notes?: string;
-  }
+  },
+  accountId?: string
 ): Promise<UserTarget> {
   // Allow multiple overlapping targets - users can track multiple challenges simultaneously
   // (e.g., prop firm challenge + personal goal)
@@ -51,6 +52,7 @@ export async function createTarget(
     .insert(userTargets)
     .values({
       userId: userId,
+      tradingAccountId: accountId ?? null,
       name: data.name,
       targetCategory: data.targetCategory,
       targetType: data.targetType,
@@ -76,9 +78,12 @@ export async function getTargets(
     active?: boolean;
     targetType?: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
     includeExpired?: boolean;
-  }
+  },
+  accountId?: string
 ): Promise<UserTarget[]> {
   const conditions = [eq(userTargets.userId, userId)];
+
+  if (accountId) conditions.push(eq(userTargets.tradingAccountId, accountId));
 
   if (options?.active !== undefined) {
     conditions.push(eq(userTargets.active, options.active));
@@ -105,22 +110,24 @@ export async function getTargets(
  */
 export async function getActiveTarget(
   userId: string,
-  targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+  targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY',
+  accountId?: string
 ): Promise<UserTarget | null> {
   const now = new Date();
   
+  const conditions: any[] = [
+    eq(userTargets.userId, userId),
+    eq(userTargets.targetType, targetType),
+    eq(userTargets.active, true),
+    lte(userTargets.startDate, now),
+    gte(userTargets.endDate, now),
+  ];
+  if (accountId) conditions.push(eq(userTargets.tradingAccountId, accountId));
+
   const [target] = await db
     .select()
     .from(userTargets)
-    .where(
-      and(
-        eq(userTargets.userId, userId),
-        eq(userTargets.targetType, targetType),
-        eq(userTargets.active, true),
-        lte(userTargets.startDate, now),
-        gte(userTargets.endDate, now)
-      )
-    )
+    .where(and(...conditions))
     .limit(1);
 
   return target || null;
@@ -131,12 +138,16 @@ export async function getActiveTarget(
  */
 export async function getTargetWithProgress(
   userId: string,
-  targetId: string
+  targetId: string,
+  accountId?: string
 ): Promise<TargetWithProgress | null> {
+  const conditions: any[] = [eq(userTargets.id, targetId), eq(userTargets.userId, userId)];
+  if (accountId) conditions.push(eq(userTargets.tradingAccountId, accountId));
+
   const [target] = await db
     .select()
     .from(userTargets)
-    .where(and(eq(userTargets.id, targetId), eq(userTargets.userId, userId)))
+    .where(and(...conditions))
     .limit(1);
 
   if (!target) return null;
@@ -153,7 +164,8 @@ export async function getTargetWithProgress(
  * Get all active targets with progress
  */
 export async function getActiveTargetsWithProgress(
-  userId: string
+  userId: string,
+  accountId?: string
 ): Promise<TargetWithProgress[]> {
   try {
     const now = new Date();
@@ -170,24 +182,17 @@ export async function getActiveTargetsWithProgress(
       0, 0, 0, 0
     ));
     
-    // Get end of today in Malaysia (23:59:59 Malaysia time)
-    const todayMalaysiaEnd = new Date(Date.UTC(
-      malaysiaTime.getUTCFullYear(),
-      malaysiaTime.getUTCMonth(),
-      malaysiaTime.getUTCDate(),
-      23, 59, 59, 999
-    ));
-    
+    const targetConditions: any[] = [
+      eq(userTargets.userId, userId),
+      eq(userTargets.active, true),
+      gte(userTargets.endDate, todayMalaysiaStart),
+    ];
+    if (accountId) targetConditions.push(eq(userTargets.tradingAccountId, accountId));
+
     const activeTargets = await db
       .select()
       .from(userTargets)
-      .where(
-        and(
-          eq(userTargets.userId, userId),
-          eq(userTargets.active, true),
-          gte(userTargets.endDate, todayMalaysiaStart)    // Target hasn't ended yet (includes future targets)
-        )
-      )
+      .where(and(...targetConditions))
       .orderBy(desc(userTargets.createdAt));
 
     const targetsWithProgress = await Promise.all(
@@ -219,6 +224,13 @@ async function calculateTargetProgress(
   const stats = await getPersonalStats(userId, 'all'); // Will filter by dates below
 
   // Filter daily summaries within target period
+  const summaryConditions: any[] = [
+    eq(dailySummaries.userId, userId),
+    gte(dailySummaries.tradeDate, target.startDate),
+    lte(dailySummaries.tradeDate, target.endDate),
+  ];
+  if (target.tradingAccountId) summaryConditions.push(eq(dailySummaries.tradingAccountId, target.tradingAccountId));
+
   const summaries = await db
     .select({
       totalTrades: dailySummaries.totalTrades,
@@ -227,13 +239,7 @@ async function calculateTargetProgress(
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
     })
     .from(dailySummaries)
-    .where(
-      and(
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, target.startDate),
-        lte(dailySummaries.tradeDate, target.endDate)
-      )
-    );
+    .where(and(...summaryConditions));
 
   // Calculate totals
   const totalTrades = summaries.reduce((sum, s) => sum + s.totalTrades, 0);
@@ -427,7 +433,8 @@ export async function deactivateTarget(
  */
 export async function getTargetSuggestions(
   userId: string,
-  targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+  targetType: 'WEEKLY' | 'MONTHLY' | 'YEARLY',
+  accountId?: string
 ): Promise<{
   suggestedWinRate: number;
   suggestedSopRate: number;
@@ -438,6 +445,12 @@ export async function getTargetSuggestions(
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+  const suggestionConditions: any[] = [
+    eq(dailySummaries.userId, userId),
+    gte(dailySummaries.tradeDate, thirtyDaysAgo),
+  ];
+  if (accountId) suggestionConditions.push(eq(dailySummaries.tradingAccountId, accountId));
+
   const summaries = await db
     .select({
       totalTrades: dailySummaries.totalTrades,
@@ -446,12 +459,7 @@ export async function getTargetSuggestions(
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
     })
     .from(dailySummaries)
-    .where(
-      and(
-        eq(dailySummaries.userId, userId),
-        gte(dailySummaries.tradeDate, thirtyDaysAgo)
-      )
-    );
+    .where(and(...suggestionConditions));
 
   if (summaries.length === 0) {
     return {

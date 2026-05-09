@@ -20,6 +20,7 @@ interface Trade {
     name: string;
     email: string;
   };
+  accountName: string | null;
 }
 
 interface PaginationMeta {
@@ -27,6 +28,15 @@ interface PaginationMeta {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+interface FilteredStats {
+  totalTrades: number;
+  totalWins: number;
+  totalSopFollowed: number;
+  winRate: number;
+  sopRate: number;
+  netPnl: number;
 }
 
 // Helper function to get initial page size from localStorage
@@ -52,6 +62,7 @@ export default function AdminTradesPage() {
 
   // Filters
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedAccountId, setSelectedAccountId] = useState('');
   const [selectedResult, setSelectedResult] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -59,19 +70,38 @@ export default function AdminTradesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Users list for filter
-  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]); 
+  // Accounts list for filter (populated when a user is selected)
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>([]);
   
   // Delete confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [filteredStats, setFilteredStats] = useState<FilteredStats | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  // When user filter changes, load their accounts and clear account filter
+  useEffect(() => {
+    setSelectedAccountId('');
+    setAccounts([]);
+    if (selectedUserId) {
+      fetch(`/api/admin/users/${selectedUserId}/accounts`)
+        .then((r) => r.json())
+        .then((result) => {
+          if (result.success && result.data) {
+            setAccounts(result.data.map((a: any) => ({ id: a.id, name: a.name })));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selectedUserId]);
+
   useEffect(() => {
     fetchTrades();
-  }, [pagination.page, pagination.pageSize, selectedUserId, selectedResult, selectedSession, dateFrom, dateTo, searchQuery]);
+  }, [pagination.page, pagination.pageSize, selectedUserId, selectedAccountId, selectedResult, selectedSession, dateFrom, dateTo, searchQuery]);
   
   // Save pageSize to localStorage when changed
   useEffect(() => {
@@ -111,6 +141,7 @@ export default function AdminTradesPage() {
       });
 
       if (selectedUserId) params.append('userId', selectedUserId);
+      if (selectedAccountId) params.append('accountId', selectedAccountId);
       if (selectedResult) params.append('result', selectedResult);
       if (selectedSession) params.append('session', selectedSession);
       if (dateFrom) params.append('dateFrom', dateFrom);
@@ -135,11 +166,13 @@ export default function AdminTradesPage() {
           id: trade.userId,
           name: trade.userName || 'Unknown',
           email: trade.userEmail || 'N/A'
-        }
+        },
+        accountName: trade.accountName || null,
       }));
       
       setTrades(transformedTrades);
       setPagination(data.data.pagination);
+      if (data.data.stats) setFilteredStats(data.data.stats);
     } catch (error) {
       console.error('Error fetching trades:', error);
       showToast('Failed to load trades', 'error');
@@ -178,6 +211,7 @@ export default function AdminTradesPage() {
 
   const resetFilters = () => {
     setSelectedUserId('');
+    setSelectedAccountId('');
     setSelectedResult('');
     setSelectedSession('');
     setDateFrom('');
@@ -221,6 +255,22 @@ export default function AdminTradesPage() {
               <option value="">All Users</option>
               {users.filter(user => user && user.name).map((user) => (
                 <option key={user.id} value={user.id}>{user.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="filter-account">Account</Label>
+            <select
+              id="filter-account"
+              value={selectedAccountId}
+              onChange={(e) => { setSelectedAccountId(e.target.value); setPagination({ ...pagination, page: 1 }); }}
+              className="w-full p-2 border rounded"
+              disabled={!selectedUserId}
+            >
+              <option value="">{selectedUserId ? 'All Accounts' : 'Select a user first'}</option>
+              {accounts.map((acct) => (
+                <option key={acct.id} value={acct.id}>{acct.name}</option>
               ))}
             </select>
           </div>
@@ -291,6 +341,50 @@ export default function AdminTradesPage() {
         <Button onClick={resetFilters} variant="outline" size="sm">Reset Filters</Button>
       </Card>
 
+      {/* Stats summary for filtered results */}
+      {filteredStats && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">Total Trades</div>
+              <div className="text-2xl font-bold text-gray-900">{filteredStats.totalTrades}</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">Win Rate</div>
+              <div className={`text-2xl font-bold ${filteredStats.winRate >= 50 ? 'text-green-600' : 'text-red-600'}`}>
+                {filteredStats.winRate.toFixed(1)}%
+              </div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">SOP Rate</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {filteredStats.sopRate.toFixed(1)}%
+              </div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-sm text-gray-500 mb-1">Net P/L</div>
+              <div className={`text-2xl font-bold ${filteredStats.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {filteredStats.netPnl >= 0 ? '+' : ''}${filteredStats.netPnl.toFixed(2)}
+              </div>
+            </Card>
+          </div>
+
+          <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border mb-4 text-sm font-medium ${
+            pagination.total <= pagination.pageSize
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-white text-xs ${
+              pagination.total <= pagination.pageSize ? 'bg-green-500' : 'bg-blue-500'
+            }`}>✓</span>
+            <span>Showing {trades.length} of {pagination.total} trade{pagination.total !== 1 ? 's' : ''}</span>
+            <span className="text-xs font-normal opacity-70">
+              {pagination.total <= pagination.pageSize ? '— displaying all filtered results' : `— page ${pagination.page} of ${pagination.totalPages}`}
+            </span>
+          </div>
+        </>
+      )}
+
       {/* Trades Table */}
       {loading ? (
         <div className="text-center py-8">Loading trades...</div>
@@ -305,6 +399,7 @@ export default function AdminTradesPage() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-4">User</th>
+                  <th className="text-left p-4">Account</th>
                   <th className="text-left p-4">Date/Time</th>
                   <th className="text-left p-4">Session</th>
                   <th className="text-left p-4">Result</th>
@@ -322,6 +417,9 @@ export default function AdminTradesPage() {
                         <div className="font-medium">{trade.user.name}</div>
                         <div className="text-xs text-gray-500">{trade.user.email}</div>
                       </div>
+                    </td>
+                    <td className="p-4 text-sm text-gray-700">
+                      {trade.accountName ?? <span className="text-gray-400">—</span>}
                     </td>
                     <td className="p-4 text-sm">{formatTimestamp(trade.tradeTimestamp)}</td>
                     <td className="p-4">

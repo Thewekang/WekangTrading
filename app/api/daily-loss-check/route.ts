@@ -16,9 +16,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const accountId = req.nextUrl.searchParams.get('accountId') || undefined;
+
     const [lossCheck, todayResults] = await Promise.all([
-      checkDailyLosses(session.user.id),
-      getTodayTradeResults(session.user.id)
+      checkDailyLosses(session.user.id, accountId),
+      getTodayTradeResults(session.user.id, accountId)
     ]);
 
     return NextResponse.json({

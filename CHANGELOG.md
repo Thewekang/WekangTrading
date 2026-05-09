@@ -11,7 +11,270 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.14.6] - 2026-04-18
+## [v2.0.0-alpha.7] — 2026-05-10
+
+### Added
+- **Trading Day Checklist** (`/accounts/[id]/checklist`): interactive per-account daily checklist with 4 phases and 22 discipline items.
+  - **`trading_day_checklists` table** (migration `0015`): stores `itemStates` as JSON (checked flag + per-item remark), unique index on `(userId, tradingAccountId, tradeDate)`.
+  - **4 phases, 22 items**: Pre-Market (9 items — news check, session confirm, HTF analysis, bias, plan, risk, mental check, no-news window), Trade Setup (5 items — SOP match, position sizing, SL before entry, TP levels, firm decision), Trade Management (4 items — partial close at TP1, SL to BE, no revenge trading, max trades respected), End of Day (4 items — trades logged, daily loss respected, lessons noted, no overtrading).
+  - **Smart contextual toasts** (sonner): phase completion toasts, mental-check order enforcement, news proximity alert (fires ≤15 min before/after HIGH-impact economic event), trades-logged encouragement, all-22-done celebration.
+  - **Per-item remarks**: collapsible textarea (300 char limit) attached to each checklist item, auto-saved alongside state.
+  - **Auto-save**: debounced PATCH 600 ms after any state change; saving indicator in header.
+  - **Reset**: AlertDialog confirmation → DELETE resets all 22 items to unchecked; toast confirmation.
+  - **Past-date read-only mode**: past dates display checklist in read-only mode (no interaction); only today shows reset button.
+  - **High-impact news integration**: `getTodayHighImpactNews` queries `economicEvents` and injects news list inline under `news_check` item.
+  - **Current market session badge**: displayed under `session_confirm` item based on server-calculated UTC hour.
+  - **Full CRUD API**: `GET/PATCH/DELETE /api/trading-accounts/[id]/checklist?date=YYYY-MM-DD`.
+  - **Checklist quick link** in `AccountContextStrip` navigation bar.
+- **CandleCloseHUD** (floating widget): real-time countdown to next 1m / 15m / 1h / 4h candle close, fixed bottom-right, collapsible to a Timer pill with state persisted in `localStorage`.
+- **`components/ui/progress.tsx`**: native `<div>`-based progress bar (no `@radix-ui/react-progress` dependency); role/aria attributes included.
+
+### Operations — v2.0.0-alpha.7 Release Rollout (2026-05-10)
+
+- Feature branch `feature/trading-day-checklist` merged into `develop`
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.7`
+- DB schema change: Drizzle migration `0015_bizarre_quentin_quire.sql` applied to staging
+- Production migration required before deploy: `trading_day_checklists` table + unique index
+
+---
+
+## [v2.0.0-alpha.6] — 2026-05-09
+
+### Added
+- **Strategy Playbook** (`/accounts/[id]/strategies`): per-account symbol rules with a built-in position sizing calculator.
+  - **`account_strategies` table** (migration `0014`): stores symbol, instrumentType, defaultLotSize, stopLossPoints, tp1Points, tp2Points, riskPercentPerTrade, maxTradesPerDay, tickSize/tickValue (futures) or pipValue (forex/CFD), bestSessions (JSON), entryNotes, sortOrder.
+  - **`accountBalance` + `calculatorLeverage`** columns added to `trading_accounts` for the position calculator.
+  - **INSTRUMENT_DEFAULTS** presets for 19 instruments: MNQ, NQ, MGC, GC, MBT, BTC, MES, ES, MCL, EURUSD, GBPUSD, USDJPY, AUDUSD, GBPJPY, XAUUSD, XAGUSD, NAS100, US30, SPX500 — auto-fills tick/pip values + default lot size when symbol is typed.
+  - **PositionCalculator modal**: real-time risk sizing with two math paths — futures (tick-based: `riskUsd / (slPoints/tickSize × tickValue)`) and forex/CFD (pip-based: `riskUsd / (slPips × pipValue)`). Shows max contracts/lots, TP1 & TP2 profit, and R:R ratios.
+  - **StrategyFormDialog**: create/edit strategy with symbol auto-fill, session multi-select toggles, conditional tick vs pip fields.
+  - **StrategyCard**: displays position grid (lot/risk/SL/TP1/TP2/R:R), session chips, entry notes, and a "Calculate Position" button.
+  - **AccountSettingsForm — Calculator Settings section**: balance (USD) and leverage inputs saved via PATCH to `/api/trading-accounts/[id]`.
+  - **Strategy Playbook quick action** on the account landing page (`/accounts/[id]`).
+  - **Full CRUD API**: `GET/POST /api/trading-accounts/[id]/strategies`, `GET/PATCH/DELETE /api/trading-accounts/[id]/strategies/[strategyId]`.
+
+### Operations — v2.0.0-alpha.6 Release Rollout (2026-05-09)
+
+- Feature branch `feature/strategy-playbook` merged into `develop`
+- DB schema change: Drizzle migration `0014_fat_kang.sql` applied to staging
+- Production migration required before deploy: `account_strategies` table + `account_balance`/`calculator_leverage` columns on `trading_accounts`
+
+---
+
+## [v2.0.0-alpha.5] — 2026-05-09
+
+### Fixed
+- **Admin performance calendar timezone blindness**: `/api/admin/users/[id]/performance` was querying `daily_summaries` using raw UTC `Date.getDate()` / `Date.getMonth()`, causing trades to land in the wrong calendar cell for non-UTC timezones (e.g. a trade at 11 PM `Asia/KL` would appear on the next UTC day). The route now delegates to the same `getYearlyPerformance` / `getMonthlyPerformance` from `performanceAnalyticsService` that the user-facing `/api/analytics/performance` uses — full `Intl.DateTimeFormat` timezone-aware grouping via `individualTrades`.
+- **Admin performance calendar missing trades**: the old `daily_summaries` query did not account for all edge cases of account-scoped data, causing trades visible in `/admin/trades` to not appear in the user performance calendar under `/admin/users`. Now queries `individualTrades` directly (same as user calendar).
+- **Admin performance calendar timezone resolution**: the API now fetches `user.preferredTimezone` and, when an account is selected, overrides with the account's `dailyResetTimezone` from `account_rules` — identical logic to `/api/analytics/performance`.
+
+### Added
+- **Timezone label in admin performance calendar** (`UserPerformanceCalendar`): the calendar header now shows "Daily reset timezone: Asia/Kuala_Lumpur" (or whichever timezone is resolved for that account), matching the setting visibility in the user-facing performance calendar.
+- **Stats bar on admin trades page** (`/admin/trades`): 4 summary stat cards (Total Trades, Win Rate, SOP Rate, Net P/L) rendered above the trades table. Stats are computed server-side across the full filtered result set (not just the current page) — TRANSACTION rows for trade counts/rates, all rows for net P/L. A context banner shows "Showing X of Y trades" with page context. Matches the user-facing trades summary style.
+
+### Operations — v2.0.0-alpha.5 Release Rollout (2026-05-09)
+
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.5`
+- No DB schema changes in this release — no migration required
+
+---
+
+## [v2.0.0-alpha.4] — 2026-04-25
+
+### Fixed
+- **`accountRulesService.ts` — `getTodayPnl` timezone bug**: daily drawdown was computed using UTC `startOfDay` / `endOfDay` instead of the account's `dailyResetTimezone`. Rewrote using the same `Intl.DateTimeFormat('en-CA', { timeZone })` + 48-hour fetch-window + JS filter pattern already used by `getBestDayCyclePnl`. Accounts with non-UTC reset zones (e.g. FTMO `Europe/Prague`) now show the correct daily P&L.
+
+### Added
+- **`CycleInsightsCard`** (new component, replaces `CycleProfitTargetCard` inline progress in previous alpha): math-based actionable guidance card scoped to a cycle. Insights emitted:
+  - `warning` — consistency FAIL: single-session fix range (earn X–Y today to resolve in one go)
+  - `tip` — consistency FAIL: multi-day fix path (days needed, capped daily pace)
+  - `info` — consistency PASS: daily cap to stay compliant (`maxSafeNewBestDay`)
+  - `info` — days to profit target at current average daily pace
+  - `success` — profit target reached
+  - `info` — **suggested minimum profit target** (when no target is configured): `minTarget = bestDayCyclePnl / (consistencyTargetPct / 100)`; shows % progress toward that minimum and days to reach it
+- **`CycleInsightsCard` — collapsible**: card is collapsed by default; clicking the header toggles open/closed with an animated chevron.
+
+### Changed
+- **`CycleProfitTargetCard`** — refreshed UI to match the new card design language: header strip with gradient background, gradient progress bar (blue→indigo / green→emerald), 3-stat row (Earned / Remaining / Target), 🎉 message when target reached.
+- **Account landing page + account dashboard page — layout**:
+  - When a **profit target is set**: `DrawdownStatusCard` (left) + `CycleProfitTargetCard` (right) in a responsive 2-column grid, then `CycleInsightsCard` full-width below.
+  - When **no profit target**: `DrawdownStatusCard` full-width, then `CycleInsightsCard` full-width below.
+  - Previously both pages used a stacked layout with no separate target card.
+
+### Operations — v2.0.0-alpha.4 Release Rollout (2026-04-25)
+
+- `develop` promoted to `main` via PR
+- Release tag: `v2.0.0-alpha.4`
+- No DB schema changes in this release — no migration required
+
+---
+
+### Operations — v2.0.0-alpha.3 Release Rollout (2026-04-22)
+
+- `develop` promoted to `main` via PR #28
+- Production DB repaired for existing users:
+  - Created missing default `Main Account` rows for legacy users
+  - Backfilled legacy `NULL trading_account_id` rows in user-scoped tables
+- Production schema migrated with `drizzle-kit push --force`
+- Production post-check passed:
+  - 0 users without accounts
+  - 0 users without default account
+  - 0 legacy `NULL trading_account_id` rows in checked tables
+  - Per-account indexes and `NOT NULL` constraints on gamification tables verified
+- Release tag created: `v2.0.0-alpha.3`
+
+### Added — v2.0.0-alpha.3 Per-Account Achievements
+
+#### Per-Account Badges, Streaks & Stats
+All gamification data (`user_stats`, `user_badges`, `streaks`) is now fully scoped to a `tradingAccountId`. Each account tracks its own badges, streaks, and stats independently.
+
+- **Schema** — `user_stats.tradingAccountId`: changed from nullable+optional to `NOT NULL` with cascade delete; unique index changed from `(userId)` → `(userId, tradingAccountId)`. Same for `user_badges` (unique: `userId + tradingAccountId + badgeId`) and `streaks` (unique: `userId + tradingAccountId + streakType`)
+- **`streakService.ts`** — all functions now require `accountId: string` and filter/insert by `tradingAccountId`
+- **`badgeService.ts`** — all functions now require `accountId: string` (getUserBadges, hasUserBadge, awardBadge, checkAndAwardBadges, initializeUserStats, updateUserStatsFromTrades, getBadgeProgress, getUserBadgeStats)
+- **`individualTradeService.ts`** — all 4 call sites (createTrade, createTradesBulk, updateTrade, deleteTrade) guard on `accountId` before calling `updateUserStatsFromTrades`
+- **API routes** — `GET /api/badges/user`, `GET /api/badges/progress`, `POST /api/badges/recalculate`, `GET /api/streaks` all require `?accountId=` (400 if missing); trade routes guard badge/stat calls on `accountId`
+- **`CollapsibleAchievementsSection`** — accepts `{ accountId: string }` prop and passes it down to all three widgets
+- **`AchievementShowcase`**, **`ActiveStreaksWidget`**, **`NextBadgesProgress`** — each accepts `accountId: string` and includes it in fetch URLs
+- **`/accounts/[id]/dashboard`** — passes route `id` as `accountId` to `CollapsibleAchievementsSection`
+- **`/dashboard/achievements`** — uses `useActiveAccount()` hook; shows "No account selected" guard; all fetches include `?accountId=`
+- **`scripts/clear-gamification-tables.ts`** (new) — one-time cleanup script to empty `user_stats`, `user_badges`, `streaks` before schema migration
+- **Staging DB migration applied** — `drizzle push --force` on `wekangtrading-staging`
+
+#### Badge Error Fixes
+- **`achievements/page.tsx`** — fix `undefined.toLocaleString()` crash for special badges (COMEBACK, PERFECT_MONTH, EARLY_ADOPTER) that have no `value` in requirement JSON; use `?? 0` guard; filter null badge entries; clamp progress `0–100`; modal shows "Special achievement — no numeric target" instead of "0 / 0"
+- **`BadgeCard.tsx`** — clamp progress bar width `Math.max(0, ...)` to prevent negative CSS width when P&L is negative
+- **`badgeService.ts`** — clamp `progressPercent` to `0–100` in `getBadgeProgress`
+- **`NextBadgesProgress.tsx`** — add `formatProgress` cases for TARGET_COMPLETED, PERFECT_MONTH, COMEBACK, EARLY_ADOPTER with descriptive text
+- **`api/badges/user/route.ts`** — filter null badge entries (defensive against deleted badges)
+- **`achievements/page.tsx` `formatRequirement`** — fix PERFECT_MONTH (shows minTrades), COMEBACK (shows losingDays), EARLY_ADOPTER; remove duplicate case
+
+### Added — v2.0.0-alpha.2 Per-Account Timezone + Withdrawal Tracking
+
+#### Per-Account Daily Reset Timezone
+- **`lib/utils/dateUtils.ts`** (new) — `getDayBoundariesInTimezone(timestamp, timezone)` utility; returns `{ start, end }` UTC Date objects for the local calendar day that `timestamp` falls in
+- **Schema** — `account_rules.daily_reset_timezone` column (text, default `'UTC'`); `drawdown_templates.daily_reset_timezone` column
+- **Migration 0013** — `drizzle/migrations/0013_add_daily_reset_timezone.sql`
+- **`upsertAccountRules`** — persists `dailyResetTimezone` field
+- **`lib/validations.ts`** — `accountRulesSchema` and `drawdownTemplateSchema` include `dailyResetTimezone` (optional string, default `'UTC'`)
+- **`AccountSettingsForm.tsx`** — timezone dropdown in Risk Rules section (lists all IANA timezones grouped by region)
+- **`DrawdownTemplatesManager.tsx`** — timezone field in template create/edit form
+
+#### Timezone-Aware Daily Summary
+- **`dailySummaryService.ts`** — `updateDailySummary` now reads account's `dailyResetTimezone` from `getAccountRules`; uses `getDayBoundariesInTimezone` to compute query window and `summaryDateKey` (UTC midnight of local calendar date) for `tradeDate` storage; backward-compatible for UTC accounts
+
+#### Timezone-Aware Performance Analytics
+- **`performance/route.ts`** — when `accountId` is present, fetches account rules and uses `effectiveTimezone = rules?.dailyResetTimezone ?? userTimezone` for all `getAvailableYears`, `getMonthlyPerformance`, `getYearlyPerformance` calls
+
+#### Withdrawal Tracking in P&L
+- **`accountRulesService.ts`** — `getCycleStatus` now:
+  - Fetches `totalWithdrawn` (sum of all `withdrawal_events.withdrawalAmount`) in the parallel Promise.all
+  - `cumulativePnl = grossCumulativePnl - totalWithdrawn` (deducts withdrawals; represents retained account balance)
+  - `recordWithdrawal` uses `grossCumulativePnl - pastWithdrawals` for accurate `balanceAtWithdrawal` snapshot
+  - `CycleStatus` interface gains `totalWithdrawn: number` and `lastWithdrawal: { date, amount } | null`
+
+- **`performanceAnalyticsService.ts`** — `getAccountWithdrawals(userId, accountId?)` helper; `getYearlyPerformance` and `getMonthlyPerformance` subtract withdrawal amounts from P&L figures and return `withdrawals: { date, amount }[]` in the response; `getAvailableYears` includes years from withdrawal events
+
+#### Withdrawal Visibility in UI
+
+| Location | What's shown |
+|---|---|
+| **`/dashboard`** account cards | Purple "Last Withdrawal" row (date + amount) |
+| **`/accounts`** (accounts landing) | Purple "Total Withdrawn" + "Last withdrawal" row in stats grid |
+| **`/accounts/[id]/dashboard`** (Account Health card) | "Total Withdrawn" + "Last withdrawal" rows below Consistency Rule |
+| **Performance calendar — month view** | Purple "W/D −AMOUNT" badge on each day cell with a withdrawal |
+| **Performance calendar — year view** | Purple "Withdrawal: −AMOUNT" row in each month card; withdrawal-only months show withdrawal instead of "No trades" |
+| **Performance calendar — summary cards** | 5th "Total Withdrawals" card (only shown when withdrawals exist) |
+| **Performance calendar — legend** | Purple "Withdrawal" swatch in both month and year views |
+
+#### Design decisions
+- **Stats/Rankings `totalPnl`** — NOT deducted (measures trading skill, not cash management)
+- **Performance calendar P&L** — withdrawals DO reduce the displayed P&L (shows retained account balance over time)
+- **`currentCyclePnl`** — NOT deducted (trades since last withdrawal; withdrawal starts a new cycle)
+
+
+
+#### Full Account Isolation — Services
+- **`trendAnalysisService`** — `getDailyTrends`, `getPeriodStats`, `getWeeklyComparison`, `getMonthlyComparison`, `getTrendIndicators` all accept optional `accountId` parameter; adds `eq(dailySummaries.tradingAccountId, accountId)` condition when provided
+- **`performanceAnalyticsService`** — `getYearlyPerformance`, `getMonthlyPerformance`, `getAvailableYears` accept optional `accountId`; builds `conditions` array scoped to account
+- **`targetService`** — `createTarget`, `getTargets`, `getActiveTarget`, `getTargetWithProgress`, `getActiveTargetsWithProgress`, `getTargetSuggestions` all accept optional `accountId`; `calculateTargetProgress` uses `target.tradingAccountId` directly
+- **`exportService`** — `ExportFilters` interface extended with `tradingAccountId?`; `getTradesForExport` applies account filter when present
+- **`dailyLossService`** — `checkDailyLosses`, `getTodayTradeResults` accept optional `accountId`
+- **`disciplineTrackerService`** — `getUserSettings`, `updateUserSettings`, `getRowById` accept optional `accountId`; default settings INSERT includes `tradingAccountId`
+- **`rankingService`** — `getUserRanking` accepts optional `accountId`; `getUserRows` already had it
+- **Badges & streaks kept user-global** ~~`badgeService` and `streakService` intentionally not scoped~~
+  > **Superseded in alpha.3**: badges and streaks are now fully per-account. See alpha.3 above.
+
+#### Full Account Isolation — API Routes (user)
+All routes now read `accountId` from query params (GET/DELETE) or request body (POST/PATCH) and pass it to their service calls:
+- `GET/DELETE /api/stats/ranking` — `?accountId=`
+- `GET /api/stats/trends` — `?accountId=`
+- `GET /api/stats/monthly` — `?accountId=`
+- `GET /api/stats/comparisons` — `?accountId=`
+- `GET /api/stats/indicators` — `?accountId=`
+- `GET /api/stats/best-sop` — `?accountId=`
+- `GET/POST /api/targets` — GET: `?accountId=`; POST: body `accountId`
+- `GET /api/targets/[id]` — `?accountId=`
+- `GET /api/targets/suggestions` — `?accountId=`
+- `POST /api/trades/bulk` — body `accountId`; stamped on each trade row
+- `GET /api/analytics/performance` — `?accountId=`
+- `GET/PATCH /api/discipline-tracker/settings` — GET: `?accountId=`; PATCH: body `accountId`
+- `GET/PATCH /api/discipline-tracker/rows/[id]` — GET: `?accountId=`; PATCH: body `accountId`
+- `GET /api/export/csv` — `?accountId=`
+- `POST /api/export/pdf` — body `accountId`
+- `GET /api/daily-loss-check` — `?accountId=`
+
+#### Full Account Isolation — API Routes (admin)
+- `GET /api/admin/users/[id]/performance` — `?tradingAccountId=`; `monthConditions` array
+- `GET /api/admin/discipline-tracker/team-overview` — `?tradingAccountId=`; `rowConditions` array
+- `GET /api/admin/users/[id]/discipline-tracker/rows` — `?accountId=`
+- `GET /api/admin/users/[id]/discipline-tracker/settings` — `?accountId=`
+
+#### Full Account Isolation — Client Components
+All components use `useActiveAccount()` hook and append `activeAccount?.id` to requests:
+- `app/(user)/analytics/trends/page.tsx` — `accountId` in 4 parallel fetches; `useEffect` dep
+- `components/analytics/MonthlyPerformanceView.tsx` — `accountId` in performance fetch; `useEffect` dep
+- `components/alerts/DailyLossAlert.tsx` — `accountId` in daily-loss-check fetch
+- `components/dashboard/RankingCard.tsx` — `accountId` in GET + DELETE ranking; `useEffect` dep
+- `components/targets/TargetModal.tsx` — `accountId` in suggestions fetch + POST body
+- `components/ExportModal.tsx` — `accountId` in CSV query params + PDF POST body
+- `app/(user)/discipline-tracker/page.tsx` — `accountId` in settings GET/PATCH; `useEffect` dep
+- `ActiveStreaksWidget`, `NextBadgesProgress`, `AchievementShowcase` intentionally kept user-global
+
+#### Account Landing Page
+- **`/accounts/[id]`** — added **Achievements** quick-action tile (`Trophy` icon → `/dashboard/achievements`)
+
+### Fixed — v2.0.0 Database Migrations
+
+#### Migration 0012 (new)
+- **`daily_summaries` unique index broken for multi-account** — the existing `UNIQUE (user_id, trade_date)` index would cause a constraint violation when two accounts trade on the same day. Replaced with `UNIQUE (user_id, trade_date, trading_account_id)`. Migration file: `drizzle/migrations/0012_clever_blue_blade.sql`
+
+#### Migration 0011 manual fix updated
+- **`0011_fix_result_check_constraint.sql`** — updated to include `trading_account_id` column in the recreated `individual_trades_new` table; switched from `SELECT *` to explicit column INSERT so the file is safe to apply regardless of whether 0011_watery_night_thrasher has already run. Added ordering warning in file header.
+
+#### Migration 0011 (previously added)
+- **Multi-account schema** — `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables created; `trading_account_id` FK column (nullable) added to: `individual_trades`, `daily_summaries`, `user_targets`, `user_badges`, `discipline_tracker_rows`, `discipline_tracker_settings`, `streaks`, `user_stats`, `user_rankings`; `display_name` column added to `user_rankings`
+
+---
+
+## [2.0.0-alpha.1] - 2026-04-19
+
+### Added
+- **Multi-account UX flow** — redesigned navigation hierarchy: Login → User Dashboard (account picker) → Account Landing → Account Dashboard
+- **`/dashboard`** now serves as account picker: shows all user accounts as cards with health status, P&L summary, Enter Account button, and settings gear
+- **`/accounts/[id]`** — account landing page with quick-action tiles (Dashboard, New Trade, Trades, Discipline, Performance, Targets, Account Settings), drawdown health cards, and rules setup hint
+- **`/accounts/[id]/dashboard`** — full rich per-account dashboard: daily loss alert, drawdown/cycle cards, quote of the day, achievements, economic news, ranking, stats (scoped to account), best SOP, symbol performance, active targets, session charts, hourly heatmap
+- **Account context strip** — indigo bar below main nav always shows active account name; quick links: Dashboard | Trades | Discipline | Performance (visible on all screen sizes)
+- **`EnterAccountButton`** client component — sets `active_account_id` cookie and navigates to account landing
+- **Per-account stat scoping** — `getPersonalStats`, `getSymbolStats`, `getBestSopType`, `getSopPerformanceStats` all accept optional `accountId` parameter to filter results per account
+
+### Changed
+- **Top-level navigation** — Trades, Discipline, Performance, and Analytics removed from main nav; now accessed via account context strip. Main nav: Home | Resources (Strategies, Calendar) | Settings
+- **`AccountSwitcher`** — navigates to `/accounts/[id]` on account switch instead of just refreshing
+
+---
+
+## [Unreleased — pre v2.0.0-alpha.1]
 
 ### Fixed
 - **Trends page (`/analytics/trends`): BE trades counted as losses in all W/L displays** — `getYearlyPerformance` and `getMonthlyPerformance` both calculated `losses = trades - wins`, so any BE trade fell into the loss bucket. Fixed by tracking losses with a dedicated counter incremented only on `result === 'LOSS'`. BE trades count in `totalTrades` (denominator) but not in wins or losses. Fixes monthly calendar "W:10 L:2" → "W:10 L:0", tooltip hover text, yearly month cards, and `MonthlyAnalyticsChart` tooltip.

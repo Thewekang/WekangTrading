@@ -13,32 +13,39 @@ import { eq } from 'drizzle-orm';
 async function main() {
   console.log('🔄 Recalculating all daily summaries...\n');
 
-  // Get all unique user + date combinations from individual_trades
+  // Get all unique user + date + accountId combinations from individual_trades
   const trades = await db
     .select({
       userId: individualTrades.userId,
       tradeTimestamp: individualTrades.tradeTimestamp,
+      tradingAccountId: individualTrades.tradingAccountId,
     })
     .from(individualTrades);
 
-  // Group by user and date
-  const userDates = new Map<string, Set<string>>();
-  
+  // Group by userId → Map of accountId → Set of date strings
+  // accountId is null for legacy trades without account association
+  const userAccountDates = new Map<string, Map<string | null, Set<string>>>();
+
   trades.forEach(trade => {
     const dateKey = trade.tradeTimestamp.toISOString().split('T')[0];
-    
-    if (!userDates.has(trade.userId)) {
-      userDates.set(trade.userId, new Set());
+    const accountId = trade.tradingAccountId ?? null;
+
+    if (!userAccountDates.has(trade.userId)) {
+      userAccountDates.set(trade.userId, new Map());
     }
-    userDates.get(trade.userId)!.add(dateKey);
+    const accountMap = userAccountDates.get(trade.userId)!;
+
+    if (!accountMap.has(accountId)) {
+      accountMap.set(accountId, new Set());
+    }
+    accountMap.get(accountId)!.add(dateKey);
   });
 
-  console.log(`Found ${userDates.size} users with trades\n`);
+  console.log(`Found ${userAccountDates.size} users with trades\n`);
 
   let totalUpdated = 0;
 
-  // Recalculate summaries for each user-date combination
-  for (const [userId, dates] of userDates) {
+  for (const [userId, accountMap] of userAccountDates) {
     const userResult = await db
       .select({ email: users.email })
       .from(users)
@@ -46,16 +53,19 @@ async function main() {
       .limit(1);
 
     const user = userResult[0];
+    const totalDates = Array.from(accountMap.values()).reduce((sum, dates) => sum + dates.size, 0);
 
     console.log(`📊 User: ${user?.email || userId}`);
-    console.log(`   Updating ${dates.size} daily summaries...`);
+    console.log(`   ${accountMap.size} account bucket(s), ${totalDates} date-account pairs...`);
 
-    for (const dateStr of dates) {
-      const date = new Date(dateStr);
-      await updateDailySummaryForDate(userId, date);
-      totalUpdated++;
+    for (const [accountId, dates] of accountMap) {
+      for (const dateStr of dates) {
+        const date = new Date(dateStr);
+        await updateDailySummaryForDate(userId, date, accountId ?? undefined);
+        totalUpdated++;
+      }
     }
-    
+
     // Update user stats after all daily summaries
     console.log('   Updating user stats from trades...');
     await updateUserStatsFromTrades(userId);

@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ChartSkeleton from '@/components/charts/ChartSkeleton';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 
 const HourlyHeatmap = dynamic(() => import('@/components/charts/HourlyHeatmap'), {
   loading: () => <ChartSkeleton />,
@@ -22,13 +23,16 @@ interface HourlyHeatmapWrapperProps {
 export function HourlyHeatmapWrapper({ userId }: HourlyHeatmapWrapperProps) {
   const [hourlyStats, setHourlyStats] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeAccount } = useActiveAccount();
 
   useEffect(() => {
     const abortController = new AbortController();
     
     const fetchHourlyStats = async () => {
       try {
-        const response = await fetch(`/api/stats/by-hour?userId=${userId}&period=all`, {
+        const params = new URLSearchParams({ userId, period: 'all' });
+        if (activeAccount?.id) params.set('accountId', activeAccount.id);
+        const response = await fetch(`/api/stats/by-hour?${params.toString()}`, {
           signal: abortController.signal
         });
         const data = await response.json();
@@ -51,7 +55,7 @@ export function HourlyHeatmapWrapper({ userId }: HourlyHeatmapWrapperProps) {
     return () => {
       abortController.abort();
     };
-  }, [userId]);
+  }, [userId, activeAccount?.id]);
 
   if (isLoading) {
     return <ChartSkeleton />;

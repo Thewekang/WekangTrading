@@ -6,8 +6,8 @@ Trading Performance Tracking System with Individual Trade Timing Analysis & Gami
 
 > **App Icon**: Fast motorcycle with money element
 
-> **Status**: ✅ Production Deployed (v1.11.0)  
-> **Current Version**: 1.11.0  
+> **Status**: 🔄 In Development (v2.0.0-alpha.3 — Multi-Trading Accounts)  
+> **Current Version**: 2.0.0-alpha.3  
 > **Live URL**: https://wekangtrading.vercel.app  
 > **Scale**: 5 users, 30 trades/day, 1 year retention  
 > **Stack**: Next.js 15 + TypeScript + Turso (LibSQL) + Drizzle ORM + NextAuth.js v5
@@ -28,14 +28,22 @@ Trading Performance Tracking System with Individual Trade Timing Analysis & Gami
 - **Profit/Loss Tracking**: USD per trade with aggregated insights
 - **Fast Dashboard**: Pre-calculated daily summaries with interactive charts
 
-### 🎮 Gamification & Achievements (v1.2.0)
-- **34 Achievement Badges**: Bronze, Silver, Gold, Platinum tiers
+### � Multi-Trading Accounts (v2.0.0)
+- **Multiple Accounts per User**: Prop firm + personal accounts with separate tracking
+- **Account Dashboard**: Per-account stats, drawdown health, P&L, and cycle tracking
+- **Drawdown Rules**: Per-account max daily loss, max total drawdown, consistency rules
+- **Withdrawal Tracking**: Cycle P&L resets on withdrawal; `withdrawal_events` history
+- **Per-Account Timezone**: Daily reset timezone configurable per account
+- **Drawdown Templates**: Admin-managed presets (FTMO, MyFundedFx, etc.)
+- **Account Health**: SAFE / WARNING / BREACHED status badges
+
+### 🎮 Gamification & Achievements (v2.0.0 — Per-Account)
+- **34 Achievement Badges**: Bronze, Silver, Gold, Platinum tiers — scoped per trading account
 - **9 Badge Categories**: Trades, Win Streak, Profit, Win Rate, SOP, Log Streak, Sessions, Targets, Max Trades/Day
-- **Streak Tracking**: Win streaks, logging streaks, SOP compliance streaks
+- **Streak Tracking**: Win streaks, logging streaks, SOP compliance streaks — per account
 - **Real-time Progress**: Automatic badge awarding with celebration animations
-- **Points System**: Earn points to track overall progress
-- **Motivational Messages**: Contextual encouragement on achievements
-- **Achievement Gallery**: Visual badge collection display
+- **Points System**: Earn points to track overall progress per account
+- **Achievement Gallery**: Visual badge collection display per account
 
 ### 👥 Admin Features
 - **User Management**: Search, sort, and analyze individual users
@@ -242,37 +250,26 @@ npm run db:seed     # Seed database with test data
 
 ## 📝 Recent Updates
 
-### January 12, 2026 - Documentation Consolidation Complete
-- ✅ Created comprehensive feature documentation (4 new docs)
-- ✅ Organized documentation into categorized folders
-- ✅ Consolidated 15+ fragmented files into single sources of truth
-- ✅ Phase 6 complete - Clean, maintainable documentation structure
+### April 22, 2026 — v2.0.0-alpha.3 (Per-Account Achievements)
+- ✅ Per-account badges, streaks, and stats (`user_stats`, `user_badges`, `streaks` all scoped to `tradingAccountId`)
+- ✅ `badgeService` + `streakService` fully refactored — all functions require `accountId`
+- ✅ Achievement dashboard (`/dashboard/achievements`) uses active account context
+- ✅ Badge error fixes: COMEBACK / PERFECT_MONTH / EARLY_ADOPTER crash, negative progress bars, null badge entries
+- ✅ Merged to `develop` branch
 
-### January 11, 2026 - Phase 5 Complete
-- ✅ Invite-only registration system with admin codes
-- ✅ SOP types for strategy categorization
-- ✅ Daily loss limit alerts (2 losses max)
-- ✅ Complete admin user management
-- ✅ User self-service features (password, reset)
-- ✅ Security enhancements (24-hour deletion window)
+### April 20, 2026 — v2.0.0-alpha.2 (Timezone + Withdrawals)
+- ✅ Per-account daily reset timezone (`dailyResetTimezone` in account rules)
+- ✅ Withdrawal tracking (`withdrawal_events` table, cycle P&L resets)
+- ✅ Drawdown templates manager (admin)
+- ✅ Full account isolation for all services, API routes, and components
 
-### January 9, 2026 - Phase 4 Complete
-- ✅ Target Management v0.4.0 with categories
-- ✅ Advanced filtering and data export (CSV/PDF)
-- ✅ Performance trends with MA7/MA30
-- ✅ Complete Drizzle ORM migration
+### April 19, 2026 — v2.0.0-alpha.1 (Multi-Account Foundation)
+- ✅ `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings` tables
+- ✅ Account picker → Account landing → Account dashboard navigation flow
+- ✅ Account context strip (indigo bar) in all user pages
+- ✅ All core services and API routes scoped by `tradingAccountId`
 
-### January 9, 2026 - Phase 3 Complete
-- ✅ Dashboard with interactive charts
-- ✅ Session and hourly performance analytics
-- ✅ Timezone support (Malaysia GMT+8)
-
-### January 9, 2026 - Phase 2 Complete
-- ✅ Individual trade tracking system
-- ✅ Real-time and bulk entry workflows
-- ✅ Trade list with comprehensive filters
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
 ---
 

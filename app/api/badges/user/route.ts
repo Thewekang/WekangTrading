@@ -20,8 +20,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Require accountId
+    const accountId = request.nextUrl.searchParams.get('accountId');
+    if (!accountId) {
+      return NextResponse.json(
+        { success: false, error: { code: 'BAD_REQUEST', message: 'accountId is required' } },
+        { status: 400 }
+      );
+    }
+
     // Get user's earned badges with badge details
-    const userBadges = await getUserBadges(session.user.id);
+    const userBadges = await getUserBadges(session.user.id, accountId);
     
     // Get badge details for each earned badge
     const badgesWithDetails = await Promise.all(
@@ -34,13 +43,16 @@ export async function GET(request: NextRequest) {
       })
     );
     
+    // Filter out entries where the badge was deleted from the badges table
+    const validBadgesWithDetails = badgesWithDetails.filter((item) => item.badge != null);
+    
     // Get stats
-    const stats = await getUserBadgeStats(session.user.id);
+    const stats = await getUserBadgeStats(session.user.id, accountId);
 
     return NextResponse.json({
       success: true,
       data: {
-        badges: badgesWithDetails,
+        badges: validBadgesWithDetails,
         totalBadges: stats.totalBadges,
         totalPoints: stats.totalPoints,
         badgesByTier: stats.badgesByTier,

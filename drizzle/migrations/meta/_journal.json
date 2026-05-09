@@ -78,6 +78,41 @@
       "when": 1776449614242,
       "tag": "0010_big_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1776576888075,
+      "tag": "0011_watery_night_thrasher",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1776617963164,
+      "tag": "0012_clever_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1777000000000,
+      "tag": "0013_add_daily_reset_timezone",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1778335523713,
+      "tag": "0014_fat_kang",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1778343107695,
+      "tag": "0015_bizarre_quentin_quire",
+      "breakpoints": true
     }
   ]
 }

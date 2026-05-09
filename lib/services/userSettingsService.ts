@@ -16,9 +16,11 @@ import {
   disciplineTrackerSettings,
   disciplineTrackerRows,
   userPinnedSops,
-  userRankings
+  userRankings,
+  tradingAccounts,
+  withdrawalEvents
 } from '@/lib/db/schema';
-import { eq, count } from 'drizzle-orm';
+import { eq, count, inArray } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -93,8 +95,21 @@ export async function resetUserAccount(userId: string): Promise<{
   await db
     .delete(dailySummaries)
     .where(eq(dailySummaries.userId, userId));
+
+  // 3. Delete withdrawal events for all user's trading accounts
+  //    (cycle history is meaningless after a data reset)
+  const userAccountIds = await db
+    .select({ id: tradingAccounts.id })
+    .from(tradingAccounts)
+    .where(eq(tradingAccounts.userId, userId));
+
+  if (userAccountIds.length > 0) {
+    await db
+      .delete(withdrawalEvents)
+      .where(inArray(withdrawalEvents.tradingAccountId, userAccountIds.map((a) => a.id)));
+  }
   
-  // 3. Delete targets
+  // 4. Delete targets
   const [targetsCountBefore] = await db
     .select({ count: count() })
     .from(userTargets)
@@ -104,7 +119,7 @@ export async function resetUserAccount(userId: string): Promise<{
     .delete(userTargets)
     .where(eq(userTargets.userId, userId));
   
-  // 4. Delete user badges (achievements)
+  // 5. Delete user badges (achievements)
   const [badgesCountBefore] = await db
     .select({ count: count() })
     .from(userBadges)

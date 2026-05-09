@@ -17,6 +17,7 @@ import { Download, Upload, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-r
 import { parseCSVFile, downloadCSVTemplate, type ParsedTrade, type ValidationError } from '@/lib/utils/csvParser';
 import { showToast } from '@/components/ui/Toast';
 import { useTimezone } from '@/contexts/TimezoneContext';
+import { useActiveAccount } from '@/contexts/ActiveAccountContext';
 import { COMMON_TIMEZONES } from '@/lib/utils/timezones';
 import { BadgeCelebration } from '@/components/animations/BadgeCelebration';
 import { TradesPageQuote } from '@/components/quotes/TradesPageQuote';
@@ -26,6 +27,7 @@ export default function ImportTradesPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { timezone: userTimezone } = useTimezone();
+  const { activeAccount } = useActiveAccount();
   
   const [file, setFile] = useState<File | null>(null);
   const [importTimezone, setImportTimezone] = useState(userTimezone);
@@ -98,7 +100,7 @@ export default function ImportTradesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ trades: parsedTrades }),
+        body: JSON.stringify({ trades: parsedTrades, accountId: activeAccount?.id ?? null }),
       });
 
       const data = await response.json();

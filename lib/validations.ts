@@ -203,3 +203,135 @@ export type IndividualTradeInput = z.infer<typeof individualTradeSchema>;
 export type BulkTradeEntryInput = z.infer<typeof bulkTradeEntrySchema>;
 export type UserTargetInput = z.infer<typeof userTargetSchema>;
 export type UserPreferencesInput = z.infer<typeof userPreferencesSchema>;
+// ============================================
+// TRADING ACCOUNT VALIDATION SCHEMAS
+// ============================================
+
+const accountTypeEnum = z.enum(['PROP_FIRM', 'FUTURES', 'CFD', 'FOREX', 'SHARE', 'DEMO']);
+
+export const createTradingAccountSchema = z.object({
+  name: z.string().min(1, 'Account name is required').max(100, 'Name must be less than 100 characters'),
+  accountType: accountTypeEnum.default('FUTURES'),
+  currency: z.string().min(1).max(10).default('USD'),
+  startingBalance: z.number().min(0, 'Starting balance cannot be negative').default(0),
+});
+
+export const updateTradingAccountSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  accountType: accountTypeEnum.optional(),
+  currency: z.string().min(1).max(10).optional(),
+  startingBalance: z.number().min(0).optional(),
+  active: z.boolean().optional(),
+});
+
+export const accountRulesSchema = z.object({
+  dailyDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  totalDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  consistencyTargetPct: z.number().min(1).max(100).nullable().optional(),
+  cycleTargetProfitUsd: z.number().min(0).nullable().optional(),
+  dailyResetTimezone: z.string().optional(),
+});
+
+export const withdrawalEventSchema = z.object({
+  withdrawalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  withdrawalAmount: z.number().positive('Withdrawal amount must be positive'),
+  notes: z.string().max(500).optional(),
+});
+
+export const drawdownTemplateSchema = z.object({
+  name: z.string().min(1).max(100),
+  accountType: accountTypeEnum.nullable().optional(),
+  dailyDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  totalDrawdownPct: z.number().min(0.1).max(100).nullable().optional(),
+  consistencyTargetPct: z.number().min(1).max(100).nullable().optional(),
+  targetGainPct: z.number().min(0.1).max(100).nullable().optional(),
+  dailyResetTimezone: z.string().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const adminSettingSchema = z.object({
+  key: z.string().min(1).max(100),
+  value: z.string(),
+  description: z.string().max(500).optional(),
+});
+
+// ============================================
+// TYPES FROM NEW SCHEMAS
+// ============================================
+
+export type CreateTradingAccountInput = z.infer<typeof createTradingAccountSchema>;
+export type UpdateTradingAccountInput = z.infer<typeof updateTradingAccountSchema>;
+export type AccountRulesInput = z.infer<typeof accountRulesSchema>;
+export type WithdrawalEventInput = z.infer<typeof withdrawalEventSchema>;
+export type DrawdownTemplateInput = z.infer<typeof drawdownTemplateSchema>;
+export type AdminSettingInput = z.infer<typeof adminSettingSchema>;
+
+// ============================================
+// STRATEGY PLAYBOOK VALIDATION SCHEMAS
+// ============================================
+
+const instrumentTypeEnum = z.enum(['FOREX', 'COMMODITY', 'INDEX', 'CRYPTO', 'FUTURES']);
+
+export const createStrategySchema = z.object({
+  symbol: z
+    .string()
+    .min(2, 'Symbol must be at least 2 characters')
+    .max(20, 'Symbol must be less than 20 characters')
+    .transform((v) => v.toUpperCase().trim()),
+  instrumentType: instrumentTypeEnum,
+  defaultLotSize: z.number().positive('Lot size must be positive').optional().nullable(),
+  stopLossPoints: z.number().positive('SL must be positive').optional().nullable(),
+  tp1Points: z.number().positive('TP1 must be positive').optional().nullable(),
+  tp2Points: z.number().positive('TP2 must be positive').optional().nullable(),
+  riskPercentPerTrade: z
+    .number()
+    .min(0.01, 'Risk % must be at least 0.01')
+    .max(100, 'Risk % cannot exceed 100')
+    .default(1.0),
+  maxTradesPerDay: z
+    .number()
+    .int('Max trades must be a whole number')
+    .positive('Max trades must be positive')
+    .optional()
+    .nullable(),
+  tickSize: z.number().positive('Tick size must be positive').optional().nullable(),
+  tickValue: z.number().positive('Tick value must be positive').optional().nullable(),
+  pipValue: z.number().positive('Pip value must be positive').optional().nullable(),
+  bestSessions: z.array(z.string()).optional().nullable(),
+  entryNotes: z.string().max(1000, 'Notes must be less than 1000 characters').optional().nullable(),
+  sortOrder: z.number().int().default(0),
+});
+
+export const updateStrategySchema = createStrategySchema.partial();
+
+// Extend trading account update to include calculator settings
+export const calculatorSettingsSchema = z.object({
+  accountBalance: z.number().positive('Balance must be positive').optional().nullable(),
+  calculatorLeverage: z
+    .number()
+    .int()
+    .positive('Leverage must be positive')
+    .optional()
+    .nullable(),
+});
+
+export type CreateStrategyInput = z.infer<typeof createStrategySchema>;
+export type UpdateStrategyInput = z.infer<typeof updateStrategySchema>;
+export type CalculatorSettingsInput = z.infer<typeof calculatorSettingsSchema>;
+
+// ============================================
+// TRADING DAY CHECKLIST VALIDATION SCHEMAS
+// ============================================
+
+export const itemStateSchema = z.object({
+  checked: z.boolean(),
+  remark: z.string().max(300, 'Remark must be less than 300 characters').optional(),
+});
+
+export const updateChecklistSchema = z.object({
+  itemStates: z.record(z.string(), itemStateSchema),
+});
+
+export type ItemState = z.infer<typeof itemStateSchema>;
+export type ItemStates = Record<string, ItemState>;
+export type UpdateChecklistInput = z.infer<typeof updateChecklistSchema>;

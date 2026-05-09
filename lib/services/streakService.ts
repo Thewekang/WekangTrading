@@ -10,31 +10,32 @@ import { notifyStreakMilestone } from './notificationService';
 export type StreakType = 'WIN_STREAK' | 'LOG_STREAK' | 'SOP_STREAK';
 
 /**
- * Get user's streak by type
+ * Get user's streak by type (scoped to trading account)
  */
-export async function getUserStreak(userId: string, streakType: StreakType): Promise<Streak | null> {
+export async function getUserStreak(userId: string, streakType: StreakType, accountId: string): Promise<Streak | null> {
   const result = await db
     .select()
     .from(streaks)
-    .where(and(eq(streaks.userId, userId), eq(streaks.streakType, streakType)))
+    .where(and(eq(streaks.userId, userId), eq(streaks.tradingAccountId, accountId), eq(streaks.streakType, streakType)))
     .limit(1);
   
   return result[0] || null;
 }
 
 /**
- * Get all streaks for user
+ * Get all streaks for user (scoped to trading account)
  */
-export async function getAllUserStreaks(userId: string): Promise<Streak[]> {
-  return db.select().from(streaks).where(eq(streaks.userId, userId));
+export async function getAllUserStreaks(userId: string, accountId: string): Promise<Streak[]> {
+  return db.select().from(streaks).where(and(eq(streaks.userId, userId), eq(streaks.tradingAccountId, accountId)));
 }
 
 /**
- * Initialize streak for user
+ * Initialize streak for user (scoped to trading account)
  */
-async function initializeStreak(userId: string, streakType: StreakType): Promise<Streak> {
+async function initializeStreak(userId: string, streakType: StreakType, accountId: string): Promise<Streak> {
   const [streak] = await db.insert(streaks).values({
     userId,
+    tradingAccountId: accountId,
     streakType,
     currentStreak: 0,
     longestStreak: 0,
@@ -46,18 +47,22 @@ async function initializeStreak(userId: string, streakType: StreakType): Promise
 }
 
 /**
- * Update win streak based on daily summary
+ * Update win streak based on daily summary (scoped to trading account)
  */
-export async function updateWinStreak(userId: string, tradeDate: Date): Promise<void> {
+export async function updateWinStreak(userId: string, tradeDate: Date, accountId: string): Promise<void> {
   const dateStr = tradeDate.toISOString().split('T')[0];
   
-  // Get daily summary for this date
+  // Get daily summary for this date (account-scoped)
   const summary = await db
     .select({
       totalProfitLossUsd: dailySummaries.totalProfitLossUsd,
     })
     .from(dailySummaries)
-    .where(and(eq(dailySummaries.userId, userId), eq(dailySummaries.tradeDate, tradeDate)))
+    .where(and(
+      eq(dailySummaries.userId, userId),
+      eq(dailySummaries.tradingAccountId, accountId),
+      eq(dailySummaries.tradeDate, tradeDate)
+    ))
     .limit(1);
   
   if (summary.length === 0) return; // No trades for this date
@@ -66,9 +71,9 @@ export async function updateWinStreak(userId: string, tradeDate: Date): Promise<
   const isWinningDay = dayResult.totalProfitLossUsd > 0;
   
   // Get or create streak
-  let streak = await getUserStreak(userId, 'WIN_STREAK');
+  let streak = await getUserStreak(userId, 'WIN_STREAK', accountId);
   if (!streak) {
-    streak = await initializeStreak(userId, 'WIN_STREAK');
+    streak = await initializeStreak(userId, 'WIN_STREAK', accountId);
   }
   
   // Check if this is the next consecutive day
@@ -99,7 +104,7 @@ export async function updateWinStreak(userId: string, tradeDate: Date): Promise<
         longestWinStreak: newLongest,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(userStats.userId, userId));
+      .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
     
     // Send streak milestone messages
     if ([3, 5, 7, 10, 15].includes(newStreak)) {
@@ -124,21 +129,21 @@ export async function updateWinStreak(userId: string, tradeDate: Date): Promise<
           currentWinStreak: 0,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(userStats.userId, userId));
+        .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
     }
   }
 }
 
 /**
- * Update logging streak (consecutive days with trades)
+ * Update logging streak (consecutive days with trades) (scoped to trading account)
  */
-export async function updateLogStreak(userId: string, tradeDate: Date): Promise<void> {
+export async function updateLogStreak(userId: string, tradeDate: Date, accountId: string): Promise<void> {
   const dateStr = tradeDate.toISOString().split('T')[0];
   
   // Get or create streak
-  let streak = await getUserStreak(userId, 'LOG_STREAK');
+  let streak = await getUserStreak(userId, 'LOG_STREAK', accountId);
   if (!streak) {
-    streak = await initializeStreak(userId, 'LOG_STREAK');
+    streak = await initializeStreak(userId, 'LOG_STREAK', accountId);
   }
   
   // Check if already logged today
@@ -173,7 +178,7 @@ export async function updateLogStreak(userId: string, tradeDate: Date): Promise<
       consecutiveLoggingDays: newStreak,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(userStats.userId, userId));
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
   
   // Send streak milestone messages
   if ([7, 14, 30, 60, 90].includes(newStreak)) {
@@ -182,13 +187,13 @@ export async function updateLogStreak(userId: string, tradeDate: Date): Promise<
 }
 
 /**
- * Update SOP compliance streak (consecutive SOP-compliant trades)
+ * Update SOP compliance streak (scoped to trading account)
  */
-export async function updateSopStreak(userId: string, sopFollowed: boolean): Promise<void> {
+export async function updateSopStreak(userId: string, sopFollowed: boolean, accountId: string): Promise<void> {
   // Get or create streak
-  let streak = await getUserStreak(userId, 'SOP_STREAK');
+  let streak = await getUserStreak(userId, 'SOP_STREAK', accountId);
   if (!streak) {
-    streak = await initializeStreak(userId, 'SOP_STREAK');
+    streak = await initializeStreak(userId, 'SOP_STREAK', accountId);
   }
   
   if (sopFollowed) {
@@ -213,7 +218,7 @@ export async function updateSopStreak(userId: string, sopFollowed: boolean): Pro
         longestSopStreak: newLongest,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(userStats.userId, userId));
+      .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
     
     // Send streak milestone messages
     if ([10, 20, 50, 100].includes(newStreak)) {
@@ -236,18 +241,18 @@ export async function updateSopStreak(userId: string, sopFollowed: boolean): Pro
           currentSopStreak: 0,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(userStats.userId, userId));
+        .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
     }
   }
 }
 
 /**
- * Recalculate SOP streak from all trades (chronological order)
- * This should be called during full recalculation from updateUserStatsFromTrades
+ * Recalculate SOP streak from all trades (scoped to trading account)
  */
 export async function recalculateSopStreakFromTrades(
   userId: string,
-  trades: Array<{ sopFollowed: boolean; tradeTimestamp: Date }>
+  trades: Array<{ sopFollowed: boolean; tradeTimestamp: Date }>,
+  accountId: string
 ): Promise<void> {
   // Sort trades chronologically
   const sortedTrades = trades.sort((a, b) => a.tradeTimestamp.getTime() - b.tradeTimestamp.getTime());
@@ -266,9 +271,9 @@ export async function recalculateSopStreakFromTrades(
   }
   
   // Get or create streak
-  let streak = await getUserStreak(userId, 'SOP_STREAK');
+  let streak = await getUserStreak(userId, 'SOP_STREAK', accountId);
   if (!streak) {
-    streak = await initializeStreak(userId, 'SOP_STREAK');
+    streak = await initializeStreak(userId, 'SOP_STREAK', accountId);
   }
   
   // Update database
@@ -290,20 +295,20 @@ export async function recalculateSopStreakFromTrades(
       totalSopCompliant: sortedTrades.filter(t => t.sopFollowed).length,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(userStats.userId, userId));
+    .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
 }
 
 /**
- * Check if streak broken (for daily job - detect missed days)
+ * Check if streak broken (for daily job - detect missed days) (scoped to trading account)
  */
-export async function checkStreakStatus(userId: string): Promise<void> {
+export async function checkStreakStatus(userId: string, accountId: string): Promise<void> {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toISOString().split('T')[0];
   
   // Check log streak
-  const logStreak = await getUserStreak(userId, 'LOG_STREAK');
+  const logStreak = await getUserStreak(userId, 'LOG_STREAK', accountId);
   if (logStreak && logStreak.currentStreak > 0) {
     const lastDate = logStreak.lastStreakDate ? new Date(logStreak.lastStreakDate) : null;
     if (lastDate && lastDate < yesterday) {
@@ -323,7 +328,7 @@ export async function checkStreakStatus(userId: string): Promise<void> {
           consecutiveLoggingDays: 0,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(userStats.userId, userId));
+        .where(and(eq(userStats.userId, userId), eq(userStats.tradingAccountId, accountId)));
       
       // Send reminder message
       await sendStreakBrokenMessage(userId, 'LOG_STREAK', logStreak.currentStreak);
@@ -387,14 +392,14 @@ async function sendStreakBrokenMessage(userId: string, streakType: StreakType, l
 }
 
 /**
- * Get streak summary for dashboard
+ * Get streak summary for dashboard (scoped to trading account)
  */
-export async function getStreakSummary(userId: string): Promise<{
+export async function getStreakSummary(userId: string, accountId: string): Promise<{
   winStreak: { current: number; longest: number };
   logStreak: { current: number; longest: number };
   sopStreak: { current: number; longest: number };
 }> {
-  const allStreaks = await getAllUserStreaks(userId);
+  const allStreaks = await getAllUserStreaks(userId, accountId);
   
   const winStreak = allStreaks.find(s => s.streakType === 'WIN_STREAK');
   const logStreak = allStreaks.find(s => s.streakType === 'LOG_STREAK');

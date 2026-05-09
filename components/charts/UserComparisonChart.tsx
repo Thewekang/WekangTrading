@@ -77,9 +77,11 @@ export function UserComparisonChart({ metric, title, description }: UserComparis
   const chartData = Array.isArray(data)
     ? data
         .filter(u => u.totalTrades > 0)
-        .slice(0, 10) // Show top 10 users
+        .slice(0, 10) // Show top 10 accounts
         .map(user => ({
-          name: user.userName.split(' ')[0], // First name only for brevity
+          name: user.accountName
+            ? `${user.userName.split(' ')[0]} · ${user.accountName}`
+            : user.userName.split(' ')[0],
           value: metric === 'profitLoss' ? user.profitLoss : user[metric],
         }))
     : [];

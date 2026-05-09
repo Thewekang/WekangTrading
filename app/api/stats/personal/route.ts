@@ -46,11 +46,12 @@ export async function GET(req: NextRequest) {
     }
 
     const { period } = validation.data;
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Get stats and trends
     const [stats, trends] = await Promise.all([
-      getPersonalStats(session.user.id, period),
-      getDailyTrends(session.user.id, period === 'all' ? 'month' : period),
+      getPersonalStats(session.user.id, period, accountId),
+      getDailyTrends(session.user.id, period === 'all' ? 'month' : period, 30, accountId),
     ]);
 
     return NextResponse.json({

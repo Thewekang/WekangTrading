@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month') || undefined;
     const search = searchParams.get('search') || undefined;
     const sortBy = searchParams.get('sortBy') as any || 'date-desc';
+    const accountId = searchParams.get('accountId') || undefined;
 
     // Validate filters
     const filters = disciplineTrackerFilterSchema.parse({ month, search, sortBy });
 
     // Fetch rows
-    const rows = await getUserRows(session.user.id, filters);
+    const rows = await getUserRows(session.user.id, filters, accountId);
 
     return NextResponse.json({ success: true, data: rows });
   } catch (error) {
@@ -79,12 +80,13 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     const validatedData = disciplineTrackerRowSchema.parse(body);
+    const accountId: string | undefined = typeof body.accountId === 'string' ? body.accountId : undefined;
     
     // Convert date string to Date object for database
     const tradeDate = new Date(validatedData.tradeDate);
 
-    // Check for duplicate date
-    const exists = await dateExists(session.user.id, tradeDate);
+    // Check for duplicate date (per account)
+    const exists = await dateExists(session.user.id, tradeDate, undefined, accountId);
     if (exists) {
       return NextResponse.json(
         {
@@ -101,6 +103,7 @@ export async function POST(request: NextRequest) {
     // Create row with proper data structure
     const newRow = await createRow(session.user.id, {
       tradeDate,
+      tradingAccountId: accountId ?? null,
       notes: validatedData.notes || '',
       trade1Outcome: '',
       trade2Outcome: '',

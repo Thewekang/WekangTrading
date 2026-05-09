@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getTrades } from '@/lib/services/individualTradeService';
@@ -19,9 +20,14 @@ export default async function TradesPage() {
     redirect('/login');
   }
 
-  // Fetch initial trades for current user
+  // Read active account from cookie for server-side initial trade fetch
+  const cookieStore = await cookies();
+  const activeAccountId = cookieStore.get('active_account_id')?.value;
+
+  // Fetch initial trades for active account
   const { trades } = await getTrades({
     userId: session.user.id,
+    tradingAccountId: activeAccountId,
     page: 1,
     pageSize: 50,
   });
