@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getAccount } from '@/lib/services/tradingAccountService';
 import { listStrategies, parseBestSessions } from '@/lib/services/accountStrategyService';
+import { getCycleStatus } from '@/lib/services/accountRulesService';
 import { StrategyPlaybook } from '@/components/strategies/StrategyPlaybook';
 
 type Props = { params: Promise<{ id: string }> };
@@ -13,14 +14,24 @@ export default async function StrategiesPage({ params }: Props) {
   if (!session?.user?.id) redirect('/login');
 
   const { id } = await params;
-  const account = await getAccount(id, session.user.id).catch(() => null);
+  const [account, rawStrategies, cycleStatus] = await Promise.all([
+    getAccount(id, session.user.id).catch(() => null),
+    listStrategies(id, session.user.id).catch(() => []),
+    getCycleStatus(id).catch(() => null),
+  ]);
+
   if (!account) notFound();
 
-  const rawStrategies = await listStrategies(id, session.user.id).catch(() => []);
   const strategies = rawStrategies.map((s) => ({
     ...s,
     bestSessions: parseBestSessions(s.bestSessions),
   }));
+
+  // Current balance = starting balance + net retained earnings (P&L minus withdrawals)
+  const currentBalance =
+    cycleStatus != null
+      ? account.startingBalance + cycleStatus.cumulativePnl
+      : account.startingBalance || null;
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -36,8 +47,7 @@ export default async function StrategiesPage({ params }: Props) {
         accountId={id}
         accountName={account.name}
         initialStrategies={strategies}
-        accountBalance={account.accountBalance}
-        calculatorLeverage={account.calculatorLeverage}
+        accountBalance={currentBalance}
       />
     </div>
   );

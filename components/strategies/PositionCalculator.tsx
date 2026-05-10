@@ -10,7 +10,6 @@ import type { StrategyCardData } from './StrategyCard';
 interface Props {
   strategy: StrategyCardData;
   defaultBalance?: number | null;
-  defaultLeverage?: number | null;
   onClose: () => void;
 }
 
@@ -38,24 +37,35 @@ function calcResult(
   tickSize: number | null,
   tickValue: number | null,
   pipValue: number | null,
+  fixedSize?: number | null,
 ): CalcResult | null {
-  if (!balance || !riskPct || !slPoints) return null;
-
-  const riskUsd = (balance * riskPct) / 100;
+  if (!slPoints) return null;
 
   let riskPerUnit: number;
   if (isFutures) {
     if (!tickSize || !tickValue) return null;
     const slTicks = slPoints / tickSize;
-    riskPerUnit = slTicks * tickValue; // USD risk per contract
+    riskPerUnit = slTicks * tickValue;
   } else {
     if (!pipValue) return null;
-    riskPerUnit = slPoints * pipValue; // USD risk per standard lot
+    riskPerUnit = slPoints * pipValue;
   }
 
   if (riskPerUnit === 0) return null;
 
-  const maxSize = riskUsd / riskPerUnit;
+  let maxSize: number;
+  let riskUsd: number;
+
+  if (fixedSize != null && fixedSize > 0) {
+    // FIXED sizing mode: size is given, derive risk from it
+    maxSize = fixedSize;
+    riskUsd = fixedSize * riskPerUnit;
+  } else {
+    // RISK_BASED sizing mode: derive size from balance × risk%
+    if (!balance || !riskPct) return null;
+    riskUsd = (balance * riskPct) / 100;
+    maxSize = riskUsd / riskPerUnit;
+  }
 
   let tp1Pnl: number | null = null;
   let tp2Pnl: number | null = null;
@@ -87,13 +97,14 @@ function calcResult(
   return { riskUsd, riskPerContract: riskPerUnit, maxSize, tp1Pnl, tp2Pnl, rrTp1, rrTp2 };
 }
 
-export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, onClose }: Props) {
+export function PositionCalculator({ strategy, defaultBalance, onClose }: Props) {
   const isFutures = strategy.instrumentType === 'FUTURES';
   const unitLabel = isFutures ? 'contracts' : 'lots';
+  const isFixed = strategy.defaultLotSize != null;
 
   const [balance, setBalance] = useState(defaultBalance?.toString() ?? '');
-  const [leverage, setLeverage] = useState(defaultLeverage?.toString() ?? '');
   const [riskPct, setRiskPct] = useState(strategy.riskPercentPerTrade?.toString() ?? '1');
+  const [fixedSize, setFixedSize] = useState(strategy.defaultLotSize?.toString() ?? '');
   const [slPoints, setSlPoints] = useState(strategy.stopLossPoints?.toString() ?? '');
   const [tp1Points, setTp1Points] = useState(strategy.tp1Points?.toString() ?? '');
   const [tp2Points, setTp2Points] = useState(strategy.tp2Points?.toString() ?? '');
@@ -111,9 +122,10 @@ export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, 
       strategy.tickSize ?? null,
       strategy.tickValue ?? null,
       strategy.pipValue ?? null,
+      isFixed ? (parseFloat(fixedSize) || null) : null,
     );
     setResult(res);
-  }, [balance, riskPct, slPoints, tp1Points, tp2Points, isFutures, strategy]);
+  }, [balance, riskPct, fixedSize, slPoints, tp1Points, tp2Points, isFutures, strategy, isFixed]);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -126,12 +138,17 @@ export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, 
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
-          {/* Account section */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Account</p>
-            <div className="grid grid-cols-2 gap-3">
+          {/* Account Balance — only needed for risk-based sizing */}
+          {!isFixed && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Account Balance</p>
               <div>
-                <Label htmlFor="calc-balance" className="text-xs text-gray-600">Balance ($)</Label>
+                <Label htmlFor="calc-balance" className="text-xs text-gray-600">
+                  Balance ($)
+                  {defaultBalance != null && (
+                    <span className="ml-1 text-gray-400">(auto-filled from account)</span>
+                  )}
+                </Label>
                 <Input
                   id="calc-balance"
                   type="number"
@@ -141,19 +158,8 @@ export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, 
                   onChange={(e) => setBalance(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="calc-leverage" className="text-xs text-gray-600">Leverage (e.g. 10)</Label>
-                <Input
-                  id="calc-leverage"
-                  type="number"
-                  min="1"
-                  placeholder="10"
-                  value={leverage}
-                  onChange={(e) => setLeverage(e.target.value)}
-                />
-              </div>
             </div>
-          </div>
+          )}
 
           {/* Strategy inputs */}
           <div>
@@ -161,18 +167,34 @@ export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, 
               Inputs ({isFutures ? 'ticks' : 'pips'})
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="calc-risk" className="text-xs text-gray-600">Risk %</Label>
-                <Input
-                  id="calc-risk"
-                  type="number"
-                  min="0.01"
-                  max="100"
-                  step="0.1"
-                  value={riskPct}
-                  onChange={(e) => setRiskPct(e.target.value)}
-                />
-              </div>
+              {isFixed ? (
+                <div>
+                  <Label htmlFor="calc-fixed" className="text-xs text-gray-600">
+                    Fixed Size ({unitLabel})
+                  </Label>
+                  <Input
+                    id="calc-fixed"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={fixedSize}
+                    onChange={(e) => setFixedSize(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="calc-risk" className="text-xs text-gray-600">Risk %</Label>
+                  <Input
+                    id="calc-risk"
+                    type="number"
+                    min="0.01"
+                    max="100"
+                    step="0.01"
+                    value={riskPct}
+                    onChange={(e) => setRiskPct(e.target.value)}
+                  />
+                </div>
+              )}
               <div>
                 <Label htmlFor="calc-sl" className="text-xs text-gray-600">Stop Loss</Label>
                 <Input
@@ -233,7 +255,9 @@ export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, 
                 <span className="font-medium text-gray-700">{formatUsd(result.riskPerContract)}</span>
               </div>
               <div className="flex justify-between px-4 py-2 bg-blue-50 rounded-b-none">
-                <span className="font-semibold text-blue-700">Max Size</span>
+                <span className="font-semibold text-blue-700">
+                  {isFixed ? 'Position Size' : 'Max Size'}
+                </span>
                 <span className="font-bold text-blue-700 text-base">
                   {result.maxSize < 1 ? result.maxSize.toFixed(2) : Math.floor(result.maxSize)} {unitLabel}
                 </span>
@@ -253,7 +277,9 @@ export function PositionCalculator({ strategy, defaultBalance, defaultLeverage, 
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 py-6 text-center text-sm text-gray-400">
-              Enter balance, risk %, and stop loss to see results
+              {isFixed
+                ? 'Enter fixed size and stop loss to see results'
+                : 'Enter balance, risk %, and stop loss to see results'}
             </div>
           )}
 

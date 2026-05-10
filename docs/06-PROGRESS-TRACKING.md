@@ -1,7 +1,7 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.12
+- **Version**: 3.13
 - **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 - **Last Updated**: May 10, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
@@ -13,9 +13,9 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v2.0.0-alpha.7 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
+**Project Status**: 🚀 v2.0.0-alpha.8 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: May 10, 2026 (v2.0.0-alpha.7: Trading Day Checklist, CandleCloseHUD, migration 0015)  
+**Latest Development**: May 10, 2026 (v2.0.0-alpha.8: Strategy Playbook UX — sizing mode toggle, auto-derived balance, leverage removed)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
@@ -103,6 +103,8 @@ Phase 7: Admin UI                [0%]   ░░░░░░░░░░
 - ✅ **CycleInsightsCard** (alpha.4): replaces static consistency display with math-based actionable insights (single-session fix range, multi-day fix path, daily cap, days-to-target, suggested minimum target when no target set); collapsible by default
 - ✅ **CycleProfitTargetCard UI refresh** (alpha.4): gradient progress bar, 3-stat row, matches new design language
 - ✅ **Dashboard layout** (alpha.4): target card + health card side-by-side when target is set; insights card full-width below
+
+- ✅ **Strategy Playbook UX** (alpha.8): Fixed Size / Risk % sizing mode toggle; balance auto-derived from `startingBalance + cumulativePnl`; leverage removed from UI; Calculator Settings section removed from Account Settings; Risk % `step` bug fixed
 
 **Remaining in Phase 6**:
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -47,7 +47,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
       stopLossPoints: undefined,
       tp1Points: undefined,
       tp2Points: undefined,
-      riskPercentPerTrade: 1.0,
+      riskPercentPerTrade: undefined,
       maxTradesPerDay: undefined,
       tickSize: undefined,
       tickValue: undefined,
@@ -62,9 +62,25 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
   const instrumentType = watch('instrumentType') ?? 'FUTURES';
   const symbolValue = watch('symbol');
 
+  // Sizing mode: FIXED (use defaultLotSize) or RISK_BASED (use riskPercentPerTrade)
+  const [sizingMode, setSizingMode] = useState<'FIXED' | 'RISK_BASED'>(
+    strategy?.defaultLotSize != null ? 'FIXED' : 'RISK_BASED',
+  );
+
+  function switchSizingMode(mode: 'FIXED' | 'RISK_BASED') {
+    setSizingMode(mode);
+    if (mode === 'FIXED') {
+      setValue('riskPercentPerTrade', undefined as unknown as number);
+    } else {
+      setValue('defaultLotSize', undefined as unknown as number);
+    }
+  }
+
   // Populate form when editing
   useEffect(() => {
     if (strategy) {
+      // Infer sizing mode from which field has a value
+      setSizingMode(strategy.defaultLotSize != null ? 'FIXED' : 'RISK_BASED');
       reset({
         symbol: strategy.symbol,
         instrumentType: strategy.instrumentType as CreateStrategyInput['instrumentType'],
@@ -72,7 +88,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
         stopLossPoints: strategy.stopLossPoints ?? undefined,
         tp1Points: strategy.tp1Points ?? undefined,
         tp2Points: strategy.tp2Points ?? undefined,
-        riskPercentPerTrade: strategy.riskPercentPerTrade ?? 1.0,
+        riskPercentPerTrade: strategy.riskPercentPerTrade ?? undefined,
         maxTradesPerDay: strategy.maxTradesPerDay ?? undefined,
         tickSize: strategy.tickSize ?? undefined,
         tickValue: strategy.tickValue ?? undefined,
@@ -82,6 +98,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
         sortOrder: strategy.sortOrder ?? 0,
       });
     } else {
+      setSizingMode('RISK_BASED');
       reset({
         symbol: '',
         instrumentType: 'FUTURES',
@@ -207,32 +224,68 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
 
           {/* Position Defaults */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Position Defaults</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Position Sizing</p>
+              {/* Mode toggle */}
+              <div className="flex rounded-md border border-gray-300 overflow-hidden text-xs">
+                <button
+                  type="button"
+                  onClick={() => switchSizingMode('FIXED')}
+                  className={`px-3 py-1 font-medium transition-colors ${
+                    sizingMode === 'FIXED'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Fixed Size
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchSizingMode('RISK_BASED')}
+                  className={`px-3 py-1 font-medium transition-colors border-l border-gray-300 ${
+                    sizingMode === 'RISK_BASED'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Risk %
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="sf-lot" className="text-xs">
-                  Default Size ({instrumentType === 'FUTURES' ? 'contracts' : 'lots'})
-                </Label>
-                <Input
-                  id="sf-lot"
-                  type="number"
-                  step="any"
-                  placeholder="1"
-                  {...register('defaultLotSize', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="sf-risk" className="text-xs">Risk % / Trade</Label>
-                <Input
-                  id="sf-risk"
-                  type="number"
-                  step="0.1"
-                  min="0.01"
-                  max="100"
-                  placeholder="1.0"
-                  {...register('riskPercentPerTrade', { valueAsNumber: true })}
-                />
-              </div>
+              {sizingMode === 'FIXED' ? (
+                <div>
+                  <Label htmlFor="sf-lot" className="text-xs">
+                    Default Size ({instrumentType === 'FUTURES' ? 'contracts' : 'lots'})
+                  </Label>
+                  <Input
+                    id="sf-lot"
+                    type="number"
+                    step="any"
+                    placeholder="1"
+                    {...register('defaultLotSize', { valueAsNumber: true })}
+                  />
+                  {errors.defaultLotSize && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.defaultLotSize.message}</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="sf-risk" className="text-xs">Risk % / Trade</Label>
+                  <Input
+                    id="sf-risk"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max="100"
+                    placeholder="1.0"
+                    {...register('riskPercentPerTrade', { valueAsNumber: true })}
+                  />
+                  {errors.riskPercentPerTrade && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.riskPercentPerTrade.message}</p>
+                  )}
+                </div>
+              )}
               <div>
                 <Label htmlFor="sf-sl" className="text-xs">
                   Stop Loss ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'})

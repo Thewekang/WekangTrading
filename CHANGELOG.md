@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.8] — 2026-05-10
+
+### Changed
+- **Strategy Playbook — Sizing Mode toggle**: `StrategyFormDialog` now has a **Fixed Size / Risk %** pill toggle under "Position Sizing". Only one field is shown at a time; switching clears the other. Existing strategies initialise to the mode matching whichever field had a value saved.
+- **StrategyCard**: position defaults section now renders either "Fixed Size: N contracts" or "Risk %: N%" (never both), reflecting the active sizing mode.
+- **PositionCalculator — Fixed-size mode**: when a strategy uses Fixed Size, the calculator shows a "Fixed Size" input instead of Risk %; the Account Balance section is hidden (balance is not needed to compute P&L from a fixed contract count). Results label changes to "Position Size" instead of "Max Size".
+- **PositionCalculator — balance auto-derived**: balance is now computed server-side from `startingBalance + cumulativePnl` (net of withdrawals via `getCycleStatus`) and passed directly to the calculator. Users no longer need to maintain it manually.
+- **Calculator Settings removed**: the "Calculator Settings" section (manual balance + leverage inputs) has been removed from `AccountSettingsForm`. Balance is live from trade history; leverage was unused in all calculations.
+- **Leverage removed from UI**: `calculatorLeverage` prop removed from `StrategyPlaybook`, `StrategyCard`, and `PositionCalculator`. The DB column is retained but no longer surfaced. Leverage is per-symbol (set on each instrument/broker), not per-account.
+- **Balance badge in Playbook header**: the header pill now shows "Balance: $X" (live-derived, no leverage suffix).
+- **Risk % nudge updated**: when balance cannot be derived, the nudge message now directs users to set a starting balance in Account Settings instead of referencing the removed Calculator Settings.
+
+### Fixed
+- **Risk % browser validation error** in `StrategyFormDialog` and `PositionCalculator`: `step="0.1"` caused browsers to reject `1.0` as invalid (nearest valid values shown were 0.91 / 1.01). Changed to `step="0.01"`.
+
+### Operations — v2.0.0-alpha.8 (2026-05-10)
+- No DB schema changes — no migration required
+- `accountBalance` and `calculatorLeverage` columns retained in schema (unused by UI)
+
+---
+
 ## [v2.0.0-alpha.7] — 2026-05-10
 
 ### Added

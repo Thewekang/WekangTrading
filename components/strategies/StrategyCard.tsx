@@ -48,7 +48,6 @@ export interface StrategyCardData extends Omit<AccountStrategy, 'bestSessions'> 
 interface Props {
   strategy: StrategyCardData;
   accountBalance?: number | null;
-  calculatorLeverage?: number | null;
   onEdit: (strategy: StrategyCardData) => void;
   onDelete: (strategyId: string) => void;
 }
@@ -68,7 +67,7 @@ function formatPoints(points: number | null | undefined, isFutures: boolean): st
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function StrategyCard({ strategy, accountBalance, calculatorLeverage, onEdit, onDelete }: Props) {
+export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Props) {
   const [showCalculator, setShowCalculator] = useState(false);
   const isFutures = strategy.instrumentType === 'FUTURES';
   const unitLabel = isFutures ? 'contracts' : 'lots';
@@ -110,15 +109,13 @@ export function StrategyCard({ strategy, accountBalance, calculatorLeverage, onE
         {/* Position defaults grid */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">Default size</span>
-            <span className="font-medium text-gray-900">
-              {strategy.defaultLotSize ?? '—'} {unitLabel}
+            <span className="text-gray-500">
+              {strategy.defaultLotSize != null ? 'Fixed Size' : 'Risk %'}
             </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Risk %</span>
             <span className="font-medium text-gray-900">
-              {strategy.riskPercentPerTrade ?? '—'}%
+              {strategy.defaultLotSize != null
+                ? `${strategy.defaultLotSize} ${unitLabel}`
+                : `${strategy.riskPercentPerTrade ?? '—'}%`}
             </span>
           </div>
           <div className="flex justify-between">
@@ -212,7 +209,6 @@ export function StrategyCard({ strategy, accountBalance, calculatorLeverage, onE
         <PositionCalculator
           strategy={strategy}
           defaultBalance={accountBalance}
-          defaultLeverage={calculatorLeverage}
           onClose={() => setShowCalculator(false)}
         />
       )}
