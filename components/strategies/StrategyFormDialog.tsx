@@ -35,6 +35,14 @@ interface Props {
   isSaving?: boolean;
 }
 
+// Convert NaN / empty string → undefined so optional Zod number fields accept blank inputs.
+// valueAsNumber:true would produce NaN which Zod rejects silently.
+const asNum = (v: unknown) => {
+  if (v === '' || v == null) return undefined;
+  const n = Number(v);
+  return isNaN(n) ? undefined : n;
+};
+
 export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }: Props) {
   const isEdit = !!strategy;
 
@@ -194,7 +202,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     type="number"
                     step="any"
                     placeholder="0.25"
-                    {...register('tickSize', { valueAsNumber: true })}
+                    {...register('tickSize', { setValueAs: asNum })}
                   />
                   {errors.tickSize && (
                     <p className="text-xs text-red-500 mt-0.5">{errors.tickSize.message}</p>
@@ -207,7 +215,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     type="number"
                     step="any"
                     placeholder="0.50"
-                    {...register('tickValue', { valueAsNumber: true })}
+                    {...register('tickValue', { setValueAs: asNum })}
                   />
                   {errors.tickValue && (
                     <p className="text-xs text-red-500 mt-0.5">{errors.tickValue.message}</p>
@@ -226,7 +234,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                 type="number"
                 step="any"
                 placeholder="10"
-                {...register('pipValue', { valueAsNumber: true })}
+                {...register('pipValue', { setValueAs: asNum })}
               />
               {errors.pipValue && (
                 <p className="text-xs text-red-500 mt-0.5">{errors.pipValue.message}</p>
@@ -276,7 +284,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     type="number"
                     step="any"
                     placeholder="1"
-                    {...register('defaultLotSize', { valueAsNumber: true })}
+                    {...register('defaultLotSize', { setValueAs: asNum })}
                   />
                   {errors.defaultLotSize && (
                     <p className="text-xs text-red-500 mt-0.5">{errors.defaultLotSize.message}</p>
@@ -292,7 +300,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     min="0.01"
                     max="100"
                     placeholder="1.0"
-                    {...register('riskPercentPerTrade', { valueAsNumber: true })}
+                    {...register('riskPercentPerTrade', { setValueAs: asNum })}
                   />
                   {errors.riskPercentPerTrade && (
                     <p className="text-xs text-red-500 mt-0.5">{errors.riskPercentPerTrade.message}</p>
@@ -308,7 +316,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                   type="number"
                   step="any"
                   placeholder="10"
-                  {...register('stopLossPoints', { valueAsNumber: true })}
+                  {...register('stopLossPoints', { setValueAs: asNum })}
                 />
                 {errors.stopLossPoints && (
                   <p className="text-xs text-red-500 mt-0.5">{errors.stopLossPoints.message}</p>
@@ -322,7 +330,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                   step="1"
                   min="1"
                   placeholder="3"
-                  {...register('maxTradesPerDay', { valueAsNumber: true })}
+                  {...register('maxTradesPerDay', { setValueAs: asNum })}
                 />
               </div>
               <div>
@@ -334,7 +342,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                   type="number"
                   step="any"
                   placeholder="20"
-                  {...register('tp1Points', { valueAsNumber: true })}
+                  {...register('tp1Points', { setValueAs: asNum })}
                 />
               </div>
               <div>
@@ -346,7 +354,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                   type="number"
                   step="any"
                   placeholder="40"
-                  {...register('tp2Points', { valueAsNumber: true })}
+                  {...register('tp2Points', { setValueAs: asNum })}
                 />
               </div>
             </div>

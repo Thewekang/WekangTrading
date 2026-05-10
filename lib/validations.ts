@@ -272,12 +272,6 @@ export type AdminSettingInput = z.infer<typeof adminSettingSchema>;
 
 const instrumentTypeEnum = z.enum(['FOREX', 'COMMODITY', 'INDEX', 'CRYPTO', 'FUTURES']);
 
-// react-hook-form with valueAsNumber:true sends NaN for empty inputs.
-// Zod's z.number() rejects NaN silently (not undefined/null), blocking form submission.
-// This preprocessor converts NaN → undefined so optional numeric fields pass validation.
-const nanToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
-  z.preprocess((v) => (typeof v === 'number' && isNaN(v) ? undefined : v), schema);
-
 export const createStrategySchema = z.object({
   symbol: z
     .string()
@@ -285,29 +279,25 @@ export const createStrategySchema = z.object({
     .max(20, 'Symbol must be less than 20 characters')
     .transform((v) => v.toUpperCase().trim()),
   instrumentType: instrumentTypeEnum,
-  defaultLotSize: nanToUndefined(z.number().positive('Lot size must be positive').optional().nullable()),
-  stopLossPoints: nanToUndefined(z.number().positive('SL must be positive').optional().nullable()),
-  tp1Points: nanToUndefined(z.number().positive('TP1 must be positive').optional().nullable()),
-  tp2Points: nanToUndefined(z.number().positive('TP2 must be positive').optional().nullable()),
-  riskPercentPerTrade: nanToUndefined(
-    z
-      .number()
-      .min(0.01, 'Risk % must be at least 0.01')
-      .max(100, 'Risk % cannot exceed 100')
-      .optional()
-      .nullable(),
-  ),
-  maxTradesPerDay: nanToUndefined(
-    z
-      .number()
-      .int('Max trades must be a whole number')
-      .positive('Max trades must be positive')
-      .optional()
-      .nullable(),
-  ),
-  tickSize: nanToUndefined(z.number().positive('Tick size must be positive').optional().nullable()),
-  tickValue: nanToUndefined(z.number().positive('Tick value must be positive').optional().nullable()),
-  pipValue: nanToUndefined(z.number().positive('Pip value must be positive').optional().nullable()),
+  defaultLotSize: z.number().positive('Lot size must be positive').optional().nullable(),
+  stopLossPoints: z.number().positive('SL must be positive').optional().nullable(),
+  tp1Points: z.number().positive('TP1 must be positive').optional().nullable(),
+  tp2Points: z.number().positive('TP2 must be positive').optional().nullable(),
+  riskPercentPerTrade: z
+    .number()
+    .min(0.01, 'Risk % must be at least 0.01')
+    .max(100, 'Risk % cannot exceed 100')
+    .optional()
+    .nullable(),
+  maxTradesPerDay: z
+    .number()
+    .int('Max trades must be a whole number')
+    .positive('Max trades must be positive')
+    .optional()
+    .nullable(),
+  tickSize: z.number().positive('Tick size must be positive').optional().nullable(),
+  tickValue: z.number().positive('Tick value must be positive').optional().nullable(),
+  pipValue: z.number().positive('Pip value must be positive').optional().nullable(),
   bestSessions: z.array(z.string()).optional().nullable(),
   entryNotes: z.string().max(1000, 'Notes must be less than 1000 characters').optional().nullable(),
   sortOrder: z.number().int().default(0),
