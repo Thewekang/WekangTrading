@@ -137,6 +137,10 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
     onClose();
   };
 
+  const onInvalid = (errs: unknown) => {
+    console.error('[StrategyForm] Validation errors:', errs);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -144,7 +148,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
           <DialogTitle>{isEdit ? `Edit — ${strategy?.symbol}` : 'New Strategy'}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5 pt-1">
           {/* Symbol + Instrument Type */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -192,6 +196,9 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     placeholder="0.25"
                     {...register('tickSize', { valueAsNumber: true })}
                   />
+                  {errors.tickSize && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.tickSize.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="sf-tickval" className="text-xs">Tick Value (USD)</Label>
@@ -202,6 +209,9 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     placeholder="0.50"
                     {...register('tickValue', { valueAsNumber: true })}
                   />
+                  {errors.tickValue && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.tickValue.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -218,6 +228,9 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                 placeholder="10"
                 {...register('pipValue', { valueAsNumber: true })}
               />
+              {errors.pipValue && (
+                <p className="text-xs text-red-500 mt-0.5">{errors.pipValue.message}</p>
+              )}
               <p className="text-xs text-gray-400 mt-0.5">Broker-specific — override if needed</p>
             </div>
           )}
@@ -297,6 +310,9 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                   placeholder="10"
                   {...register('stopLossPoints', { valueAsNumber: true })}
                 />
+                {errors.stopLossPoints && (
+                  <p className="text-xs text-red-500 mt-0.5">{errors.stopLossPoints.message}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="sf-maxday" className="text-xs">Max Trades / Day</Label>
