@@ -65,6 +65,24 @@ function formatPoints(points: number | null | undefined, isFutures: boolean): st
   return `${points}${isFutures ? ' tks' : ' pips'}`;
 }
 
+/** Returns dollar P&L for a given number of points, or null if data is missing. */
+function calcPnlUsd(points: number | null | undefined, strategy: StrategyCardData): number | null {
+  if (points == null) return null;
+  const size = strategy.defaultLotSize;
+  if (size == null) return null; // Risk-based: actual size depends on balance
+  if (strategy.instrumentType === 'FUTURES') {
+    if (!strategy.tickSize || !strategy.tickValue) return null;
+    return (points / strategy.tickSize) * strategy.tickValue * size;
+  }
+  if (!strategy.pipValue) return null;
+  return points * strategy.pipValue * size;
+}
+
+function formatUsd(usd: number | null): string | null {
+  if (usd == null) return null;
+  return `$${usd.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Props) {
@@ -120,9 +138,16 @@ export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Pro
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Stop Loss</span>
-            <span className="font-semibold text-red-600">
-              {formatPoints(strategy.stopLossPoints, isFutures)}
-            </span>
+            <div className="text-right">
+              <span className="font-semibold text-red-600">
+                {formatPoints(strategy.stopLossPoints, isFutures)}
+              </span>
+              {formatUsd(calcPnlUsd(strategy.stopLossPoints, strategy)) && (
+                <span className="block text-xs text-red-400">
+                  {formatUsd(calcPnlUsd(strategy.stopLossPoints, strategy))}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Max/day</span>
@@ -132,9 +157,16 @@ export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Pro
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">TP1</span>
-            <span className="font-semibold text-green-600">
-              {formatPoints(strategy.tp1Points, isFutures)}
-            </span>
+            <div className="text-right">
+              <span className="font-semibold text-green-600">
+                {formatPoints(strategy.tp1Points, isFutures)}
+              </span>
+              {formatUsd(calcPnlUsd(strategy.tp1Points, strategy)) && (
+                <span className="block text-xs text-green-500">
+                  {formatUsd(calcPnlUsd(strategy.tp1Points, strategy))}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">R:R (TP1)</span>
@@ -146,9 +178,16 @@ export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Pro
             <>
               <div className="flex justify-between">
                 <span className="text-gray-500">TP2</span>
-                <span className="font-semibold text-emerald-600">
-                  {formatPoints(strategy.tp2Points, isFutures)}
-                </span>
+                <div className="text-right">
+                  <span className="font-semibold text-emerald-600">
+                    {formatPoints(strategy.tp2Points, isFutures)}
+                  </span>
+                  {formatUsd(calcPnlUsd(strategy.tp2Points, strategy)) && (
+                    <span className="block text-xs text-emerald-500">
+                      {formatUsd(calcPnlUsd(strategy.tp2Points, strategy))}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">R:R (TP2)</span>
