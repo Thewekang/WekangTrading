@@ -225,10 +225,10 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
             </div>
           )}
 
-          {/* Pip Value — FOREX / COMMODITY / INDEX / CRYPTO */}
+          {/* Point Value — FOREX / COMMODITY / INDEX / CRYPTO */}
           {instrumentType !== 'FUTURES' && (
             <div>
-              <Label htmlFor="sf-pip" className="text-xs">Pip Value (USD per pip per lot)</Label>
+              <Label htmlFor="sf-pip" className="text-xs">Point Value (USD per 1pt move per lot)</Label>
               <Input
                 id="sf-pip"
                 type="number"
@@ -309,7 +309,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
               )}
               <div>
                 <Label htmlFor="sf-sl" className="text-xs">
-                  Stop Loss ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'})
+                  Stop Loss ({instrumentType === 'FUTURES' ? 'ticks' : 'pts'})
                 </Label>
                 <Input
                   id="sf-sl"
@@ -335,7 +335,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
               </div>
               <div>
                 <Label htmlFor="sf-tp1" className="text-xs">
-                  TP1 ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'})
+                  TP1 ({instrumentType === 'FUTURES' ? 'ticks' : 'pts'})
                 </Label>
                 <Input
                   id="sf-tp1"
@@ -347,7 +347,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
               </div>
               <div>
                 <Label htmlFor="sf-tp2" className="text-xs">
-                  TP2 ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'}) — optional
+                  TP2 ({instrumentType === 'FUTURES' ? 'ticks' : 'pts'}) — optional
                 </Label>
                 <Input
                   id="sf-tp2"
