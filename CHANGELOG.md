@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.9] — 2026-05-11
+
+### Added
+- **Strategy card — P&L in USD**: Stop Loss, TP1, and TP2 now show the dollar value beneath the pips/ticks label (e.g. `25 pips / $2.50`). Calculated from `tickSize × tickValue × contracts` (FUTURES) or `pipValue × lots` (FOREX/INDEX/etc). Only displayed when the strategy uses **Fixed Size** mode (Risk % mode requires an account balance to derive lot size, so USD is omitted).
+
+### Fixed
+- **Save Strategy form silent failure**: `{ valueAsNumber: true }` in React Hook Form sends `NaN` to Zod when a numeric input is empty. `NaN` is not `undefined` or `null`, so `.optional().nullable()` did not save it — Zod silently rejected the form without calling `onSubmit`. Fixed by replacing all `valueAsNumber: true` with a `setValueAs: asNum` helper that converts `NaN`/empty-string → `undefined` at the RHF layer before Zod validation.
+- **Build error from `z.preprocess` type inference**: an earlier attempt to fix the NaN issue used `z.preprocess()` in the Zod schema, which caused all wrapped fields to be inferred as `unknown`, breaking `react-hook-form`'s `FormValues` typing and failing the Next.js production build. Reverted to plain schema; NaN conversion moved to `setValueAs` in the form component.
+- **Missing validation error messages**: `tickSize`, `tickValue`, `pipValue`, and `stopLossPoints` inputs were not rendering Zod error messages. Error `<p>` elements added beneath each field.
+- **`handleSubmit` debug callback**: added `onError` callback to `handleSubmit(onSubmit, onInvalid)` that logs validation errors to the browser console, making future silent failures visible.
+
+### Operations — v2.0.0-alpha.9 (2026-05-11)
+- No DB schema changes — no migration required
+
+---
+
 ## [v2.0.0-alpha.8] — 2026-05-10
 
 ### Changed
