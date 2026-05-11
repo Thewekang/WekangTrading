@@ -151,9 +151,21 @@ export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Pro
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Max/day</span>
-            <span className="font-medium text-gray-900">
-              {strategy.maxTradesPerDay ?? '—'}
-            </span>
+            <div className="text-right">
+              <span className="font-medium text-gray-900">
+                {strategy.maxTradesPerDay ?? '—'}
+              </span>
+              {(() => {
+                const slUsd = calcPnlUsd(strategy.stopLossPoints, strategy);
+                const maxDay = strategy.maxTradesPerDay;
+                if (slUsd == null || maxDay == null) return null;
+                return (
+                  <span className="block text-xs text-red-400">
+                    max {formatUsd(slUsd * maxDay)}/day
+                  </span>
+                );
+              })()}
+            </div>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">TP1</span>
@@ -207,7 +219,7 @@ export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Pro
         )}
         {!isFutures && strategy.pipValue != null && (
           <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
-            Value/pt: ${strategy.pipValue}/lot
+            1 pt = ${strategy.pipValue}/lot
           </div>
         )}
 
