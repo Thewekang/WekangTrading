@@ -1,9 +1,9 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.12
+- **Version**: 3.14
 - **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
-- **Last Updated**: May 10, 2026
+- **Last Updated**: May 11, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
 - **App Icon**: 🏍️💰 Fast motorcycle with money element
 
@@ -13,9 +13,9 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v2.0.0-alpha.7 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
+**Project Status**: 🚀 v2.0.0-alpha.9 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: May 10, 2026 (v2.0.0-alpha.7: Trading Day Checklist, CandleCloseHUD, migration 0015)  
+**Latest Development**: May 11, 2026 (v2.0.0-alpha.9: Strategy card USD P&L display; Save Strategy NaN fix)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
@@ -103,6 +103,10 @@ Phase 7: Admin UI                [0%]   ░░░░░░░░░░
 - ✅ **CycleInsightsCard** (alpha.4): replaces static consistency display with math-based actionable insights (single-session fix range, multi-day fix path, daily cap, days-to-target, suggested minimum target when no target set); collapsible by default
 - ✅ **CycleProfitTargetCard UI refresh** (alpha.4): gradient progress bar, 3-stat row, matches new design language
 - ✅ **Dashboard layout** (alpha.4): target card + health card side-by-side when target is set; insights card full-width below
+
+- ✅ **Strategy Playbook UX** (alpha.8): Fixed Size / Risk % sizing mode toggle; balance auto-derived from `startingBalance + cumulativePnl`; leverage removed from UI; Calculator Settings section removed from Account Settings; Risk % `step` bug fixed
+- ✅ **Strategy card USD P&L** (alpha.9): SL, TP1, TP2 show dollar value beneath pips/ticks in Fixed Size mode
+- ✅ **Save Strategy NaN fix** (alpha.9): `setValueAs: asNum` replaces `valueAsNumber: true` — empty inputs no longer silently block form submission
 
 **Remaining in Phase 6**:
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)

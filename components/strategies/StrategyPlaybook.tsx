@@ -12,7 +12,6 @@ interface Props {
   accountName: string;
   initialStrategies: StrategyCardData[];
   accountBalance?: number | null;
-  calculatorLeverage?: number | null;
 }
 
 export function StrategyPlaybook({
@@ -20,7 +19,6 @@ export function StrategyPlaybook({
   accountName,
   initialStrategies,
   accountBalance,
-  calculatorLeverage,
 }: Props) {
   const [strategies, setStrategies] = useState<StrategyCardData[]>(initialStrategies);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -114,9 +112,9 @@ export function StrategyPlaybook({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {(accountBalance != null || calculatorLeverage != null) && (
+          {accountBalance != null && (
             <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
-              Balance: ${accountBalance?.toLocaleString() ?? '—'} · Leverage: {calculatorLeverage ?? '—'}×
+              Balance: ${accountBalance.toLocaleString()}
             </span>
           )}
           <Button onClick={openCreate} size="sm" className="gap-2">
@@ -134,17 +132,17 @@ export function StrategyPlaybook({
         </div>
       )}
 
-      {/* Calculator settings nudge */}
-      {accountBalance == null && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
-          <Settings className="h-4 w-4 shrink-0" />
-          <span>
-            Set your account balance and leverage in{' '}
-            <a href="settings" className="underline font-medium">Account Settings</a>{' '}
-            to enable the Position Calculator.
-          </span>
-        </div>
-      )}
+          {/* Calculator nudge — only if balance could not be derived */}
+          {accountBalance == null && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
+              <Settings className="h-4 w-4 shrink-0" />
+              <span>
+                No trades recorded yet — enter your starting balance in{' '}
+                <a href="settings" className="underline font-medium">Account Settings</a>{' '}
+                to enable the Position Calculator.
+              </span>
+            </div>
+          )}
 
       {/* Strategy grid */}
       {strategies.length > 0 ? (
@@ -154,7 +152,6 @@ export function StrategyPlaybook({
               key={s.id}
               strategy={s}
               accountBalance={accountBalance}
-              calculatorLeverage={calculatorLeverage}
               onEdit={openEdit}
               onDelete={handleDelete}
             />
