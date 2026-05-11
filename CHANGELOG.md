@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.10] — 2026-05-11
+
+### Added
+- **Strategy card — Max daily risk**: the Max/day row now shows a red sub-line `max $X/day` (SL dollar value × max trades per day), making worst-case daily exposure immediately visible without mental arithmetic. Only displayed when both SL and Max/day are set in Fixed Size mode.
+
+### Changed
+- **Strategy card — pts label**: all SL/TP distance labels changed from `pips` to `pts` (points) to eliminate instrument-specific ambiguity. `pts` maps directly to the 1-unit price move visible in MT4/MT5 (e.g. XAUUSD price moves $1.00 = 1 pt; NAS100 index moves 1 = 1 pt).
+- **Strategy card — footer**: `Value/pt: $X/lot` → `1 pt = $X/lot` (matches trader language).
+- **Strategy form — field labels**: SL/TP1/TP2 input labels changed from `(pips)` → `(pts)`; pip value field renamed to `Point Value (USD per 1pt move per lot)`.
+
+### Operations — v2.0.0-alpha.10 (2026-05-11)
+- No DB schema changes — no migration required
+
+---
+
 ## [v2.0.0-alpha.9] — 2026-05-11
 
 ### Added

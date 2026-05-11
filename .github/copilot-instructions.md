@@ -588,7 +588,7 @@ turso db list  # Command not found
 ---
 
 **Last Updated**: May 11, 2026  
-**Version**: 4.4 (v2.0.0-alpha.9 — Strategy card USD P&L display; Save Strategy NaN fix)
+**Version**: 4.5 (v2.0.0-alpha.10 — Strategy card pts label; max daily risk row)
 
 **v2.0.0 Multi-Account Status**: 🔄 IN PROGRESS (Phase 6: 99% complete)
 - ✅ Schema: `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings`
@@ -603,6 +603,7 @@ turso db list  # Command not found
 - ✅ Strategy Playbook UX: Fixed Size / Risk % mode toggle, auto-derived balance, leverage removed from UI
 - ✅ Strategy card USD P&L: SL/TP1/TP2 show dollar value in Fixed Size mode (alpha.9)
 - ✅ Save Strategy NaN fix: `setValueAs: asNum` prevents empty inputs from silently blocking submit (alpha.9)
+- ✅ Strategy card pts label + max daily risk row (alpha.10)
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
 - ⏳ Admin UI account overview (Phase 7)
 

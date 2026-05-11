@@ -1,7 +1,7 @@
 # Progress Tracking & Reporting
 
 ## Document Control
-- **Version**: 3.14
+- **Version**: 3.15
 - **Status**: ACTIVE - v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 - **Last Updated**: May 11, 2026
 - **Project**: WekangTradingJournal Performance Tracking System
@@ -13,9 +13,9 @@
 
 ### 1.1 Overall Progress
 
-**Project Status**: 🚀 v2.0.0-alpha.9 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
+**Project Status**: 🚀 v2.0.0-alpha.10 Released ✅ | v2.0.0 Multi-Trading Accounts 🔄 IN PROGRESS  
 **Start Date**: January 8, 2026  
-**Latest Development**: May 11, 2026 (v2.0.0-alpha.9: Strategy card USD P&L display; Save Strategy NaN fix)  
+**Latest Development**: May 11, 2026 (v2.0.0-alpha.10: Strategy card pts label, max daily risk row)  
 **Current Phase**: v2.0.0 Feature Development  
 **Active Branch**: develop
 
