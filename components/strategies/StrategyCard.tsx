@@ -62,7 +62,7 @@ function formatRR(slPoints: number | null, tpPoints: number | null): string {
 
 function formatPoints(points: number | null | undefined, isFutures: boolean): string {
   if (points == null) return '—';
-  return `${points}${isFutures ? ' tks' : ' pips'}`;
+  return `${points}${isFutures ? ' tks' : ' pts'}`;
 }
 
 /** Returns dollar P&L for a given number of points, or null if data is missing. */
@@ -207,7 +207,7 @@ export function StrategyCard({ strategy, accountBalance, onEdit, onDelete }: Pro
         )}
         {!isFutures && strategy.pipValue != null && (
           <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
-            Pip value: ${strategy.pipValue}/lot
+            Value/pt: ${strategy.pipValue}/lot
           </div>
         )}
 
