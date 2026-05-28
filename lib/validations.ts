@@ -287,7 +287,8 @@ export const createStrategySchema = z.object({
     .number()
     .min(0.01, 'Risk % must be at least 0.01')
     .max(100, 'Risk % cannot exceed 100')
-    .default(1.0),
+    .optional()
+    .nullable(),
   maxTradesPerDay: z
     .number()
     .int('Max trades must be a whole number')

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -35,6 +35,14 @@ interface Props {
   isSaving?: boolean;
 }
 
+// Convert NaN / empty string → undefined so optional Zod number fields accept blank inputs.
+// valueAsNumber:true would produce NaN which Zod rejects silently.
+const asNum = (v: unknown) => {
+  if (v === '' || v == null) return undefined;
+  const n = Number(v);
+  return isNaN(n) ? undefined : n;
+};
+
 export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }: Props) {
   const isEdit = !!strategy;
 
@@ -47,7 +55,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
       stopLossPoints: undefined,
       tp1Points: undefined,
       tp2Points: undefined,
-      riskPercentPerTrade: 1.0,
+      riskPercentPerTrade: undefined,
       maxTradesPerDay: undefined,
       tickSize: undefined,
       tickValue: undefined,
@@ -62,9 +70,25 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
   const instrumentType = watch('instrumentType') ?? 'FUTURES';
   const symbolValue = watch('symbol');
 
+  // Sizing mode: FIXED (use defaultLotSize) or RISK_BASED (use riskPercentPerTrade)
+  const [sizingMode, setSizingMode] = useState<'FIXED' | 'RISK_BASED'>(
+    strategy?.defaultLotSize != null ? 'FIXED' : 'RISK_BASED',
+  );
+
+  function switchSizingMode(mode: 'FIXED' | 'RISK_BASED') {
+    setSizingMode(mode);
+    if (mode === 'FIXED') {
+      setValue('riskPercentPerTrade', undefined as unknown as number);
+    } else {
+      setValue('defaultLotSize', undefined as unknown as number);
+    }
+  }
+
   // Populate form when editing
   useEffect(() => {
     if (strategy) {
+      // Infer sizing mode from which field has a value
+      setSizingMode(strategy.defaultLotSize != null ? 'FIXED' : 'RISK_BASED');
       reset({
         symbol: strategy.symbol,
         instrumentType: strategy.instrumentType as CreateStrategyInput['instrumentType'],
@@ -72,7 +96,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
         stopLossPoints: strategy.stopLossPoints ?? undefined,
         tp1Points: strategy.tp1Points ?? undefined,
         tp2Points: strategy.tp2Points ?? undefined,
-        riskPercentPerTrade: strategy.riskPercentPerTrade ?? 1.0,
+        riskPercentPerTrade: strategy.riskPercentPerTrade ?? undefined,
         maxTradesPerDay: strategy.maxTradesPerDay ?? undefined,
         tickSize: strategy.tickSize ?? undefined,
         tickValue: strategy.tickValue ?? undefined,
@@ -82,6 +106,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
         sortOrder: strategy.sortOrder ?? 0,
       });
     } else {
+      setSizingMode('RISK_BASED');
       reset({
         symbol: '',
         instrumentType: 'FUTURES',
@@ -120,6 +145,10 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
     onClose();
   };
 
+  const onInvalid = (errs: unknown) => {
+    console.error('[StrategyForm] Validation errors:', errs);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -127,7 +156,7 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
           <DialogTitle>{isEdit ? `Edit — ${strategy?.symbol}` : 'New Strategy'}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5 pt-1">
           {/* Symbol + Instrument Type */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -173,8 +202,11 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     type="number"
                     step="any"
                     placeholder="0.25"
-                    {...register('tickSize', { valueAsNumber: true })}
+                    {...register('tickSize', { setValueAs: asNum })}
                   />
+                  {errors.tickSize && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.tickSize.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="sf-tickval" className="text-xs">Tick Value (USD)</Label>
@@ -183,67 +215,112 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                     type="number"
                     step="any"
                     placeholder="0.50"
-                    {...register('tickValue', { valueAsNumber: true })}
+                    {...register('tickValue', { setValueAs: asNum })}
                   />
+                  {errors.tickValue && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.tickValue.message}</p>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Pip Value — FOREX / COMMODITY / INDEX / CRYPTO */}
+          {/* Point Value — FOREX / COMMODITY / INDEX / CRYPTO */}
           {instrumentType !== 'FUTURES' && (
             <div>
-              <Label htmlFor="sf-pip" className="text-xs">Pip Value (USD per pip per lot)</Label>
+              <Label htmlFor="sf-pip" className="text-xs">Point Value (USD per 1pt move per lot)</Label>
               <Input
                 id="sf-pip"
                 type="number"
                 step="any"
                 placeholder="10"
-                {...register('pipValue', { valueAsNumber: true })}
+                {...register('pipValue', { setValueAs: asNum })}
               />
+              {errors.pipValue && (
+                <p className="text-xs text-red-500 mt-0.5">{errors.pipValue.message}</p>
+              )}
               <p className="text-xs text-gray-400 mt-0.5">Broker-specific — override if needed</p>
             </div>
           )}
 
           {/* Position Defaults */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Position Defaults</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Position Sizing</p>
+              {/* Mode toggle */}
+              <div className="flex rounded-md border border-gray-300 overflow-hidden text-xs">
+                <button
+                  type="button"
+                  onClick={() => switchSizingMode('FIXED')}
+                  className={`px-3 py-1 font-medium transition-colors ${
+                    sizingMode === 'FIXED'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Fixed Size
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchSizingMode('RISK_BASED')}
+                  className={`px-3 py-1 font-medium transition-colors border-l border-gray-300 ${
+                    sizingMode === 'RISK_BASED'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Risk %
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="sf-lot" className="text-xs">
-                  Default Size ({instrumentType === 'FUTURES' ? 'contracts' : 'lots'})
-                </Label>
-                <Input
-                  id="sf-lot"
-                  type="number"
-                  step="any"
-                  placeholder="1"
-                  {...register('defaultLotSize', { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="sf-risk" className="text-xs">Risk % / Trade</Label>
-                <Input
-                  id="sf-risk"
-                  type="number"
-                  step="0.1"
-                  min="0.01"
-                  max="100"
-                  placeholder="1.0"
-                  {...register('riskPercentPerTrade', { valueAsNumber: true })}
-                />
-              </div>
+              {sizingMode === 'FIXED' ? (
+                <div>
+                  <Label htmlFor="sf-lot" className="text-xs">
+                    Default Size ({instrumentType === 'FUTURES' ? 'contracts' : 'lots'})
+                  </Label>
+                  <Input
+                    id="sf-lot"
+                    type="number"
+                    step="any"
+                    placeholder="1"
+                    {...register('defaultLotSize', { setValueAs: asNum })}
+                  />
+                  {errors.defaultLotSize && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.defaultLotSize.message}</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="sf-risk" className="text-xs">Risk % / Trade</Label>
+                  <Input
+                    id="sf-risk"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max="100"
+                    placeholder="1.0"
+                    {...register('riskPercentPerTrade', { setValueAs: asNum })}
+                  />
+                  {errors.riskPercentPerTrade && (
+                    <p className="text-xs text-red-500 mt-0.5">{errors.riskPercentPerTrade.message}</p>
+                  )}
+                </div>
+              )}
               <div>
                 <Label htmlFor="sf-sl" className="text-xs">
-                  Stop Loss ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'})
+                  Stop Loss ({instrumentType === 'FUTURES' ? 'ticks' : 'pts'})
                 </Label>
                 <Input
                   id="sf-sl"
                   type="number"
                   step="any"
                   placeholder="10"
-                  {...register('stopLossPoints', { valueAsNumber: true })}
+                  {...register('stopLossPoints', { setValueAs: asNum })}
                 />
+                {errors.stopLossPoints && (
+                  <p className="text-xs text-red-500 mt-0.5">{errors.stopLossPoints.message}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="sf-maxday" className="text-xs">Max Trades / Day</Label>
@@ -253,31 +330,31 @@ export function StrategyFormDialog({ open, strategy, onClose, onSave, isSaving }
                   step="1"
                   min="1"
                   placeholder="3"
-                  {...register('maxTradesPerDay', { valueAsNumber: true })}
+                  {...register('maxTradesPerDay', { setValueAs: asNum })}
                 />
               </div>
               <div>
                 <Label htmlFor="sf-tp1" className="text-xs">
-                  TP1 ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'})
+                  TP1 ({instrumentType === 'FUTURES' ? 'ticks' : 'pts'})
                 </Label>
                 <Input
                   id="sf-tp1"
                   type="number"
                   step="any"
                   placeholder="20"
-                  {...register('tp1Points', { valueAsNumber: true })}
+                  {...register('tp1Points', { setValueAs: asNum })}
                 />
               </div>
               <div>
                 <Label htmlFor="sf-tp2" className="text-xs">
-                  TP2 ({instrumentType === 'FUTURES' ? 'ticks' : 'pips'}) — optional
+                  TP2 ({instrumentType === 'FUTURES' ? 'ticks' : 'pts'}) — optional
                 </Label>
                 <Input
                   id="sf-tp2"
                   type="number"
                   step="any"
                   placeholder="40"
-                  {...register('tp2Points', { valueAsNumber: true })}
+                  {...register('tp2Points', { setValueAs: asNum })}
                 />
               </div>
             </div>

@@ -587,10 +587,10 @@ turso db list  # Command not found
 
 ---
 
-**Last Updated**: May 10, 2026  
-**Version**: 4.2 (v2.0.0-alpha.7 — Trading Day Checklist + CandleCloseHUD)
+**Last Updated**: May 11, 2026  
+**Version**: 4.5 (v2.0.0-alpha.10 — Strategy card pts label; max daily risk row)
 
-**v2.0.0 Multi-Account Status**: 🔄 IN PROGRESS (Phase 6: 98% complete)
+**v2.0.0 Multi-Account Status**: 🔄 IN PROGRESS (Phase 6: 99% complete)
 - ✅ Schema: `trading_accounts`, `account_rules`, `withdrawal_events`, `drawdown_templates`, `admin_settings`
 - ✅ Multi-account navigation: account picker → account landing → account dashboard
 - ✅ All services, API routes, and client components scoped by `tradingAccountId`
@@ -600,6 +600,10 @@ turso db list  # Command not found
 - ✅ Staging DB migration applied (Turso)
 - ✅ Strategy Playbook: `account_strategies` table, position calculator, INSTRUMENT_DEFAULTS
 - ✅ Trading Day Checklist: `trading_day_checklists` table, 4-phase/22-item checklist, smart toasts, CandleCloseHUD
+- ✅ Strategy Playbook UX: Fixed Size / Risk % mode toggle, auto-derived balance, leverage removed from UI
+- ✅ Strategy card USD P&L: SL/TP1/TP2 show dollar value in Fixed Size mode (alpha.9)
+- ✅ Save Strategy NaN fix: `setValueAs: asNum` prevents empty inputs from silently blocking submit (alpha.9)
+- ✅ Strategy card pts label + max daily risk row (alpha.10)
 - ⏳ Session/hourly chart API account filtering (`/api/stats/by-session`, `/api/stats/by-hour`)
 - ⏳ Admin UI account overview (Phase 7)
 
