@@ -40,6 +40,8 @@ export interface ParseResult {
   rowCount: number;
 }
 
+type CSVDateOrder = 'DMY' | 'MDY';
+
 /**
  * Parse CSV file and validate data
  * @param file CSV file to parse
@@ -54,10 +56,11 @@ export function parseCSVFile(file: File, timezone: string): Promise<ParseResult>
       complete: (results) => {
         const trades: ParsedTrade[] = [];
         const errors: ValidationError[] = [];
+        const detectedDateOrder = detectCSVDateOrder(results.data);
 
         results.data.forEach((row, index) => {
           const rowNumber = index + 2; // +1 for header, +1 for 1-based indexing
-          const validation = validateAndTransformRow(row, rowNumber, timezone);
+          const validation = validateAndTransformRow(row, rowNumber, timezone, detectedDateOrder);
 
           if (validation.errors.length > 0) {
             errors.push(...validation.errors);
@@ -86,7 +89,8 @@ export function parseCSVFile(file: File, timezone: string): Promise<ParseResult>
 function validateAndTransformRow(
   row: CSVTradeRow,
   rowNumber: number,
-  timezone: string
+  timezone: string,
+  dateOrderHint: CSVDateOrder | null
 ): { trade: ParsedTrade | null; errors: ValidationError[] } {
   const errors: ValidationError[] = [];
 
@@ -116,38 +120,17 @@ function validateAndTransformRow(
     });
   }
 
-  // Parse MM/DD/YYYY HH:MM format and convert to datetime-local format
+  // Parse D/M/YYYY H:mm or M/D/YYYY H:mm and convert to datetime-local format.
+  // If a non-ambiguous file-level pattern exists, prefer it for all rows.
   let tradeDate: Date | null = null;
-  try {
-    // Expected format: MM/DD/YYYY HH:MM
-    const parts = dateTimeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
-    if (!parts) {
-      errors.push({
-        row: rowNumber,
-        field: 'Date & time',
-        message: `Invalid date format: "${dateTimeStr}". Expected: MM/DD/YYYY HH:MM`,
-      });
-    } else {
-      const [, month, day, year, hours, minutes] = parts;
-      // Convert to datetime-local format: YYYY-MM-DDTHH:MM
-      const datetimeLocalStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes}`;
-      
-      // Convert to UTC using selected timezone
-      tradeDate = datetimeLocalToUTC(datetimeLocalStr, timezone);
-      
-      if (isNaN(tradeDate.getTime())) {
-        errors.push({
-          row: rowNumber,
-          field: 'Date & time',
-          message: `Invalid date: "${dateTimeStr}"`,
-        });
-      }
-    }
-  } catch (error) {
+  const parsedDate = parseCsvDateTime(dateTimeStr, timezone, dateOrderHint);
+  if (parsedDate.ok) {
+    tradeDate = parsedDate.date;
+  } else {
     errors.push({
       row: rowNumber,
       field: 'Date & time',
-      message: `Failed to parse date: "${dateTimeStr}"`,
+      message: parsedDate.message,
     });
   }
 
@@ -323,6 +306,101 @@ export function generateCSVTemplate(): string {
 
   const rows = [headers, exampleRow1, exampleRow2, exampleRow3, exampleRowBE, exampleRow4];
   return rows.map(row => row.join(',')).join('\n');
+}
+
+function detectCSVDateOrder(rows: CSVTradeRow[]): CSVDateOrder | null {
+  for (const row of rows) {
+    const value = row['Date & time']?.trim();
+    if (!value) continue;
+
+    const parts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+    if (!parts) continue;
+
+    const first = parseInt(parts[1], 10);
+    const second = parseInt(parts[2], 10);
+
+    if (first > 12 && second <= 12) {
+      return 'DMY';
+    }
+
+    if (second > 12 && first <= 12) {
+      return 'MDY';
+    }
+  }
+
+  return null;
+}
+
+function parseCsvDateTime(
+  value: string | undefined,
+  timezone: string,
+  dateOrderHint: CSVDateOrder | null
+):
+  | { ok: true; date: Date }
+  | { ok: false; message: string } {
+  const dateTimeStr = value?.trim();
+  if (!dateTimeStr) {
+    return { ok: false, message: 'Date & time is required' };
+  }
+
+  const parts = dateTimeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+  if (!parts) {
+    return {
+      ok: false,
+      message: `Invalid date format: "${dateTimeStr}". Expected: D/M/YYYY H:mm or M/D/YYYY H:mm`,
+    };
+  }
+
+  const first = parseInt(parts[1], 10);
+  const second = parseInt(parts[2], 10);
+  const year = parseInt(parts[3], 10);
+  const hour = parseInt(parts[4], 10);
+  const minute = parseInt(parts[5], 10);
+
+  const ordersToTry: CSVDateOrder[] = dateOrderHint
+    ? [dateOrderHint, dateOrderHint === 'DMY' ? 'MDY' : 'DMY']
+    : ['MDY', 'DMY'];
+
+  for (const order of ordersToTry) {
+    const month = order === 'DMY' ? second : first;
+    const day = order === 'DMY' ? first : second;
+
+    if (!isValidDateParts(year, month, day, hour, minute)) {
+      continue;
+    }
+
+    const datetimeLocalStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+    try {
+      const tradeDate = datetimeLocalToUTC(datetimeLocalStr, timezone);
+      if (!isNaN(tradeDate.getTime())) {
+        return { ok: true, date: tradeDate };
+      }
+    } catch {
+      // Try next order
+    }
+  }
+
+  return {
+    ok: false,
+    message: `Failed to parse date: "${dateTimeStr}"`,
+  };
+}
+
+function isValidDateParts(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number
+): boolean {
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  if (hour < 0 || hour > 23) return false;
+  if (minute < 0 || minute > 59) return false;
+
+  const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day <= maxDay;
 }
 
 /**
