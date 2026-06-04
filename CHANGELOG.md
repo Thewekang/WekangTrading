@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.12] — 2026-06-04
+
+### Added
+- **Analytics trends — Trading P/L**: Performance summary on `/analytics/trends` now shows **Trading P/L** (trade + commission P&L before withdrawals) alongside **Retained P/L** (after withdrawals). API exposes `totalTradingPnl` on the performance overview.
+
+### Operations — v2.0.0-alpha.12 (2026-06-04)
+- No DB schema changes — no migration required
+
+---
+
 ## [v2.0.0-alpha.10] — 2026-05-11
 
 ### Added

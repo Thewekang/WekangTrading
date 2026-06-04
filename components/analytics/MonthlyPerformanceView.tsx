@@ -36,6 +36,8 @@ interface WithdrawalEntry {
 
 interface PerformanceSummary {
   profitLoss: number;
+  /** Trade P&L before withdrawal adjustments */
+  tradingProfitLoss: number;
   totalTrades: number;
   totalWins: number;
   totalLosses: number;
@@ -61,6 +63,7 @@ export function MonthlyPerformanceView() {
   const [totalWithdrawals, setTotalWithdrawals] = useState(0);
   const [summary, setSummary] = useState<PerformanceSummary>({
     profitLoss: 0,
+    tradingProfitLoss: 0,
     totalTrades: 0,
     totalWins: 0,
     totalLosses: 0,
@@ -120,6 +123,7 @@ export function MonthlyPerformanceView() {
           
           setSummary({
             profitLoss: result.data.overview.totalPnl,
+            tradingProfitLoss: result.data.overview.totalTradingPnl ?? result.data.overview.totalPnl,
             totalTrades: result.data.overview.totalTrades,
             totalWins: result.data.overview.totalWins,
             totalLosses: result.data.overview.totalLosses,
@@ -153,6 +157,7 @@ export function MonthlyPerformanceView() {
           
           setSummary({
             profitLoss: result.data.overview.totalPnl,
+            tradingProfitLoss: result.data.overview.totalTradingPnl ?? result.data.overview.totalPnl,
             totalTrades: result.data.overview.totalTrades,
             totalWins: result.data.overview.totalWins,
             totalLosses: result.data.overview.totalLosses,
@@ -509,14 +514,25 @@ export function MonthlyPerformanceView() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300">
           <div className="text-sm text-gray-600 mb-1">
-            {view === 'month' ? `${monthNames[month - 1]} ${year}` : year} P/L
+            {view === 'month' ? `${monthNames[month - 1]} ${year}` : year} Retained P/L
           </div>
           <div className={`text-2xl font-bold ${getColorClass(summary.profitLoss)}`}>
             ${summary.profitLoss >= 0 ? '+' : ''}{formatCurrency(summary.profitLoss)}
           </div>
+          <div className="text-xs text-gray-500 mt-1">After withdrawals</div>
+        </Card>
+
+        <Card className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300">
+          <div className="text-sm text-gray-600 mb-1">
+            {view === 'month' ? `${monthNames[month - 1]} ${year}` : year} Trading P/L
+          </div>
+          <div className={`text-2xl font-bold ${getColorClass(summary.tradingProfitLoss)}`}>
+            ${summary.tradingProfitLoss >= 0 ? '+' : ''}{formatCurrency(summary.tradingProfitLoss)}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">Before withdrawals</div>
         </Card>
 
         <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300">
