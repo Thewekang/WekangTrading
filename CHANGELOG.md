@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0-alpha.13] — 2026-06-11
+
+### Added
+- **Analytics trends — Trading P/L on cards**: Year/month performance cards and daily calendar cells on `/analytics/trends` now show **Trading P/L** (gross trade + commission P&L before withdrawals). **Net P/L** appears when withdrawals occurred in that period. Admin performance API includes `grossProfitLoss` mapping.
+
+### Changed
+- **Analytics trends — API fields**: Performance overview uses `totalGrossPnl` / `grossPnl` (replacing `totalTradingPnl` / `tradingPnl`) for gross P&L before withdrawals.
+
+### Operations — v2.0.0-alpha.13 (2026-06-11)
+- No DB schema changes — no migration required
+
+---
+
+## [v2.0.0-alpha.12] — 2026-06-04
+
+### Added
+- **Analytics trends — Trading P/L**: Performance summary on `/analytics/trends` now shows **Trading P/L** (trade + commission P&L before withdrawals) alongside **Retained P/L** (after withdrawals). API exposes `totalTradingPnl` on the performance overview.
+
+### Operations — v2.0.0-alpha.12 (2026-06-04)
+- No DB schema changes — no migration required
+
+---
+
 ## [v2.0.0-alpha.10] — 2026-05-11
 
 ### Added

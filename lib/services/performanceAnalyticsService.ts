@@ -10,6 +10,7 @@ interface MonthlyPerformance {
   winRate: number;
   sopRate: number;
   pnl: number;
+  grossPnl: number;
   trades: number;
   wins: number;
   losses: number;
@@ -18,6 +19,7 @@ interface MonthlyPerformance {
 
 interface PerformanceOverview {
   totalPnl: number;
+  totalGrossPnl: number;
   winRate: number;
   sopRate: number;
   totalTrades: number;
@@ -113,9 +115,9 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     ]);
 
     // Initialize monthly data
-    const monthlyData: { [key: number]: { trades: number; wins: number; losses: number; sopFollowed: number; pnl: number } } = {};
+    const monthlyData: { [key: number]: { trades: number; wins: number; losses: number; sopFollowed: number; pnl: number; grossPnl: number } } = {};
     for (let i = 1; i <= 12; i++) {
-      monthlyData[i] = { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 };
+      monthlyData[i] = { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0, grossPnl: 0 };
     }
 
     // Aggregate trades by month
@@ -124,6 +126,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     let totalLosses = 0;
     let totalSopFollowed = 0;
     let totalPnl = 0;
+    let totalGrossPnl = 0;
 
     const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'numeric', timeZone: timezone });
 
@@ -132,8 +135,10 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
       
       monthlyData[month].trades++;
       monthlyData[month].pnl += trade.profitLossUsd;
+      monthlyData[month].grossPnl += trade.profitLossUsd;
       totalTrades++;
       totalPnl += trade.profitLossUsd;
+      totalGrossPnl += trade.profitLossUsd;
 
       if (trade.result === 'WIN') {
         monthlyData[month].wins++;
@@ -154,7 +159,9 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     yearCommissions.forEach(commission => {
       const month = parseInt(monthFormatter.format(commission.timestamp));
       monthlyData[month].pnl += commission.profitLossUsd;
+      monthlyData[month].grossPnl += commission.profitLossUsd;
       totalPnl += commission.profitLossUsd;
+      totalGrossPnl += commission.profitLossUsd;
     });
 
     // Subtract withdrawals from the month they occurred — they reduce retained P&L
@@ -179,6 +186,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
         winRate: hasData ? (data.wins / data.trades) * 100 : 0,
         sopRate: hasData ? (data.sopFollowed / data.trades) * 100 : 0,
         pnl: data.pnl,
+        grossPnl: data.grossPnl,
         trades: data.trades,
         wins: data.wins,
         losses: data.losses,
@@ -189,6 +197,7 @@ export async function getYearlyPerformance(userId: string, year: number, timezon
     // Build overview
     const overview: PerformanceOverview = {
       totalPnl,
+      totalGrossPnl,
       winRate: totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0,
       sopRate: totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0,
       totalTrades,
@@ -271,6 +280,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       losses: number;
       sopFollowed: number;
       pnl: number;
+      grossPnl: number;
     }>();
 
     let totalTrades = 0;
@@ -278,6 +288,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
     let totalLosses = 0;
     let totalSopFollowed = 0;
     let totalPnl = 0;
+    let totalGrossPnl = 0;
 
     trades.forEach(trade => {
       // Extract day number in user's timezone
@@ -295,14 +306,16 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       // Only include trades that fall in the requested month/year in user's timezone
       if (yearInTimezone === year && monthInTimezone === month) {
         if (!dailyMap.has(dayInTimezone)) {
-          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 });
+          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0, grossPnl: 0 });
         }
 
         const dayData = dailyMap.get(dayInTimezone)!;
         dayData.trades++;
         dayData.pnl += trade.profitLossUsd;
+        dayData.grossPnl += trade.profitLossUsd;
         totalTrades++;
         totalPnl += trade.profitLossUsd;
+        totalGrossPnl += trade.profitLossUsd;
 
         if (trade.result === 'WIN') {
           dayData.wins++;
@@ -335,10 +348,13 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
 
       if (yearInTimezone === year && monthInTimezone === month) {
         if (!dailyMap.has(dayInTimezone)) {
-          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 });
+          dailyMap.set(dayInTimezone, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0, grossPnl: 0 });
         }
-        dailyMap.get(dayInTimezone)!.pnl += commission.profitLossUsd;
+        const dayData = dailyMap.get(dayInTimezone)!;
+        dayData.pnl += commission.profitLossUsd;
+        dayData.grossPnl += commission.profitLossUsd;
         totalPnl += commission.profitLossUsd;
+        totalGrossPnl += commission.profitLossUsd;
       }
     });
 
@@ -349,7 +365,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       const [y, m, d] = w.withdrawalDate.split('-').map(Number);
       if (y === year && m === month) {
         if (!dailyMap.has(d)) {
-          dailyMap.set(d, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0 });
+          dailyMap.set(d, { trades: 0, wins: 0, losses: 0, sopFollowed: 0, pnl: 0, grossPnl: 0 });
         }
         dailyMap.get(d)!.pnl -= w.withdrawalAmount;
         totalPnl -= w.withdrawalAmount;
@@ -365,6 +381,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       winRate: data.trades > 0 ? (data.wins / data.trades) * 100 : 0,
       sopRate: data.trades > 0 ? (data.sopFollowed / data.trades) * 100 : 0,
       pnl: data.pnl,
+      grossPnl: data.grossPnl,
     })).sort((a, b) => a.date.getDate() - b.date.getDate());
 
     return {
@@ -373,6 +390,7 @@ export async function getMonthlyPerformance(userId: string, year: number, month:
       monthName: MONTH_NAMES[month - 1],
       overview: {
         totalPnl,
+        totalGrossPnl,
         winRate: totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0,
         sopRate: totalTrades > 0 ? (totalSopFollowed / totalTrades) * 100 : 0,
         totalTrades,
