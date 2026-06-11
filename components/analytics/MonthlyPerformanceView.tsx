@@ -13,6 +13,7 @@ interface DailyPerformance {
   totalLosses: number;
   totalSopFollowed: number;
   profitLoss: number;
+  grossProfitLoss: number;
   winRate: number;
   sopRate: number;
 }
@@ -25,6 +26,7 @@ interface MonthlyPerformance {
   totalLosses: number;
   totalSopFollowed: number;
   profitLoss: number;
+  grossProfitLoss: number;
   winRate: number;
   sopRate: number;
 }
@@ -36,8 +38,7 @@ interface WithdrawalEntry {
 
 interface PerformanceSummary {
   profitLoss: number;
-  /** Trade P&L before withdrawal adjustments */
-  tradingProfitLoss: number;
+  grossProfitLoss: number;
   totalTrades: number;
   totalWins: number;
   totalLosses: number;
@@ -63,7 +64,7 @@ export function MonthlyPerformanceView() {
   const [totalWithdrawals, setTotalWithdrawals] = useState(0);
   const [summary, setSummary] = useState<PerformanceSummary>({
     profitLoss: 0,
-    tradingProfitLoss: 0,
+    grossProfitLoss: 0,
     totalTrades: 0,
     totalWins: 0,
     totalLosses: 0,
@@ -116,6 +117,7 @@ export function MonthlyPerformanceView() {
             totalLosses: day.losses,
             totalSopFollowed: Math.round((day.sopRate / 100) * day.trades),
             profitLoss: day.pnl,
+            grossProfitLoss: day.grossPnl ?? day.pnl,
             winRate: day.winRate,
             sopRate: day.sopRate
           }));
@@ -123,7 +125,7 @@ export function MonthlyPerformanceView() {
           
           setSummary({
             profitLoss: result.data.overview.totalPnl,
-            tradingProfitLoss: result.data.overview.totalTradingPnl ?? result.data.overview.totalPnl,
+            grossProfitLoss: result.data.overview.totalGrossPnl ?? result.data.overview.totalPnl,
             totalTrades: result.data.overview.totalTrades,
             totalWins: result.data.overview.totalWins,
             totalLosses: result.data.overview.totalLosses,
@@ -150,6 +152,7 @@ export function MonthlyPerformanceView() {
             totalLosses: m.losses,
             totalSopFollowed: Math.round((m.sopRate / 100) * m.trades),
             profitLoss: m.pnl,
+            grossProfitLoss: m.grossPnl ?? m.pnl,
             winRate: m.winRate,
             sopRate: m.sopRate
           }));
@@ -157,7 +160,7 @@ export function MonthlyPerformanceView() {
           
           setSummary({
             profitLoss: result.data.overview.totalPnl,
-            tradingProfitLoss: result.data.overview.totalTradingPnl ?? result.data.overview.totalPnl,
+            grossProfitLoss: result.data.overview.totalGrossPnl ?? result.data.overview.totalPnl,
             totalTrades: result.data.overview.totalTrades,
             totalWins: result.data.overview.totalWins,
             totalLosses: result.data.overview.totalLosses,
@@ -246,6 +249,7 @@ export function MonthlyPerformanceView() {
         totalLosses: 0,
         totalSopFollowed: 0,
         profitLoss: 0,
+        grossProfitLoss: 0,
         winRate: 0,
         sopRate: 0
       });
@@ -277,8 +281,12 @@ export function MonthlyPerformanceView() {
             <span className="text-gray-700">SOP Rate</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-teal-100 border border-teal-300 rounded"></div>
+            <span className="text-gray-700">Trading P/L</span>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-100 border border-orange-300 rounded"></div>
-            <span className="text-gray-700">P/L (USD)</span>
+            <span className="text-gray-700">Net P/L</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-purple-100 border border-purple-300 rounded"></div>
@@ -331,12 +339,20 @@ export function MonthlyPerformanceView() {
                               <span className="text-gray-600">S:</span>
                               <span className="font-semibold text-blue-700">{day.sopRate.toFixed(0)}%</span>
                             </div>
-                            <div className="flex items-center justify-between bg-orange-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-orange-200">
-                              <span className="text-gray-600">P:</span>
-                              <span className={`font-bold ${getColorClass(day.profitLoss)}`}>
-                                {day.profitLoss >= 0 ? '+' : ''}{Math.abs(day.profitLoss).toFixed(0)}
+                            <div className="flex items-center justify-between bg-teal-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-teal-200">
+                              <span className="text-gray-600">T:</span>
+                              <span className={`font-bold ${getColorClass(day.grossProfitLoss)}`}>
+                                {day.grossProfitLoss >= 0 ? '+' : ''}{Math.abs(day.grossProfitLoss).toFixed(0)}
                               </span>
                             </div>
+                            {withdrawalsByDay.has(day.date) && (
+                              <div className="flex items-center justify-between bg-orange-50 px-0.5 sm:px-2 py-0.5 sm:py-1 rounded border border-orange-200">
+                                <span className="text-gray-600">N:</span>
+                                <span className={`font-bold ${getColorClass(day.profitLoss)}`}>
+                                  {day.profitLoss >= 0 ? '+' : ''}{Math.abs(day.profitLoss).toFixed(0)}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </>
                       ) : (
@@ -376,8 +392,12 @@ export function MonthlyPerformanceView() {
             <span className="text-sm text-gray-700">SOP Rate</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-teal-100 border border-teal-300 rounded"></div>
+            <span className="text-sm text-gray-700">Trading P/L</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded"></div>
-            <span className="text-sm text-gray-700">P/L (USD)</span>
+            <span className="text-sm text-gray-700">Net P/L</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded"></div>
@@ -409,12 +429,20 @@ export function MonthlyPerformanceView() {
                         <span className="text-xs text-gray-600">SOP Rate:</span>
                         <span className="text-sm font-bold text-blue-700">{monthData.sopRate.toFixed(1)}%</span>
                       </div>
-                      <div className="flex items-center justify-between bg-orange-50 px-2 py-1.5 rounded border border-orange-200">
-                        <span className="text-xs text-gray-600">P/L:</span>
-                        <span className={`text-base font-bold ${getColorClass(monthData.profitLoss)}`}>
-                          {monthData.profitLoss >= 0 ? '+' : ''}{formatCurrency(monthData.profitLoss)}
+                      <div className="flex items-center justify-between bg-teal-50 px-2 py-1.5 rounded border border-teal-200">
+                        <span className="text-xs text-gray-600">Trading P/L:</span>
+                        <span className={`text-base font-bold ${getColorClass(monthData.grossProfitLoss)}`}>
+                          {monthData.grossProfitLoss >= 0 ? '+' : ''}{formatCurrency(monthData.grossProfitLoss)}
                         </span>
                       </div>
+                      {withdrawalsByMonth.has(monthData.month) && (
+                        <div className="flex items-center justify-between bg-orange-50 px-2 py-1.5 rounded border border-orange-200">
+                          <span className="text-xs text-gray-600">Net P/L:</span>
+                          <span className={`text-base font-bold ${getColorClass(monthData.profitLoss)}`}>
+                            {monthData.profitLoss >= 0 ? '+' : ''}{formatCurrency(monthData.profitLoss)}
+                          </span>
+                        </div>
+                      )}
                       {withdrawalsByMonth.has(monthData.month) && (
                         <div className="flex items-center justify-between bg-purple-50 px-2 py-1.5 rounded border border-purple-300">
                           <span className="text-xs text-purple-600 font-medium">Withdrawal:</span>
@@ -514,26 +542,28 @@ export function MonthlyPerformanceView() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300">
-          <div className="text-sm text-gray-600 mb-1">
-            {view === 'month' ? `${monthNames[month - 1]} ${year}` : year} Retained P/L
-          </div>
-          <div className={`text-2xl font-bold ${getColorClass(summary.profitLoss)}`}>
-            ${summary.profitLoss >= 0 ? '+' : ''}{formatCurrency(summary.profitLoss)}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">After withdrawals</div>
-        </Card>
-
-        <Card className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-gradient-to-br from-teal-50 to-teal-100 border-2 border-teal-300">
           <div className="text-sm text-gray-600 mb-1">
             {view === 'month' ? `${monthNames[month - 1]} ${year}` : year} Trading P/L
           </div>
-          <div className={`text-2xl font-bold ${getColorClass(summary.tradingProfitLoss)}`}>
-            ${summary.tradingProfitLoss >= 0 ? '+' : ''}{formatCurrency(summary.tradingProfitLoss)}
+          <div className={`text-2xl font-bold ${getColorClass(summary.grossProfitLoss)}`}>
+            ${summary.grossProfitLoss >= 0 ? '+' : ''}{formatCurrency(summary.grossProfitLoss)}
           </div>
           <div className="text-xs text-gray-500 mt-1">Before withdrawals</div>
         </Card>
+
+        {totalWithdrawals > 0 && (
+          <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300">
+            <div className="text-sm text-gray-600 mb-1">
+              {view === 'month' ? `${monthNames[month - 1]} ${year}` : year} Net P/L
+            </div>
+            <div className={`text-2xl font-bold ${getColorClass(summary.profitLoss)}`}>
+              ${summary.profitLoss >= 0 ? '+' : ''}{formatCurrency(summary.profitLoss)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">After withdrawals</div>
+          </Card>
+        )}
 
         <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300">
           <div className="text-sm text-gray-600 mb-1">Win Rate</div>

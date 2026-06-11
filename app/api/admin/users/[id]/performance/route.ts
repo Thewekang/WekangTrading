@@ -83,6 +83,7 @@ export async function GET(
           totalLosses: d?.losses ?? 0,
           totalSopFollowed: d ? Math.round((d.sopRate / 100) * d.trades) : 0,
           profitLoss: d?.pnl ?? 0,
+          grossProfitLoss: d?.grossPnl ?? d?.pnl ?? 0,
           winRate: d?.winRate ?? 0,
           sopRate: d?.sopRate ?? 0,
         };
@@ -91,6 +92,7 @@ export async function GET(
       const ov = monthlyData.overview;
       const summary = {
         profitLoss: ov.totalPnl,
+        grossProfitLoss: ov.totalGrossPnl ?? ov.totalPnl,
         totalTrades: ov.totalTrades,
         totalWins: ov.totalWins,
         totalLosses: ov.totalLosses,
@@ -126,6 +128,7 @@ export async function GET(
         totalLosses: m.losses,
         totalSopFollowed: m.trades > 0 ? Math.round((m.sopRate / 100) * m.trades) : 0,
         profitLoss: m.pnl,
+        grossProfitLoss: m.grossPnl ?? m.pnl,
         winRate: m.winRate,
         sopRate: m.sopRate,
       }));
@@ -133,6 +136,7 @@ export async function GET(
       const ov = yearlyData.overview;
       const summary = {
         profitLoss: ov.totalPnl,
+        grossProfitLoss: ov.totalGrossPnl ?? ov.totalPnl,
         totalTrades: ov.totalTrades,
         totalWins: ov.totalWins,
         totalLosses: ov.totalLosses,
